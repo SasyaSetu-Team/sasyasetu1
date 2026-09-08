@@ -23,6 +23,8 @@ import { fetchIntent, type IntentResult } from '@/lib/intentClient';
 
 const VALID_ROLES = ['Farmer', 'FPO', 'Buyer', 'Storage Provider', 'Transport Provider'];
 
+const HIDDEN_ROLES = ['FPO'];
+
 function normalizeRole(raw: string): string | null {
   const lower = raw.toLowerCase().trim();
   for (const role of VALID_ROLES) {
@@ -465,6 +467,7 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
 
     const roleMatch = parseRoleCommand(text, lang);
     if (roleMatch) {
+      if (HIDDEN_ROLES.includes(roleMatch.role)) return t('voice.roleNotAvailable');
       cbRef.current.selectRole(roleMatch.role);
       dispatch({ type: 'SET_LOGIN_ROLE', role: roleMatch.role });
       dispatch({ type: 'START_INTENT', intent: 'voice_login' });
@@ -730,6 +733,7 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
     if (result.role) {
       const normalizedRole = normalizeRole(result.role);
       if (!normalizedRole) return t('voice.didNotUnderstand');
+      if (HIDDEN_ROLES.includes(normalizedRole)) return t('voice.roleNotAvailable');
       cbRef.current.selectRole(normalizedRole);
       dispatch({ type: 'SET_LOGIN_ROLE', role: normalizedRole });
       dispatch({ type: 'START_INTENT', intent: 'voice_login' });

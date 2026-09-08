@@ -22,6 +22,7 @@ const roleMeta: Record<Role, { location: string; initials: string; color: string
   Buyer: { location: 'Warangal, Telangana', initials: 'VR', color: 'blue', illustration: 'Buyer at market' },
 };
 const allRoles: Role[] = ['Farmer', 'FPO', 'Transport Provider', 'Storage Provider', 'Buyer'];
+const visibleRoles: Role[] = allRoles.filter((r) => r !== 'FPO');
 
 function Illustration({ label, color, icon: Icon = Sprout }: { label: string; color: string; icon?: IconType }) { return <div className={`illustration ${color}`}><div className="illustration-shape"><Icon size={58} strokeWidth={1.5} /></div><small>{label}</small></div>; }
 function Badge({ children, tone = 'green' }: { children: ReactNode; tone?: string }) { return <span className={`badge ${tone}`}>{children}</span>; }
@@ -352,7 +353,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
   );
 }
 
-function Login({ onRole, voiceOpen, t, language }: { onRole: (role: Role) => void; voiceOpen: () => void; t: T; language: Language }) { const handleRole = (role: Role) => { warmupSpeech(); onRole(role); }; return <main className="login-screen"><div className="login-brand"><span><Sprout size={27} /></span><strong>{t('app.name')}</strong></div><VoiceButton onClick={voiceOpen} t={t} /><div className="role-cards">{allRoles.map((role) => <button className="role-card" key={role} onClick={() => handleRole(role)}><Illustration label={roleMeta[role].illustration} color={roleMeta[role].color} icon={role === 'Farmer' ? Sprout : role === 'FPO' ? Users : role === 'Buyer' ? ShoppingBag : role === 'Storage Provider' ? Warehouse : Truck} /><h2>{t(`role.${role}`)}</h2><ArrowRight size={21} /></button>)}</div><button className="sasya-button" onClick={voiceOpen}><Sprout size={18} /> {t('app.name')}</button></main>; }
+function Login({ onRole, voiceOpen, t, language }: { onRole: (role: Role) => void; voiceOpen: () => void; t: T; language: Language }) { const handleRole = (role: Role) => { warmupSpeech(); onRole(role); }; return <main className="login-screen"><div className="login-brand"><span><Sprout size={27} /></span><strong>{t('app.name')}</strong></div><VoiceButton onClick={voiceOpen} t={t} /><div className="role-cards">{visibleRoles.map((role) => <button className="role-card" key={role} onClick={() => handleRole(role)}><Illustration label={roleMeta[role].illustration} color={roleMeta[role].color} icon={role === 'Farmer' ? Sprout : role === 'FPO' ? Users : role === 'Buyer' ? ShoppingBag : role === 'Storage Provider' ? Warehouse : Truck} /><h2>{t(`role.${role}`)}</h2><ArrowRight size={21} /></button>)}</div><button className="sasya-button" onClick={voiceOpen}><Sprout size={18} /> {t('app.name')}</button></main>; }
 
 function LoginFlow({ role, done, back, t, authError, clearError, signingIn, step, setStep, mobile, setMobile, otp, setOtp, buyerCat, setBuyerCat }: { role: Role; done: (email: string, password: string, buyerCategory?: string) => Promise<void>; back: () => void; t: T; authError: string | null; clearError: () => void; signingIn: boolean; step: number; setStep: (step: number) => void; mobile: string; setMobile: (value: string) => void; otp: string; setOtp: (value: string) => void; buyerCat: string; setBuyerCat: (value: string) => void }) {
   const totalSteps = 3;
