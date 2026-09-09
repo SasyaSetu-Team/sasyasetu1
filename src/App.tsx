@@ -3,7 +3,7 @@ import type { FormEvent, ReactNode } from 'react';
 import { AlertTriangle, ArrowLeft, ArrowRight, Bell, BookOpen, CalendarDays, Check, CircleHelp, Clock3, Eye, EyeOff, FileCheck2, Headphones, Leaf, Layers, Map, MapPin, Mic, Package, Phone, Plus, Search, Settings, ShieldCheck, ShoppingBag, Sprout, Truck, UserRound, Users, Warehouse, X, Zap } from 'lucide-react';
 import { allLanguages, makeT, codeFromLanguage, languageFromCode, type Language, type T } from '@/translations';
 import { demoEmails, useAuth } from '@/lib/auth';
-import { fetchCrops, fetchMyListings, fetchPublicListings, fetchListing, createListing, updateListing, markAsHarvested, bookedQuantity, formatKg, formatPrice, formatDate, cropDisplayName, cropDisplayVariety, OTHER_CROP_ID, fetchClusters, formatHarvestWindow, timeLeftUntil, fetchClusterInvites, fetchClusterMemberships, joinCluster, dismissClusterInvite, type Crop, type CropListing, type CropListingInput, type CropClusterWithMembers, type ClusterInvite, type ClusterMembership } from '@/lib/crops';
+import { fetchCrops, fetchMyListings, fetchPublicListings, fetchListing, createListing, updateListing, markAsHarvested, bookedQuantity, formatKg, formatPrice, formatDate, cropDisplayName, cropDisplayVariety, OTHER_CROP_ID, fetchClusters, formatHarvestWindow, timeLeftUntil, fetchClusterInvites, fetchClusterMemberships, fetchClusterMembers, joinCluster, dismissClusterInvite, type Crop, type CropListing, type CropListingInput, type CropClusterWithMembers, type ClusterInvite, type ClusterMembership, type ClusterMemberDetail } from '@/lib/crops';
 import { fetchNotifications, markNotificationRead, markAllNotificationsRead, seedDemoNotificationsIfNeeded, type NotificationRow } from '@/lib/notifications';
 import { parseCommand, parseStatus, parseNumber, parseLanguageChange, extractValue, isSpeechRecognitionSupported, isSpeechSynthesisSupported, createRecognition, speak, stopSpeaking, warmupSpeech, langCode, captureScreenText, subscribeDebug, getSynthState, emitDebug, type VoiceRecognition, type DebugEvent } from '@/lib/voice';
 import { useVoiceSession, type FormField } from '@/lib/useVoiceSession';
@@ -377,77 +377,49 @@ function LoginFlow({ role, done, back, t, authError, clearError, signingIn, step
 function FeatureCard({ title, body, icon: Icon, color, onClick }: { title: string; body: string; icon: IconType; color: string; onClick: () => void }) { return <button className="feature-card" onClick={onClick}><span className={`feature-icon ${color}`}><Icon size={27} /></span><span><strong>{title}</strong><small>{body}</small></span><ArrowRight size={19} /></button>; }
 function RoleHome({ role, open, profile, notifications, t }: { role: Role; open: (view: View) => void; profile: () => void; notifications: () => void; t: T }) { const feature = (titleKey: string, bodyKey: string, icon: IconType, color: string, view: View) => <FeatureCard title={t(titleKey)} body={t(bodyKey)} icon={icon} color={color} onClick={() => open(view)} />; return <><section className={`welcome ${roleMeta[role].color}`}><div><Badge tone="green">{t('home.workspace', { role: t(`role.${role}`) })}</Badge><h1>{t(`home.greeting.${role}`)}</h1><p>{roleMeta[role].location}</p><div className="welcome-actions"><button onClick={profile}><UserRound size={18} /> {t('home.profile')}</button><button onClick={notifications}><Bell size={18} /> {t('home.notifications')}</button></div></div><Illustration label={roleMeta[role].illustration} color={roleMeta[role].color} /></section><div className="feature-grid">{role === 'Farmer' && <>{feature('feature.My Crops', 'feature.My Crops.body', Leaf, 'green', 'crops')}{feature('feature.Market', 'feature.Market.body', ShoppingBag, 'blue', 'market')}{feature('feature.Harvest Calendar', 'feature.Harvest Calendar.body', CalendarDays, 'orange', 'calendar')}{feature('feature.Transport', 'feature.Transport.body', Truck, 'teal', 'transport-options')}{feature('feature.Storage', 'feature.Storage.body', Warehouse, 'amber', 'storage')}{feature('feature.FPO Network', 'feature.FPO Network.body', Users, 'green', 'fpo')}{feature('feature.Tutorials', 'feature.Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.Help & Dispute.body', CircleHelp, 'orange', 'help')}</>}{role === 'Buyer' && <>{feature('feature.Explore Crops', 'feature.Explore Crops.body', Search, 'green', 'market')}{feature('feature.My Orders', 'feature.My Orders.body', Package, 'blue', 'orders')}{feature('feature.Deals', 'feature.Deals.body', ShieldCheck, 'teal', 'deals')}{feature('feature.Tutorials', 'feature.Buyer Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.Help & Dispute.body', CircleHelp, 'orange', 'help')}</>}{role === 'FPO' && <>{feature('feature.Member Crops', 'feature.Member Crops.body', Leaf, 'green', 'crops')}{feature('feature.Market', 'feature.Market FPO.body', ShoppingBag, 'blue', 'market')}{feature('feature.Harvest Calendar', 'feature.Member Calendar.body', CalendarDays, 'orange', 'calendar')}{feature('feature.Transport Provider', 'feature.Transport Provider.body', Truck, 'teal', 'transport-options')}{feature('feature.Storage', 'feature.Storage FPO.body', Warehouse, 'amber', 'storage')}{feature('feature.Tutorials', 'feature.FPO Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.FPO Help.body', CircleHelp, 'orange', 'help')}</>}{role === 'Storage Provider' && <>{feature('feature.Main Summary', 'feature.Main Summary.body', Zap, 'green', 'features')}{feature('feature.Storage Requests', 'feature.Storage Requests.body', Bell, 'blue', 'storage')}{feature('feature.My Approvals', 'feature.My Approvals.body', FileCheck2, 'teal', 'approvals')}{feature('feature.Tutorials', 'feature.Storage Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.Provider Help.body', CircleHelp, 'orange', 'help')}</>}{role === 'Transport Provider' && <>{feature('feature.Cold Storage Requests', 'feature.Cold Storage Requests.body', Warehouse, 'amber', 'features')}{feature('feature.Farmer Requests', 'feature.Farmer Requests.body', Sprout, 'green', 'features')}{feature('feature.My Orders', 'feature.My Orders.body', Package, 'teal', 'orders')}{feature('feature.Live Journey', 'feature.Live Journey.body', Map, 'orange', 'journey')}{feature('feature.Tutorials', 'feature.Transport Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.Provider Help.body', CircleHelp, 'orange', 'help')}</>}</div><p className="scroll-hint">{t('home.scrollHint')}</p></>; }
 
-function ClusterInviteCard({ invite, t, onJoin, onDismiss, busy }: { invite: ClusterInvite; t: T; onJoin: () => void; onDismiss: () => void; busy: boolean }) {
-  const name = invite.crop_name;
-  const Icon = cropIconFor(name);
-  const color = cropColorFor(name);
-  const statusLabel = invite.status === 'forming' ? t('cluster.forming') : t('cluster.ready');
-  const statusTone = invite.status === 'ready' ? 'green' : 'orange';
-  return (
-    <Card className="cluster-card">
-      <div className="cluster-badge-row">
-        <span className="cluster-pill"><Layers size={14} /> {t('cluster.invite')}</span>
-        <Badge tone={statusTone}>{statusLabel}</Badge>
-      </div>
-      <div className="cluster-body">
-        <span className={`cluster-illustration ${color}`}><Icon size={38} strokeWidth={1.5} /></span>
-        <div className="cluster-info">
-          <h2>{name}{invite.variety ? ` · ${invite.variety}` : ''}</h2>
-          <div className="cluster-stats">
-            <span><Package size={15} /> {formatKg(invite.total_quantity)}</span>
-            <span><Users size={15} /> {invite.farmer_count} {t('cluster.farmers')}</span>
-            {invite.location_area && <span><MapPin size={15} /> {invite.location_area}</span>}
-          </div>
-          <div className="cluster-stats">
-            <span><CalendarDays size={15} /> {t('cluster.harvestWindow')}: {formatHarvestWindow(invite)}</span>
-            <span><Clock3 size={15} /> {t('cluster.closesIn')}: {timeLeftUntil(invite.closes_at)}</span>
-          </div>
-          <div className="cluster-stats">
-            <span><Zap size={15} /> {t('cluster.benefits')}</span>
-          </div>
-        </div>
-      </div>
-      <div className="row">
-        <Button icon={Users} onClick={onJoin} wide>{busy ? '…' : t('cluster.join')}</Button>
-        <Button variant="outline" onClick={onDismiss}>{t('cluster.dismiss')}</Button>
-      </div>
-    </Card>
-  );
+function clusterStatusLabel(cluster: CropClusterWithMembers, t: T): string {
+  if (cluster.status === 'forming') return t('cluster.forming');
+  if (cluster.status === 'ready') return t('cluster.ready');
+  if (cluster.status === 'sold') return t('cluster.sold');
+  return t('cluster.closed');
 }
 
-function ClusterMemberCard({ membership, t }: { membership: ClusterMembership; t: T }) {
-  const name = membership.crop_name;
+function ClusterSummaryCard({ cluster, t, badge, onClick }: { cluster: CropClusterWithMembers; t: T; badge: string; onClick: () => void }) {
+  const name = cluster.crop_name;
   const Icon = cropIconFor(name);
-  const color = cropColorFor(name);
-  const statusLabel = membership.status === 'forming' ? t('cluster.forming') : membership.status === 'ready' ? t('cluster.ready') : membership.status === 'sold' ? t('cluster.sold') : t('cluster.closed');
-  const statusTone = membership.status === 'ready' ? 'green' : membership.status === 'forming' ? 'orange' : 'blue';
-  return (
-    <Card className="cluster-card">
-      <div className="cluster-badge-row">
-        <span className="cluster-pill"><Layers size={14} /> {t('cluster.membership')}</span>
-        <Badge tone={statusTone}>{statusLabel}</Badge>
+  const statusTone = cluster.status === 'ready' ? 'green' : cluster.status === 'forming' ? 'orange' : 'blue';
+  return <Card className="cluster-summary-card" onClick={onClick}>
+    <span className={`cluster-illustration ${cropColorFor(name)}`}><Icon size={30} strokeWidth={1.5} /></span>
+    <div className="cluster-summary-content">
+      <div className="cluster-badge-row"><span className="cluster-pill"><Layers size={13} /> {badge}</span><Badge tone={statusTone}>{clusterStatusLabel(cluster, t)}</Badge></div>
+      <h3>{name}{cluster.variety ? ` · ${cluster.variety}` : ''}</h3>
+      <p>{cluster.location_area ?? '—'} · {formatKg(cluster.total_quantity)} · {cluster.farmer_count} {t('cluster.farmers')}</p>
+    </div>
+    <ArrowRight size={18} />
+  </Card>;
+}
+
+function ClusterDetail({ cluster, members, t, invite, busy, onAccept, onDeny, onClose }: { cluster: CropClusterWithMembers; members: ClusterMemberDetail[]; t: T; invite?: ClusterInvite; busy: boolean; onAccept: () => void; onDeny: () => void; onClose: () => void }) {
+  const harvested = cluster.status === 'sold' || cluster.status === 'closed';
+  const remaining = Math.max(0, cluster.total_quantity - members.reduce((sum, member) => sum + member.quantity_contributed, 0));
+  return <div className="modal-backdrop" onClick={onClose}>
+    <div className="cluster-detail-modal" onClick={(event) => event.stopPropagation()}>
+      <div className="cluster-detail-header"><div><span className="eyebrow">{t('cluster.detailTitle')}</span><h2>{cluster.crop_name}{cluster.variety ? ` · ${cluster.variety}` : ''}</h2></div><button className="icon-button" onClick={onClose} aria-label={t('common.close')}><X size={22} /></button></div>
+      <div className="cluster-detail-grid">
+        <Detail label={t('cluster.location')} value={cluster.location_area ?? '—'} />
+        <Detail label={t('cluster.fpo')} value="—" />
+        <Detail label={t('cluster.harvestWindow')} value={formatHarvestWindow(cluster)} />
+        <Detail label={t('cluster.requiredTotal')} value={formatKg(cluster.total_quantity)} />
+        {!harvested && <Detail label={t('cluster.remainingSlots')} value={formatKg(remaining)} />}
+        {harvested && <Detail label={t('cluster.harvestedDate')} value={formatDate(cluster.harvest_window_end)} />}
       </div>
-      <div className="cluster-body">
-        <span className={`cluster-illustration ${color}`}><Icon size={38} strokeWidth={1.5} /></span>
-        <div className="cluster-info">
-          <h2>{name}{membership.variety ? ` · ${membership.variety}` : ''}</h2>
-          <div className="cluster-stats">
-            <span><Package size={15} /> {formatKg(membership.total_quantity)}</span>
-            <span><Users size={15} /> {membership.farmer_count} {t('cluster.farmers')}</span>
-            {membership.location_area && <span><MapPin size={15} /> {membership.location_area}</span>}
-          </div>
-          <div className="cluster-stats">
-            <span><CalendarDays size={15} /> {t('cluster.harvestWindow')}: {formatHarvestWindow(membership)}</span>
-            <span><ShieldCheck size={15} /> {t('cluster.grade')}: {membership.overall_quality_grade ?? 'A'}</span>
-          </div>
-          <div className="cluster-stats">
-            <span><Package size={15} /> {t('cluster.myContribution')}: {formatKg(membership.my_quantity)}</span>
-            <span><ShieldCheck size={15} /> {t('cluster.share')}: {membership.my_payout_share}%</span>
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
+      <div className="cluster-detail-section"><h3>{t('cluster.concept')}</h3><p>{t('cluster.conceptBody')}</p><p><strong>{t('cluster.benefits')}:</strong> {t('cluster.benefits')}</p></div>
+      <div className="cluster-detail-section"><h3>{t('cluster.members')}</h3>{members.length === 0 ? <p>{t('cluster.noMemberships')}</p> : <div className="cluster-member-list">{members.map((member) => <div className="cluster-member-row" key={member.id}><div><strong>{member.farmer_name}</strong><small>{member.location_area ?? '—'}</small></div><div><span>{t('cluster.contribution')}: {formatKg(member.quantity_contributed)}</span><span>{t('cluster.sharePercent')}: {member.payout_share_percent.toFixed(1)}%</span><span>{t('cluster.shareAmount')}: {formatKg((member.payout_share_percent / 100) * cluster.total_quantity)}</span></div></div>)}</div>}</div>
+      {harvested && <div className="cluster-detail-section"><h3>{t('cluster.transportPlan')}</h3><p>{cluster.transport_status ?? t('cluster.transportPlaceholder')}</p><h3>{t('cluster.storagePlan')}</h3><p>{t('cluster.storagePlaceholder')}</p></div>}
+      <div className="cluster-detail-section"><h3>{t('cluster.timeline')}</h3><div className="cluster-timeline"><span>{t('cluster.timelineFormed')}</span><span>{t('cluster.timelineContributions')}</span><span>{harvested ? t('cluster.timelineHarvested') : t('cluster.timelineTransport')}</span></div></div>
+      {invite && <div className="row"><Button icon={Check} onClick={onAccept} wide>{busy ? '…' : t('cluster.accept')}</Button><Button variant="outline" onClick={onDeny} disabled={busy}>{t('cluster.deny')}</Button></div>}
+    </div>
+  </div>;
 }
 
 function CropView({ open, selectCrop, t, role, notify }: { open: (view: View) => void; selectCrop: (listing: CropListing) => void; t: T; role: Role; notify: (message: string) => void }) {

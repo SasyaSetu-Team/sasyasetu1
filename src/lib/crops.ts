@@ -363,6 +363,56 @@ export async function dismissClusterInvite(clusterId: string): Promise<void> {
   if (error) throw error;
 }
 
+export interface ClusterMemberDetail {
+  id: string;
+  farmer_id: string;
+  farmer_name: string;
+  quantity_contributed: number;
+  quality_grade: string | null;
+  payout_share_percent: number;
+  location_area: string | null;
+  created_at: string;
+}
+
+export async function fetchClusterMembers(clusterId: string): Promise<ClusterMemberDetail[]> {
+  const { data: members, error: mErr } = await supabase
+    .from('crop_cluster_members')
+    .select('id, farmer_id, quantity_contributed, quality_grade, payout_share_percent, created_at')
+    .eq('cluster_id', clusterId)
+    .order('created_at', { ascending: true });
+  if (mErr) throw mErr;
+  if (!members || members.length === 0) return [];
+
+  const farmerIds = [...new Set(members.map((m) => m.farmer_id))];
+  const { data: profiles, error: pErr } = await supabase
+    .from('profiles')
+    .select('id, display_name')
+    .in('id', farmerIds);
+  if (pErr) throw pErr;
+
+  const { data: listings, error: lErr } = await supabase
+    .from('crop_listings')
+    .select('id, owner_id, location_area')
+    .in('owner_id', farmerIds);
+  if (lErr) throw lErr;
+
+  const nameMap = new Map<string, string>();
+  for (const p of profiles ?? []) nameMap.set(p.id, p.display_name);
+  const locMap = new Map<string, string | null>();
+  for (const l of listings ?? []) locMap.set(l.owner_id, l.location_area);
+
+  return members.map((m) => ({
+    id: m.id,
+    farmer_id: m.farmer_id,
+    farmer_name: nameMap.get(m.farmer_id) ?? 'Unknown Farmer',
+    quantity_contributed: Number(m.quantity_contributed),
+    quality_grade: m.quality_grade,
+    payout_share_percent: Number(m.payout_share_percent),
+    location_area: locMap.get(m.farmer_id) ?? null,
+    created_at: m.created_at,
+  }));
+}
+
 function lower(s: string | null | undefined): string {
   return (s ?? '').toLowerCase();
 }
