@@ -618,6 +618,7 @@ const en: Dict = {
 
   // Common
   'common.back': 'Back',
+  'common.close': 'Close',
   'common.language': 'Language',
 };
 
@@ -1214,6 +1215,7 @@ const te: Dict = {
   'notifications.loadError': 'నోటిఫికేషన్లు లోడ్ చేయలేకపోయాము',
 
   'common.back': 'వెనుకకు',
+  'common.close': 'మూసివేయి',
   'common.language': 'భాష',
 };
 
@@ -1810,6 +1812,7 @@ const hi: Dict = {
   'notifications.loadError': 'सूचनाएं लोड नहीं हो सकीं',
 
   'common.back': 'वापस',
+  'common.close': 'बंद करें',
   'common.language': 'भाषा',
 };
 

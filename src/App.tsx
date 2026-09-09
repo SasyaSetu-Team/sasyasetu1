@@ -422,6 +422,8 @@ function ClusterDetail({ cluster, members, t, invite, busy, onAccept, onDeny, on
   </div>;
 }
 
+type ClusterModalState = { cluster: CropClusterWithMembers; members: ClusterMemberDetail[]; invite?: ClusterInvite } | null;
+
 function CropView({ open, selectCrop, t, role, notify }: { open: (view: View) => void; selectCrop: (listing: CropListing) => void; t: T; role: Role; notify: (message: string) => void }) {
   const [type, setType] = useState<'Upcoming' | 'Harvested'>('Upcoming');
   const [listings, setListings] = useState<CropListing[]>([]);
@@ -430,6 +432,7 @@ function CropView({ open, selectCrop, t, role, notify }: { open: (view: View) =>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyClusterId, setBusyClusterId] = useState<string | null>(null);
+  const [modal, setModal] = useState<ClusterModalState>(null);
 
   const tRef = useRef(t);
   useEffect(() => { tRef.current = t; }, [t]);
@@ -464,11 +467,22 @@ function CropView({ open, selectCrop, t, role, notify }: { open: (view: View) =>
     return () => { cancelled = true; };
   }, []);
 
-  const handleJoin = async (invite: ClusterInvite) => {
+  const openClusterModal = async (cluster: CropClusterWithMembers, invite?: ClusterInvite) => {
+    setModal({ cluster, members: [], invite });
+    try {
+      const members = await fetchClusterMembers(cluster.id);
+      setModal({ cluster, members, invite });
+    } catch { setModal({ cluster, members: [], invite }); }
+  };
+
+  const handleAccept = async () => {
+    if (!modal?.invite) return;
+    const invite = modal.invite;
     setBusyClusterId(invite.id);
     try {
       await joinCluster(invite.id, invite.matching_listing_id);
       notify(t('cluster.joined', { crop: invite.crop_name }));
+      setModal(null);
       await loadAll();
     } catch {
       notify(t('cluster.joinError'));
@@ -477,12 +491,15 @@ function CropView({ open, selectCrop, t, role, notify }: { open: (view: View) =>
     }
   };
 
-  const handleDismiss = async (invite: ClusterInvite) => {
+  const handleDeny = async () => {
+    if (!modal?.invite) return;
+    const invite = modal.invite;
     setBusyClusterId(invite.id);
     try {
       await dismissClusterInvite(invite.id);
       notify(t('cluster.dismissed'));
-      setInvites((prev) => prev.filter((i) => i.id !== invite.id));
+      setModal(null);
+      await loadAll();
     } catch {
       notify(t('cluster.dismissError'));
     } finally {
@@ -493,22 +510,15 @@ function CropView({ open, selectCrop, t, role, notify }: { open: (view: View) =>
   const upcoming = type === 'Upcoming';
   const filtered = listings.filter((l) => upcoming ? l.status === 'Upcoming' : l.status === 'Harvested');
   const showClusterSections = role === 'Farmer' || role === 'FPO';
+  const joinedForTab = memberships.filter((m) => upcoming ? m.status !== 'sold' && m.status !== 'closed' : m.status === 'sold' || m.status === 'closed');
 
   return <Page title={t('crops.title')} body={t('crops.body')} back={() => open('home')} t={t}>
     {showClusterSections && invites.length > 0 && (
       <>
         <h3 className="subhead cluster-section-heading"><Layers size={18} /> {t('cluster.invitesTitle')}</h3>
-        <p className="cluster-section-body">{t('cluster.invitesBody')}</p>
         <div className="crop-stack">
           {invites.map((invite) => (
-            <ClusterInviteCard
-              key={invite.id}
-              invite={invite}
-              t={t}
-              onJoin={() => handleJoin(invite)}
-              onDismiss={() => handleDismiss(invite)}
-              busy={busyClusterId === invite.id}
-            />
+            <ClusterSummaryCard key={invite.id} cluster={invite} t={t} badge={t('cluster.inviteBadge')} onClick={() => openClusterModal(invite, invite)} />
           ))}
         </div>
       </>
@@ -516,10 +526,9 @@ function CropView({ open, selectCrop, t, role, notify }: { open: (view: View) =>
     {showClusterSections && memberships.length > 0 && (
       <>
         <h3 className="subhead cluster-section-heading"><Layers size={18} /> {t('cluster.membershipsTitle')}</h3>
-        <p className="cluster-section-body">{t('cluster.membershipsBody')}</p>
         <div className="crop-stack">
           {memberships.map((membership) => (
-            <ClusterMemberCard key={membership.id} membership={membership} t={t} />
+            <ClusterSummaryCard key={membership.id} cluster={membership} t={t} badge={t('cluster.memberBadge')} onClick={() => openClusterModal(membership)} />
           ))}
         </div>
       </>
@@ -551,6 +560,7 @@ function CropView({ open, selectCrop, t, role, notify }: { open: (view: View) =>
     </div>
     {(role === 'Farmer' || role === 'FPO') && <Button icon={Plus} onClick={() => open('crop-create')}>{t('crops.createCrop')}</Button>}
     <Demo>{t('crops.cropDetailsSample')}</Demo>
+    {modal && <ClusterDetail cluster={modal.cluster} members={modal.members} t={t} invite={modal.invite} busy={busyClusterId === modal.cluster.id} onAccept={handleAccept} onDeny={handleDeny} onClose={() => setModal(null)} />}
   </Page>;
 }
 function CropDetail({ open, crop, t, role, onEdit, onMarkHarvested }: { open: (view: View) => void; crop: CropListing; t: T; role: Role; onEdit: () => void; onMarkHarvested: () => void }) {
