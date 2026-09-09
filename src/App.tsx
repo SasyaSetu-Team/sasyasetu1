@@ -3,7 +3,7 @@ import type { FormEvent, ReactNode } from 'react';
 import { AlertTriangle, ArrowLeft, ArrowRight, Bell, BookOpen, CalendarDays, Check, CircleHelp, Clock3, Eye, EyeOff, FileCheck2, Headphones, Leaf, Layers, Map, MapPin, Mic, Package, Phone, Plus, Search, Settings, ShieldCheck, ShoppingBag, Sprout, Truck, UserRound, Users, Warehouse, X, Zap } from 'lucide-react';
 import { allLanguages, makeT, codeFromLanguage, languageFromCode, type Language, type T } from '@/translations';
 import { demoEmails, useAuth } from '@/lib/auth';
-import { fetchCrops, fetchMyListings, fetchPublicListings, fetchListing, createListing, updateListing, markAsHarvested, bookedQuantity, formatKg, formatPrice, formatDate, cropDisplayName, cropDisplayVariety, OTHER_CROP_ID, fetchClusters, formatHarvestWindow, timeLeftUntil, type Crop, type CropListing, type CropListingInput, type CropClusterWithMembers } from '@/lib/crops';
+import { fetchCrops, fetchMyListings, fetchPublicListings, fetchListing, createListing, updateListing, markAsHarvested, bookedQuantity, formatKg, formatPrice, formatDate, cropDisplayName, cropDisplayVariety, OTHER_CROP_ID, fetchClusters, formatHarvestWindow, timeLeftUntil, fetchClusterInvites, fetchClusterMemberships, joinCluster, dismissClusterInvite, type Crop, type CropListing, type CropListingInput, type CropClusterWithMembers, type ClusterInvite, type ClusterMembership } from '@/lib/crops';
 import { fetchNotifications, markNotificationRead, markAllNotificationsRead, seedDemoNotificationsIfNeeded, type NotificationRow } from '@/lib/notifications';
 import { parseCommand, parseStatus, parseNumber, parseLanguageChange, extractValue, isSpeechRecognitionSupported, isSpeechSynthesisSupported, createRecognition, speak, stopSpeaking, warmupSpeech, langCode, captureScreenText, subscribeDebug, getSynthState, emitDebug, type VoiceRecognition, type DebugEvent } from '@/lib/voice';
 import { useVoiceSession, type FormField } from '@/lib/useVoiceSession';
@@ -377,30 +377,184 @@ function LoginFlow({ role, done, back, t, authError, clearError, signingIn, step
 function FeatureCard({ title, body, icon: Icon, color, onClick }: { title: string; body: string; icon: IconType; color: string; onClick: () => void }) { return <button className="feature-card" onClick={onClick}><span className={`feature-icon ${color}`}><Icon size={27} /></span><span><strong>{title}</strong><small>{body}</small></span><ArrowRight size={19} /></button>; }
 function RoleHome({ role, open, profile, notifications, t }: { role: Role; open: (view: View) => void; profile: () => void; notifications: () => void; t: T }) { const feature = (titleKey: string, bodyKey: string, icon: IconType, color: string, view: View) => <FeatureCard title={t(titleKey)} body={t(bodyKey)} icon={icon} color={color} onClick={() => open(view)} />; return <><section className={`welcome ${roleMeta[role].color}`}><div><Badge tone="green">{t('home.workspace', { role: t(`role.${role}`) })}</Badge><h1>{t(`home.greeting.${role}`)}</h1><p>{roleMeta[role].location}</p><div className="welcome-actions"><button onClick={profile}><UserRound size={18} /> {t('home.profile')}</button><button onClick={notifications}><Bell size={18} /> {t('home.notifications')}</button></div></div><Illustration label={roleMeta[role].illustration} color={roleMeta[role].color} /></section><div className="feature-grid">{role === 'Farmer' && <>{feature('feature.My Crops', 'feature.My Crops.body', Leaf, 'green', 'crops')}{feature('feature.Market', 'feature.Market.body', ShoppingBag, 'blue', 'market')}{feature('feature.Harvest Calendar', 'feature.Harvest Calendar.body', CalendarDays, 'orange', 'calendar')}{feature('feature.Transport', 'feature.Transport.body', Truck, 'teal', 'transport-options')}{feature('feature.Storage', 'feature.Storage.body', Warehouse, 'amber', 'storage')}{feature('feature.FPO Network', 'feature.FPO Network.body', Users, 'green', 'fpo')}{feature('feature.Tutorials', 'feature.Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.Help & Dispute.body', CircleHelp, 'orange', 'help')}</>}{role === 'Buyer' && <>{feature('feature.Explore Crops', 'feature.Explore Crops.body', Search, 'green', 'market')}{feature('feature.My Orders', 'feature.My Orders.body', Package, 'blue', 'orders')}{feature('feature.Deals', 'feature.Deals.body', ShieldCheck, 'teal', 'deals')}{feature('feature.Tutorials', 'feature.Buyer Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.Help & Dispute.body', CircleHelp, 'orange', 'help')}</>}{role === 'FPO' && <>{feature('feature.Member Crops', 'feature.Member Crops.body', Leaf, 'green', 'crops')}{feature('feature.Market', 'feature.Market FPO.body', ShoppingBag, 'blue', 'market')}{feature('feature.Harvest Calendar', 'feature.Member Calendar.body', CalendarDays, 'orange', 'calendar')}{feature('feature.Transport Provider', 'feature.Transport Provider.body', Truck, 'teal', 'transport-options')}{feature('feature.Storage', 'feature.Storage FPO.body', Warehouse, 'amber', 'storage')}{feature('feature.Tutorials', 'feature.FPO Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.FPO Help.body', CircleHelp, 'orange', 'help')}</>}{role === 'Storage Provider' && <>{feature('feature.Main Summary', 'feature.Main Summary.body', Zap, 'green', 'features')}{feature('feature.Storage Requests', 'feature.Storage Requests.body', Bell, 'blue', 'storage')}{feature('feature.My Approvals', 'feature.My Approvals.body', FileCheck2, 'teal', 'approvals')}{feature('feature.Tutorials', 'feature.Storage Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.Provider Help.body', CircleHelp, 'orange', 'help')}</>}{role === 'Transport Provider' && <>{feature('feature.Cold Storage Requests', 'feature.Cold Storage Requests.body', Warehouse, 'amber', 'features')}{feature('feature.Farmer Requests', 'feature.Farmer Requests.body', Sprout, 'green', 'features')}{feature('feature.My Orders', 'feature.My Orders.body', Package, 'teal', 'orders')}{feature('feature.Live Journey', 'feature.Live Journey.body', Map, 'orange', 'journey')}{feature('feature.Tutorials', 'feature.Transport Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.Provider Help.body', CircleHelp, 'orange', 'help')}</>}</div><p className="scroll-hint">{t('home.scrollHint')}</p></>; }
 
-function CropView({ open, selectCrop, t, role }: { open: (view: View) => void; selectCrop: (listing: CropListing) => void; t: T; role: Role }) {
+function ClusterInviteCard({ invite, t, onJoin, onDismiss, busy }: { invite: ClusterInvite; t: T; onJoin: () => void; onDismiss: () => void; busy: boolean }) {
+  const name = invite.crop_name;
+  const Icon = cropIconFor(name);
+  const color = cropColorFor(name);
+  const statusLabel = invite.status === 'forming' ? t('cluster.forming') : t('cluster.ready');
+  const statusTone = invite.status === 'ready' ? 'green' : 'orange';
+  return (
+    <Card className="cluster-card">
+      <div className="cluster-badge-row">
+        <span className="cluster-pill"><Layers size={14} /> {t('cluster.invite')}</span>
+        <Badge tone={statusTone}>{statusLabel}</Badge>
+      </div>
+      <div className="cluster-body">
+        <span className={`cluster-illustration ${color}`}><Icon size={38} strokeWidth={1.5} /></span>
+        <div className="cluster-info">
+          <h2>{name}{invite.variety ? ` · ${invite.variety}` : ''}</h2>
+          <div className="cluster-stats">
+            <span><Package size={15} /> {formatKg(invite.total_quantity)}</span>
+            <span><Users size={15} /> {invite.farmer_count} {t('cluster.farmers')}</span>
+            {invite.location_area && <span><MapPin size={15} /> {invite.location_area}</span>
+          </div>
+          <div className="cluster-stats">
+            <span><CalendarDays size={15} /> {t('cluster.harvestWindow')}: {formatHarvestWindow(invite)}</span>
+            <span><Clock3 size={15} /> {t('cluster.closesIn')}: {timeLeftUntil(invite.closes_at)}</span>
+          </div>
+          <div className="cluster-stats">
+            <span><Zap size={15} /> {t('cluster.benefits')}</span>
+          </div>
+        </div>
+      </div>
+      <div className="row">
+        <Button icon={Users} onClick={onJoin} wide>{busy ? '…' : t('cluster.join')}</Button>
+        <Button variant="outline" onClick={onDismiss}>{t('cluster.dismiss')}</Button>
+      </div>
+    </Card>
+  );
+}
+
+function ClusterMemberCard({ membership, t }: { membership: ClusterMembership; t: T }) {
+  const name = membership.crop_name;
+  const Icon = cropIconFor(name);
+  const color = cropColorFor(name);
+  const statusLabel = membership.status === 'forming' ? t('cluster.forming') : membership.status === 'ready' ? t('cluster.ready') : membership.status === 'sold' ? t('cluster.sold') : t('cluster.closed');
+  const statusTone = membership.status === 'ready' ? 'green' : membership.status === 'forming' ? 'orange' : 'blue';
+  return (
+    <Card className="cluster-card">
+      <div className="cluster-badge-row">
+        <span className="cluster-pill"><Layers size={14} /> {t('cluster.membership')}</span>
+        <Badge tone={statusTone}>{statusLabel}</Badge>
+      </div>
+      <div className="cluster-body">
+        <span className={`cluster-illustration ${color}`}><Icon size={38} strokeWidth={1.5} /></span>
+        <div className="cluster-info">
+          <h2>{name}{membership.variety ? ` · ${membership.variety}` : ''}</h2>
+          <div className="cluster-stats">
+            <span><Package size={15} /> {formatKg(membership.total_quantity)}</span>
+            <span><Users size={15} /> {membership.farmer_count} {t('cluster.farmers')}</span>
+            {membership.location_area && <span><MapPin size={15} /> {membership.location_area}</span>}
+          </div>
+          <div className="cluster-stats">
+            <span><CalendarDays size={15} /> {t('cluster.harvestWindow')}: {formatHarvestWindow(membership)}</span>
+            <span><ShieldCheck size={15} /> {t('cluster.grade')}: {membership.overall_quality_grade ?? 'A'}</span>
+          </div>
+          <div className="cluster-stats">
+            <span><Package size={15} /> {t('cluster.myContribution')}: {formatKg(membership.my_quantity)}</span>
+            <span><ShieldCheck size={15} /> {t('cluster.share')}: {membership.my_payout_share}%</span>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function CropView({ open, selectCrop, t, role, notify }: { open: (view: View) => void; selectCrop: (listing: CropListing) => void; t: T; role: Role; notify: (message: string) => void }) {
   const [type, setType] = useState<'Upcoming' | 'Harvested'>('Upcoming');
   const [listings, setListings] = useState<CropListing[]>([]);
+  const [invites, setInvites] = useState<ClusterInvite[]>([]);
+  const [memberships, setMemberships] = useState<ClusterMembership[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [busyClusterId, setBusyClusterId] = useState<string | null>(null);
 
   const tRef = useRef(t);
   useEffect(() => { tRef.current = t; }, [t]);
+
+  const loadAll = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const [listingData, inviteData, membershipData] = await Promise.all([fetchMyListings(), fetchClusterInvites(), fetchClusterMemberships()]);
+      setListings(listingData);
+      setInvites(inviteData);
+      setMemberships(membershipData);
+    } catch {
+      setError(tRef.current('crops.loadError'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true); setError(null);
     (async () => {
-      try { const data = await fetchMyListings(); if (!cancelled) setListings(data); }
-      catch { if (!cancelled) setError(tRef.current('crops.loadError')); }
-      finally { if (!cancelled) setLoading(false); }
+      try {
+        const [listingData, inviteData, membershipData] = await Promise.all([fetchMyListings(), fetchClusterInvites(), fetchClusterMemberships()]);
+        if (!cancelled) { setListings(listingData); setInvites(inviteData); setMemberships(membershipData); }
+      } catch {
+        if (!cancelled) setError(tRef.current('crops.loadError'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
     return () => { cancelled = true; };
   }, []);
 
+  const handleJoin = async (invite: ClusterInvite) => {
+    setBusyClusterId(invite.id);
+    try {
+      await joinCluster(invite.id, invite.matching_listing_id);
+      notify(t('cluster.joined', { crop: invite.crop_name }));
+      await loadAll();
+    } catch {
+      notify(t('cluster.joinError'));
+    } finally {
+      setBusyClusterId(null);
+    }
+  };
+
+  const handleDismiss = async (invite: ClusterInvite) => {
+    setBusyClusterId(invite.id);
+    try {
+      await dismissClusterInvite(invite.id);
+      notify(t('cluster.dismissed'));
+      setInvites((prev) => prev.filter((i) => i.id !== invite.id));
+    } catch {
+      notify(t('cluster.dismissError'));
+    } finally {
+      setBusyClusterId(null);
+    }
+  };
+
   const upcoming = type === 'Upcoming';
   const filtered = listings.filter((l) => upcoming ? l.status === 'Upcoming' : l.status === 'Harvested');
+  const showClusterSections = role === 'Farmer' || role === 'FPO';
 
   return <Page title={t('crops.title')} body={t('crops.body')} back={() => open('home')} t={t}>
+    {showClusterSections && invites.length > 0 && (
+      <>
+        <h3 className="subhead cluster-section-heading"><Layers size={18} /> {t('cluster.invitesTitle')}</h3>
+        <p className="cluster-section-body">{t('cluster.invitesBody')}</p>
+        <div className="crop-stack">
+          {invites.map((invite) => (
+            <ClusterInviteCard
+              key={invite.id}
+              invite={invite}
+              t={t}
+              onJoin={() => handleJoin(invite)}
+              onDismiss={() => handleDismiss(invite)}
+              busy={busyClusterId === invite.id}
+            />
+          ))}
+        </div>
+      </>
+    )}
+    {showClusterSections && memberships.length > 0 && (
+      <>
+        <h3 className="subhead cluster-section-heading"><Layers size={18} /> {t('cluster.membershipsTitle')}</h3>
+        <p className="cluster-section-body">{t('cluster.membershipsBody')}</p>
+        <div className="crop-stack">
+          {memberships.map((membership) => (
+            <ClusterMemberCard key={membership.id} membership={membership} t={t} />
+          ))}
+        </div>
+      </>
+    )}
+    {showClusterSections && !loading && !error && invites.length === 0 && memberships.length === 0 && (
+      <p className="calendar-empty">{t('cluster.noInvites')}</p>
+    )}
     <div className="filter-row">
       <button className={upcoming ? 'selected' : ''} onClick={() => setType('Upcoming')}>{t('crops.Upcoming')}</button>
       <button className={!upcoming ? 'selected' : ''} onClick={() => setType('Harvested')}>{t('crops.Harvested')}</button>
@@ -689,5 +843,5 @@ function CropFormView({ open, notify, t, editing, voiceFill, formDraft }: { open
   </Page>;
 }
 
-function App() { const { role: authRole, profile, signInWithRole, signOut: authSignOut, updateLanguage, loading, signingIn, authError, clearError } = useAuth(); const [view, setView] = useState<View>('home'); const [loginRole, setLoginRole] = useState<Role | null>(null); const [voice, setVoice] = useState(false); const [notifications, setNotifications] = useState(false); const [language, setLanguageState] = useState<Language>('English'); const [toast, setToast] = useState(''); const [notifItems, setNotifItems] = useState<NotificationRow[]>([]); const [notifLoading, setNotifLoading] = useState(false); const [notifError, setNotifError] = useState<string | null>(null); const [selectedCrop, setSelectedCrop] = useState<CropListing | null>(null); const [formDraft, setFormDraftState] = useState<Record<string, string>>({}); const [loginStep, setLoginStep] = useState(0); const [loginMobile, setLoginMobile] = useState('+91 98765 43210'); const [loginOtp, setLoginOtp] = useState(''); const [loginBuyerCat, setLoginBuyerCat] = useState('Normal Buyer'); const role = (authRole && (allRoles as string[]).includes(authRole)) ? (authRole as Role) : null; const buyerCategory = profile?.buyer_category ?? 'Normal Buyer'; useEffect(() => { if (profile?.language) setLanguageState(languageFromCode(profile.language)); }, [profile?.language]); const setLanguage = (lang: Language) => { setLanguageState(lang); updateLanguage(codeFromLanguage(lang)); }; const t = makeT(language); const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(''), 2300); }; const open = (next: View) => { setView(next); window.scrollTo({ top: 0, behavior: 'smooth' }); }; useEffect(() => { if (loginRole) setVoice(true); }, [loginRole]); const setFormDraft = useCallback((field: string, value: string) => { setFormDraftState((prev) => ({ ...prev, [field]: value })); }, []); const setLoginFieldVoice = useCallback((field: 'mobile' | 'otp' | 'buyerCategory', value: string) => { if (field === 'mobile') { setLoginMobile(value); setLoginStep(1); } else if (field === 'otp') { setLoginOtp(value); setLoginStep(2); } else if (field === 'buyerCategory') setLoginBuyerCat(value); }, []); const submitLoginVoice = useCallback(async () => { if (!loginRole || signingIn) return; try { await signInWithRole(loginRole, demoEmails[loginRole], 'Demo1234!', loginBuyerCat); setLoginRole(null); setLoginStep(0); setLoginMobile('+91 98765 43210'); setLoginOtp(''); setVoice(false); setView('home'); } catch { } }, [loginRole, signingIn, loginBuyerCat]); const loadNotifications = useCallback(async () => { if (!role) return; setNotifLoading(true); setNotifError(null); try { await seedDemoNotificationsIfNeeded(); setNotifItems(await fetchNotifications()); } catch { setNotifError(t('notifications.loadError')); } finally { setNotifLoading(false); } }, [role, t]); useEffect(() => { loadNotifications(); }, [loadNotifications]); const handleMarkRead = async (id: string) => { try { await markNotificationRead(id); setNotifItems((prev) => prev.map((n) => n.id === id ? { ...n, read_at: new Date().toISOString() } : n)); } catch { } }; const handleMarkAllRead = async () => { try { await markAllNotificationsRead(); setNotifItems((prev) => prev.map((n) => ({ ...n, read_at: n.read_at ?? new Date().toISOString() }))); } catch { } }; const unreadCount = notifItems.filter((n) => !n.read_at).length; const signOut = () => { authSignOut(); setView('home'); }; const addAccount = () => { authSignOut(); setView('home'); }; if (loading) return <main className="login-screen"><div className="login-brand" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{ display: 'grid', placeItems: 'center', width: '31px', height: '31px', borderRadius: '9px', color: '#fff', background: '#2c823b' }}><Sprout size={27} /></span><strong>{t('app.name')}</strong></div></main>; if (!role && loginRole) return <><LoginFlow role={loginRole} t={t} step={loginStep} setStep={setLoginStep} mobile={loginMobile} setMobile={setLoginMobile} otp={loginOtp} setOtp={setLoginOtp} buyerCat={loginBuyerCat} setBuyerCat={setLoginBuyerCat} done={async (email, password, buyerCategory) => { if (signingIn) return; try { await signInWithRole(loginRole, email, password, buyerCategory); setLoginRole(null); setLoginStep(0); setVoice(false); setView('home'); } catch { } }} back={() => { clearError(); setLoginRole(null); setVoice(false); }} authError={authError} clearError={clearError} signingIn={signingIn} /><VoiceButton onClick={() => { warmupSpeech(); setVoice(true); }} t={t} />{voice && <VoiceModal close={() => setVoice(false)} t={t} language={language} currentView={loginStep === 0 ? (loginRole === 'Farmer' ? 'login-farmer' : loginRole === 'FPO' ? 'login-fpo' : 'login-mobile') : loginStep === 1 ? 'login-otp' : (loginRole === 'Buyer' ? 'login-category' : 'login-verify')} loginRole={loginRole} selectRole={(r) => setLoginRole(r as Role)} setLoginStep={setLoginStep} setLoginField={setLoginFieldVoice} submitLogin={submitLoginVoice} />}{toast && <div className="toast"><AlertTriangle size={17} />{toast}</div>}</>; if (!role) return <><Login onRole={setLoginRole} voiceOpen={() => { warmupSpeech(); setVoice(true); }} t={t} language={language} />{voice && <VoiceModal close={() => setVoice(false)} t={t} language={language} currentView="home" selectRole={(r) => setLoginRole(r as Role)} setLoginStep={setLoginStep} setLoginField={setLoginFieldVoice} submitLogin={submitLoginVoice} />}</>; return <div className="logged-in">{view === 'home' && <main className="long-scroll"><RoleHome role={role} open={open} profile={() => open('profile')} notifications={() => setNotifications(true)} t={t} /></main>}{view === 'crops' && <CropView open={open} selectCrop={setSelectedCrop} t={t} role={role} />}{view === 'crop-detail' && selectedCrop && <CropDetail open={open} crop={selectedCrop} t={t} role={role} onEdit={() => open('crop-edit')} onMarkHarvested={async () => { try { await markAsHarvested(selectedCrop.id, new Date().toISOString()); notify(t('crops.markedHarvested')); setSelectedCrop({ ...selectedCrop, status: 'Harvested', harvested_at: new Date().toISOString() }); open('crops'); } catch { notify(t('crops.createError')); } }} />}{view === 'crop-create' && <CropFormView open={open} notify={notify} t={t} voiceFill={formDraft} formDraft={formDraft} />}{view === 'crop-edit' && selectedCrop && <CropFormView open={open} notify={notify} t={t} editing={selectedCrop} voiceFill={formDraft} formDraft={formDraft} />}{view === 'market' && <MarketView role={role} open={open} notify={notify} t={t} />}{view === 'calendar' && <CalendarView open={open} t={t} />}{view === 'transport-options' && <TransportOptions role={role} open={open} notify={notify} t={t} />}{view === 'transport-detail' && <TransportDetail open={open} notify={notify} t={t} />}{view === 'journey' && <JourneyView open={open} notify={notify} t={t} />}{view === 'storage' && <StorageView role={role} open={open} notify={notify} t={t} />}{view === 'approvals' && <ApprovalsView open={open} t={t} />}{view === 'fpo' && <FpoView open={open} notify={notify} t={t} />}{view === 'tutorials' && <TutorialsView role={role} open={open} t={t} />}{view === 'help' && <HelpView open={open} notify={notify} t={t} />}{view === 'dispute' && <DisputeView open={open} notify={notify} t={t} />}{view === 'profile' && <ProfileView role={role} open={open} language={language} setLanguage={setLanguage} buyerCategory={buyerCategory} signOut={signOut} addAccount={addAccount} t={t} />}{view === 'settings' && <SettingsView open={open} language={language} setLanguage={setLanguage} t={t} />}{view === 'orders' && <OrdersView role={role} open={open} notify={notify} t={t} />}{view === 'deals' && <DealsView open={open} notify={notify} t={t} />}{view === 'features' && <FeatureView role={role} open={open} notify={notify} t={t} />}<div className="floating-tools"><button onClick={() => open('profile')} aria-label={t('profile.title')}><UserRound size={24} /></button><button onClick={() => setNotifications(true)} aria-label={t('notifications.title')}><Bell size={24} />{unreadCount > 0 && <i>{unreadCount}</i>}</button></div><VoiceButton onClick={() => { warmupSpeech(); setVoice(true); }} t={t} />{voice && <VoiceModal close={() => setVoice(false)} t={t} language={language} open={open} currentView={view} setFormDraft={setFormDraft} formDraft={formDraft} setLanguage={setLanguage} selectRole={(r) => { authSignOut(); setLoginRole(r as Role); }} />}{notifications && <Notifications close={() => setNotifications(false)} t={t} items={notifItems} loading={notifLoading} error={notifError} onMarkRead={handleMarkRead} onMarkAllRead={handleMarkAllRead} />}{toast && <div className="toast"><Check size={17} />{toast}</div>}</div>; }
+function App() { const { role: authRole, profile, signInWithRole, signOut: authSignOut, updateLanguage, loading, signingIn, authError, clearError } = useAuth(); const [view, setView] = useState<View>('home'); const [loginRole, setLoginRole] = useState<Role | null>(null); const [voice, setVoice] = useState(false); const [notifications, setNotifications] = useState(false); const [language, setLanguageState] = useState<Language>('English'); const [toast, setToast] = useState(''); const [notifItems, setNotifItems] = useState<NotificationRow[]>([]); const [notifLoading, setNotifLoading] = useState(false); const [notifError, setNotifError] = useState<string | null>(null); const [selectedCrop, setSelectedCrop] = useState<CropListing | null>(null); const [formDraft, setFormDraftState] = useState<Record<string, string>>({}); const [loginStep, setLoginStep] = useState(0); const [loginMobile, setLoginMobile] = useState('+91 98765 43210'); const [loginOtp, setLoginOtp] = useState(''); const [loginBuyerCat, setLoginBuyerCat] = useState('Normal Buyer'); const role = (authRole && (allRoles as string[]).includes(authRole)) ? (authRole as Role) : null; const buyerCategory = profile?.buyer_category ?? 'Normal Buyer'; useEffect(() => { if (profile?.language) setLanguageState(languageFromCode(profile.language)); }, [profile?.language]); const setLanguage = (lang: Language) => { setLanguageState(lang); updateLanguage(codeFromLanguage(lang)); }; const t = makeT(language); const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(''), 2300); }; const open = (next: View) => { setView(next); window.scrollTo({ top: 0, behavior: 'smooth' }); }; useEffect(() => { if (loginRole) setVoice(true); }, [loginRole]); const setFormDraft = useCallback((field: string, value: string) => { setFormDraftState((prev) => ({ ...prev, [field]: value })); }, []); const setLoginFieldVoice = useCallback((field: 'mobile' | 'otp' | 'buyerCategory', value: string) => { if (field === 'mobile') { setLoginMobile(value); setLoginStep(1); } else if (field === 'otp') { setLoginOtp(value); setLoginStep(2); } else if (field === 'buyerCategory') setLoginBuyerCat(value); }, []); const submitLoginVoice = useCallback(async () => { if (!loginRole || signingIn) return; try { await signInWithRole(loginRole, demoEmails[loginRole], 'Demo1234!', loginBuyerCat); setLoginRole(null); setLoginStep(0); setLoginMobile('+91 98765 43210'); setLoginOtp(''); setVoice(false); setView('home'); } catch { } }, [loginRole, signingIn, loginBuyerCat]); const loadNotifications = useCallback(async () => { if (!role) return; setNotifLoading(true); setNotifError(null); try { await seedDemoNotificationsIfNeeded(); setNotifItems(await fetchNotifications()); } catch { setNotifError(t('notifications.loadError')); } finally { setNotifLoading(false); } }, [role, t]); useEffect(() => { loadNotifications(); }, [loadNotifications]); const handleMarkRead = async (id: string) => { try { await markNotificationRead(id); setNotifItems((prev) => prev.map((n) => n.id === id ? { ...n, read_at: new Date().toISOString() } : n)); } catch { } }; const handleMarkAllRead = async () => { try { await markAllNotificationsRead(); setNotifItems((prev) => prev.map((n) => ({ ...n, read_at: n.read_at ?? new Date().toISOString() }))); } catch { } }; const unreadCount = notifItems.filter((n) => !n.read_at).length; const signOut = () => { authSignOut(); setView('home'); }; const addAccount = () => { authSignOut(); setView('home'); }; if (loading) return <main className="login-screen"><div className="login-brand" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{ display: 'grid', placeItems: 'center', width: '31px', height: '31px', borderRadius: '9px', color: '#fff', background: '#2c823b' }}><Sprout size={27} /></span><strong>{t('app.name')}</strong></div></main>; if (!role && loginRole) return <><LoginFlow role={loginRole} t={t} step={loginStep} setStep={setLoginStep} mobile={loginMobile} setMobile={setLoginMobile} otp={loginOtp} setOtp={setLoginOtp} buyerCat={loginBuyerCat} setBuyerCat={setLoginBuyerCat} done={async (email, password, buyerCategory) => { if (signingIn) return; try { await signInWithRole(loginRole, email, password, buyerCategory); setLoginRole(null); setLoginStep(0); setVoice(false); setView('home'); } catch { } }} back={() => { clearError(); setLoginRole(null); setVoice(false); }} authError={authError} clearError={clearError} signingIn={signingIn} /><VoiceButton onClick={() => { warmupSpeech(); setVoice(true); }} t={t} />{voice && <VoiceModal close={() => setVoice(false)} t={t} language={language} currentView={loginStep === 0 ? (loginRole === 'Farmer' ? 'login-farmer' : loginRole === 'FPO' ? 'login-fpo' : 'login-mobile') : loginStep === 1 ? 'login-otp' : (loginRole === 'Buyer' ? 'login-category' : 'login-verify')} loginRole={loginRole} selectRole={(r) => setLoginRole(r as Role)} setLoginStep={setLoginStep} setLoginField={setLoginFieldVoice} submitLogin={submitLoginVoice} />}{toast && <div className="toast"><AlertTriangle size={17} />{toast}</div>}</>; if (!role) return <><Login onRole={setLoginRole} voiceOpen={() => { warmupSpeech(); setVoice(true); }} t={t} language={language} />{voice && <VoiceModal close={() => setVoice(false)} t={t} language={language} currentView="home" selectRole={(r) => setLoginRole(r as Role)} setLoginStep={setLoginStep} setLoginField={setLoginFieldVoice} submitLogin={submitLoginVoice} />}</>; return <div className="logged-in">{view === 'home' && <main className="long-scroll"><RoleHome role={role} open={open} profile={() => open('profile')} notifications={() => setNotifications(true)} t={t} /></main>}{view === 'crops' && <CropView open={open} selectCrop={setSelectedCrop} t={t} role={role} notify={notify} />}{view === 'crop-detail' && selectedCrop && <CropDetail open={open} crop={selectedCrop} t={t} role={role} onEdit={() => open('crop-edit')} onMarkHarvested={async () => { try { await markAsHarvested(selectedCrop.id, new Date().toISOString()); notify(t('crops.markedHarvested')); setSelectedCrop({ ...selectedCrop, status: 'Harvested', harvested_at: new Date().toISOString() }); open('crops'); } catch { notify(t('crops.createError')); } }} />}{view === 'crop-create' && <CropFormView open={open} notify={notify} t={t} voiceFill={formDraft} formDraft={formDraft} />}{view === 'crop-edit' && selectedCrop && <CropFormView open={open} notify={notify} t={t} editing={selectedCrop} voiceFill={formDraft} formDraft={formDraft} />}{view === 'market' && <MarketView role={role} open={open} notify={notify} t={t} />}{view === 'calendar' && <CalendarView open={open} t={t} />}{view === 'transport-options' && <TransportOptions role={role} open={open} notify={notify} t={t} />}{view === 'transport-detail' && <TransportDetail open={open} notify={notify} t={t} />}{view === 'journey' && <JourneyView open={open} notify={notify} t={t} />}{view === 'storage' && <StorageView role={role} open={open} notify={notify} t={t} />}{view === 'approvals' && <ApprovalsView open={open} t={t} />}{view === 'fpo' && <FpoView open={open} notify={notify} t={t} />}{view === 'tutorials' && <TutorialsView role={role} open={open} t={t} />}{view === 'help' && <HelpView open={open} notify={notify} t={t} />}{view === 'dispute' && <DisputeView open={open} notify={notify} t={t} />}{view === 'profile' && <ProfileView role={role} open={open} language={language} setLanguage={setLanguage} buyerCategory={buyerCategory} signOut={signOut} addAccount={addAccount} t={t} />}{view === 'settings' && <SettingsView open={open} language={language} setLanguage={setLanguage} t={t} />}{view === 'orders' && <OrdersView role={role} open={open} notify={notify} t={t} />}{view === 'deals' && <DealsView open={open} notify={notify} t={t} />}{view === 'features' && <FeatureView role={role} open={open} notify={notify} t={t} />}<div className="floating-tools"><button onClick={() => open('profile')} aria-label={t('profile.title')}><UserRound size={24} /></button><button onClick={() => setNotifications(true)} aria-label={t('notifications.title')}><Bell size={24} />{unreadCount > 0 && <i>{unreadCount}</i>}</button></div><VoiceButton onClick={() => { warmupSpeech(); setVoice(true); }} t={t} />{voice && <VoiceModal close={() => setVoice(false)} t={t} language={language} open={open} currentView={view} setFormDraft={setFormDraft} formDraft={formDraft} setLanguage={setLanguage} selectRole={(r) => { authSignOut(); setLoginRole(r as Role); }} />}{notifications && <Notifications close={() => setNotifications(false)} t={t} items={notifItems} loading={notifLoading} error={notifError} onMarkRead={handleMarkRead} onMarkAllRead={handleMarkAllRead} />}{toast && <div className="toast"><Check size={17} />{toast}</div>}</div>; }
 export default App;

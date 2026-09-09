@@ -211,6 +211,11 @@ const en: Dict = {
   'cluster.myContribution': 'Your contribution',
   'cluster.share': 'Your payout share',
   'cluster.membership': 'Member',
+  'cluster.leave': 'Leave Cluster',
+  'cluster.benefits': 'Better prices, shared transport, and bulk buyer access',
+  'cluster.noInvites': 'No cluster invitations right now',
+  'cluster.noMemberships': 'You are not in any crop clusters yet',
+  'cluster.location': 'Location',
 
   // Calendar
   'calendar.title': 'Harvest Calendar',
@@ -790,6 +795,11 @@ const te: Dict = {
   'cluster.myContribution': 'మీ సహకారం',
   'cluster.share': 'మీ చెల్లింపు వాటా',
   'cluster.membership': 'సభ్యుడు',
+  'cluster.leave': 'క్లస్టర్ విడిచి పెట్టండి',
+  'cluster.benefits': 'మెరుగైన ధరలు, భాగస్వామ్య రవాణా, మరియు సామూహిక కొనుగోలుదారు యాక్సెస్',
+  'cluster.noInvites': 'ప్రస్తుతం క్లస్టర్ ఆహ్వానాలు లేవు',
+  'cluster.noMemberships': 'మీరు ఇంకా ఏ పంట క్లస్టర్‌లో లేరు',
+  'cluster.location': 'ప్రాంతం',
 
   'calendar.title': 'పంట క్యాలెండర్',
   'calendar.body': 'పంట తేదీలు, బుకింగ్‌లు, మరియు ఆశించిన దిగుబడి.',
@@ -1352,6 +1362,11 @@ const hi: Dict = {
   'cluster.myContribution': 'आपका योगदान',
   'cluster.share': 'आपका भुगतान हिस्सा',
   'cluster.membership': 'सदस्य',
+  'cluster.leave': 'क्लस्टर छोड़ें',
+  'cluster.benefits': 'बेहतर कीमतें, साझा परिवहन, और थोक खरीदार तक पहुंच',
+  'cluster.noInvites': 'अभी कोई क्लस्टर आमंत्रण नहीं हैं',
+  'cluster.noMemberships': 'आप अभी तक किसी फसल क्लस्टर में नहीं हैं',
+  'cluster.location': 'स्थान',
 
   'calendar.title': 'कटाई कैलेंडर',
   'calendar.body': 'कटाई तिथियां, बुकिंग, और अपेक्षित उपज।',
