@@ -26,7 +26,7 @@ const visibleRoles: Role[] = allRoles.filter((r) => r !== 'FPO');
 
 function Illustration({ label, color, icon: Icon = Sprout }: { label: string; color: string; icon?: IconType }) { return <div className={`illustration ${color}`}><div className="illustration-shape"><Icon size={58} strokeWidth={1.5} /></div><small>{label}</small></div>; }
 function Badge({ children, tone = 'green' }: { children: ReactNode; tone?: string }) { return <span className={`badge ${tone}`}>{children}</span>; }
-function Button({ children, icon: Icon, variant = 'primary', onClick, wide = false }: { children: ReactNode; icon?: IconType; variant?: string; onClick?: () => void; wide?: boolean }) { return <button className={`button ${variant} ${wide ? 'wide' : ''}`} onClick={onClick}>{Icon && <Icon size={18} />}{children}</button>; }
+function Button({ children, icon: Icon, variant = 'primary', onClick, wide = false, disabled = false }: { children: ReactNode; icon?: IconType; variant?: string; onClick?: () => void; wide?: boolean; disabled?: boolean }) { return <button className={`button ${variant} ${wide ? 'wide' : ''}`} onClick={onClick} disabled={disabled}>{Icon && <Icon size={18} />}{children}</button>; }
 function Card({ children, className = '', onClick }: { children: ReactNode; className?: string; onClick?: () => void }) { return <div className={`card ${className} ${onClick ? 'clickable' : ''}`} onClick={onClick}>{children}</div>; }
 function Demo({ children }: { children: ReactNode }) { return <span className="demo"><i />{children}</span>; }
 function SectionHeading({ title, body, icon: Icon }: { title: string; body: string; icon: IconType }) { return <div className="section-heading"><span className="section-icon"><Icon size={24} /></span><div><h2>{title}</h2><p>{body}</p></div></div>; }
@@ -400,24 +400,38 @@ function ClusterSummaryCard({ cluster, t, badge, onClick }: { cluster: CropClust
 }
 
 function ClusterDetail({ cluster, members, t, invite, busy, onAccept, onDeny, onClose }: { cluster: CropClusterWithMembers; members: ClusterMemberDetail[]; t: T; invite?: ClusterInvite; busy: boolean; onAccept: () => void; onDeny: () => void; onClose: () => void }) {
+  const [selectedFarmer, setSelectedFarmer] = useState<ClusterMemberDetail | null>(null);
   const harvested = cluster.status === 'sold' || cluster.status === 'closed';
   const remaining = Math.max(0, cluster.total_quantity - members.reduce((sum, member) => sum + member.quantity_contributed, 0));
+  const shareAmount = selectedFarmer ? (selectedFarmer.payout_share_percent / 100) * cluster.total_quantity : 0;
   return <div className="modal-backdrop" onClick={onClose}>
     <div className="cluster-detail-modal" onClick={(event) => event.stopPropagation()}>
-      <div className="cluster-detail-header"><div><span className="eyebrow">{t('cluster.detailTitle')}</span><h2>{cluster.crop_name}{cluster.variety ? ` · ${cluster.variety}` : ''}</h2></div><button className="icon-button" onClick={onClose} aria-label={t('common.close')}><X size={22} /></button></div>
-      <div className="cluster-detail-grid">
-        <Detail label={t('cluster.location')} value={cluster.location_area ?? '—'} />
-        <Detail label={t('cluster.fpo')} value="—" />
-        <Detail label={t('cluster.harvestWindow')} value={formatHarvestWindow(cluster)} />
-        <Detail label={t('cluster.requiredTotal')} value={formatKg(cluster.total_quantity)} />
-        {!harvested && <Detail label={t('cluster.remainingSlots')} value={formatKg(remaining)} />}
-        {harvested && <Detail label={t('cluster.harvestedDate')} value={formatDate(cluster.harvest_window_end)} />}
-      </div>
-      <div className="cluster-detail-section"><h3>{t('cluster.concept')}</h3><p>{t('cluster.conceptBody')}</p><p><strong>{t('cluster.benefits')}:</strong> {t('cluster.benefits')}</p></div>
-      <div className="cluster-detail-section"><h3>{t('cluster.members')}</h3>{members.length === 0 ? <p>{t('cluster.noMemberships')}</p> : <div className="cluster-member-list">{members.map((member) => <div className="cluster-member-row" key={member.id}><div><strong>{member.farmer_name}</strong><small>{member.location_area ?? '—'}</small></div><div><span>{t('cluster.contribution')}: {formatKg(member.quantity_contributed)}</span><span>{t('cluster.sharePercent')}: {member.payout_share_percent.toFixed(1)}%</span><span>{t('cluster.shareAmount')}: {formatKg((member.payout_share_percent / 100) * cluster.total_quantity)}</span></div></div>)}</div>}</div>
-      {harvested && <div className="cluster-detail-section"><h3>{t('cluster.transportPlan')}</h3><p>{cluster.transport_status ?? t('cluster.transportPlaceholder')}</p><h3>{t('cluster.storagePlan')}</h3><p>{t('cluster.storagePlaceholder')}</p></div>}
-      <div className="cluster-detail-section"><h3>{t('cluster.timeline')}</h3><div className="cluster-timeline"><span>{t('cluster.timelineFormed')}</span><span>{t('cluster.timelineContributions')}</span><span>{harvested ? t('cluster.timelineHarvested') : t('cluster.timelineTransport')}</span></div></div>
-      {invite && <div className="row"><Button icon={Check} onClick={onAccept} wide>{busy ? '…' : t('cluster.accept')}</Button><Button variant="outline" onClick={onDeny} disabled={busy}>{t('cluster.deny')}</Button></div>}
+      <div className="cluster-detail-header"><div><span className="eyebrow">{selectedFarmer ? t('cluster.farmerDetail') : t('cluster.detailTitle')}</span><h2>{selectedFarmer?.farmer_name ?? `${cluster.crop_name}${cluster.variety ? ` · ${cluster.variety}` : ''}`}</h2></div><button className="icon-button" onClick={onClose} aria-label={t('common.close')}><X size={22} /></button></div>
+      {selectedFarmer ? <>
+        <div className="cluster-detail-grid">
+          <Detail label={t('cluster.location')} value={selectedFarmer.location_area ?? '—'} />
+          <Detail label={t('cluster.contribution')} value={formatKg(selectedFarmer.quantity_contributed)} />
+          <Detail label={t('cluster.sharePercent')} value={`${selectedFarmer.payout_share_percent.toFixed(1)}%`} />
+          <Detail label={t('cluster.shareAmount')} value={formatKg(shareAmount)} />
+        </div>
+        <div className="cluster-detail-section"><h3>{t('cluster.notes')}</h3><p>{t('cluster.detailsUnavailable')}</p></div>
+        <Button variant="outline" onClick={() => setSelectedFarmer(null)}>{t('common.back')}</Button>
+      </> : <>
+        <div className="cluster-detail-grid">
+          <Detail label={t('cluster.location')} value={cluster.location_area ?? '—'} />
+          <Detail label={t('cluster.fpo')} value="—" />
+          <Detail label={t('cluster.harvestWindow')} value={formatHarvestWindow(cluster)} />
+          <Detail label={t('cluster.requiredTotal')} value={formatKg(cluster.total_quantity)} />
+          {!harvested && <Detail label={t('cluster.remainingSlots')} value={formatKg(remaining)} />}
+          {harvested && <Detail label={t('cluster.harvestedDate')} value={formatDate(cluster.harvest_window_end)} />}
+        </div>
+        <div className="cluster-detail-section"><h3>{t('cluster.concept')}</h3><p>{t('cluster.conceptBody')}</p><p><strong>{t('cluster.benefits')}:</strong> {t('cluster.benefits')}</p></div>
+        <div className="cluster-detail-section"><h3>{t('cluster.members')}</h3>{members.length === 0 ? <p>{t('cluster.noMemberships')}</p> : <div className="cluster-member-list">{members.map((member) => <button className="cluster-member-row" key={member.id} onClick={() => setSelectedFarmer(member)}><div><strong>{member.farmer_name}</strong><small>{member.location_area ?? '—'}</small></div><div><span>{t('cluster.contribution')}: {formatKg(member.quantity_contributed)}</span><span>{t('cluster.sharePercent')}: {member.payout_share_percent.toFixed(1)}%</span></div></button>)}</div>}</div>
+        <div className="cluster-detail-section"><h3>{t('cluster.transportPlan')}</h3><p>{cluster.transport_status ?? t('cluster.detailsUnavailable')}</p><h3>{t('cluster.storagePlan')}</h3><p>{t('cluster.detailsUnavailable')}</p></div>
+        <div className="cluster-detail-section"><h3>{t('cluster.paymentsShares')}</h3><p>{t('cluster.paymentsPlaceholder')}</p></div>
+        <div className="cluster-detail-section"><h3>{t('cluster.timeline')}</h3><div className="cluster-timeline"><span>{t('cluster.timelineFormed')}</span><span>{t('cluster.timelineContributions')}</span><span>{harvested ? t('cluster.timelineHarvested') : t('cluster.timelineTransport')}</span></div></div>
+        {invite && <div className="row"><Button icon={Check} onClick={onAccept} wide>{busy ? '…' : t('cluster.accept')}</Button><Button variant="outline" onClick={onDeny} disabled={busy}>{t('cluster.deny')}</Button></div>}
+      </>}
     </div>
   </div>;
 }
@@ -523,16 +537,6 @@ function CropView({ open, selectCrop, t, role, notify }: { open: (view: View) =>
         </div>
       </>
     )}
-    {showClusterSections && memberships.length > 0 && (
-      <>
-        <h3 className="subhead cluster-section-heading"><Layers size={18} /> {t('cluster.membershipsTitle')}</h3>
-        <div className="crop-stack">
-          {memberships.map((membership) => (
-            <ClusterSummaryCard key={membership.id} cluster={membership} t={t} badge={t('cluster.memberBadge')} onClick={() => openClusterModal(membership)} />
-          ))}
-        </div>
-      </>
-    )}
     {showClusterSections && !loading && !error && invites.length === 0 && memberships.length === 0 && (
       <p className="calendar-empty">{t('cluster.noInvites')}</p>
     )}
@@ -541,6 +545,13 @@ function CropView({ open, selectCrop, t, role, notify }: { open: (view: View) =>
       <button className={!upcoming ? 'selected' : ''} onClick={() => setType('Harvested')}>{t('crops.Harvested')}</button>
     </div>
     <h3 className="subhead">{upcoming ? t('crops.upcomingCrops') : t('crops.harvestedCrops')}</h3>
+    {showClusterSections && joinedForTab.length > 0 && (
+      <div className="crop-stack cluster-joined-stack">
+        {joinedForTab.map((membership) => (
+          <ClusterSummaryCard key={membership.id} cluster={membership} t={t} badge={t('cluster.memberBadge')} onClick={() => openClusterModal(membership)} />
+        ))}
+      </div>
+    )}
     {loading && <p className="calendar-empty">{t('crops.loading')}</p>}
     {error && <p className="calendar-empty">{error}</p>}
     {!loading && !error && filtered.length === 0 && <p className="calendar-empty">{upcoming ? t('crops.noUpcoming') : t('crops.noHarvested')}</p>}
