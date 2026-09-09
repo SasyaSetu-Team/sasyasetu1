@@ -23,6 +23,7 @@ export interface CropListing {
   indicative_price_per_kg: number | null;
   status: string;
   is_visible: boolean;
+  location_area: string | null;
   created_at: string;
   updated_at: string;
   crop?: Crop;
@@ -171,6 +172,16 @@ export interface CropClusterWithMembers extends CropCluster {
   farmer_count: number;
 }
 
+export interface ClusterInvite extends CropClusterWithMembers {
+  matching_listing_id: string;
+  matching_listing_quantity: number;
+}
+
+export interface ClusterMembership extends CropClusterWithMembers {
+  my_quantity: number;
+  my_payout_share: number;
+}
+
 export async function fetchClusters(): Promise<CropClusterWithMembers[]> {
   const { data: clusters, error } = await supabase
     .from('crop_clusters')
@@ -219,4 +230,143 @@ export function timeLeftUntil(closesAt: string | null): string {
   if (hours > 0) return `${hours}h`;
   const mins = Math.floor(diffMs / (1000 * 60));
   return `${mins}m`;
+}
+
+export async function fetchClusterInvites(): Promise<ClusterInvite[]> {
+  const { data: listings, error: lErr } = await supabase
+    .from('crop_listings')
+    .select('id, owner_id, crop_id, custom_crop_name, quantity_kg, expected_harvest_date, harvested_at, location_area, status')
+    .eq('owner_id', (await supabase.auth.getUser()).data.user?.id ?? '')
+    .in('status', ['Upcoming', 'Harvested']);
+  if (lErr) throw lErr;
+  if (!listings || listings.length === 0) return [];
+
+  const listingIds = listings.map((l) => l.id);
+
+  const { data: existingMembers, error: mErr } = await supabase
+    .from('crop_cluster_members')
+    .select('crop_id')
+    .in('crop_id', listingIds);
+  if (mErr) throw mErr;
+
+  const clusteredListingIds = new Set((existingMembers ?? []).map((m) => m.crop_id));
+  const unclusteredListings = listings.filter((l) => !clusteredListingIds.has(l.id));
+  if (unclusteredListings.length === 0) return [];
+
+  const { data: clusters, error: cErr } = await supabase
+    .from('crop_clusters')
+    .select('*')
+    .in('status', ['forming', 'ready']);
+  if (cErr) throw cErr;
+  if (!clusters || clusters.length === 0) return [];
+
+  const { data: dismissed, error: dErr } = await supabase
+    .from('dismissed_cluster_invites')
+    .select('cluster_id');
+  if (dErr) throw dErr;
+  const dismissedClusterIds = new Set((dismissed ?? []).map((d) => d.cluster_id));
+
+  const { data: allMembers, error: amErr } = await supabase
+    .from('crop_cluster_members')
+    .select('cluster_id, farmer_id')
+    .in('cluster_id', clusters.map((c) => c.id));
+  if (amErr) throw amErr;
+
+  const invites: ClusterInvite[] = [];
+  for (const listing of unclusteredListings) {
+    const cropName = listing.custom_crop_name?.toLowerCase() ?? '';
+    const harvestDate = listing.expected_harvest_date ?? listing.harvested_at;
+    if (!harvestDate) continue;
+
+    for (const cluster of clusters) {
+      if (dismissedClusterIds.has(cluster.id)) continue;
+      if (lower(cluster.crop_name) !== (cropName || lower(cluster.crop_name))) {
+        if (cropName && lower(cluster.crop_name) !== cropName) continue;
+        if (!cropName) continue;
+      }
+      if (lower(coalesce(cluster.location_area)) !== lower(coalesce(listing.location_area))) continue;
+
+      const hDate = new Date(harvestDate);
+      const windowStart = new Date(cluster.harvest_window_start);
+      windowStart.setDate(windowStart.getDate() - 7);
+      const windowEnd = new Date(cluster.harvest_window_end);
+      windowEnd.setDate(windowEnd.getDate() + 7);
+      if (hDate < windowStart || hDate > windowEnd) continue;
+
+      const clusterMembers = (allMembers ?? []).filter((m) => m.cluster_id === cluster.id);
+      const uniqueFarmers = new Set(clusterMembers.map((m) => m.farmer_id));
+      invites.push({
+        ...cluster,
+        member_count: clusterMembers.length,
+        farmer_count: uniqueFarmers.size,
+        matching_listing_id: listing.id,
+        matching_listing_quantity: Number(listing.quantity_kg),
+      });
+    }
+  }
+
+  return invites;
+}
+
+export async function fetchClusterMemberships(): Promise<ClusterMembership[]> {
+  const userId = (await supabase.auth.getUser()).data.user?.id ?? '';
+  if (!userId) return [];
+
+  const { data: myMembers, error: mErr } = await supabase
+    .from('crop_cluster_members')
+    .select('cluster_id, quantity_contributed, payout_share_percent')
+    .eq('farmer_id', userId);
+  if (mErr) throw mErr;
+  if (!myMembers || myMembers.length === 0) return [];
+
+  const clusterIds = myMembers.map((m) => m.cluster_id);
+
+  const { data: clusters, error: cErr } = await supabase
+    .from('crop_clusters')
+    .select('*')
+    .in('id', clusterIds);
+  if (cErr) throw cErr;
+
+  const { data: allMembers, error: amErr } = await supabase
+    .from('crop_cluster_members')
+    .select('cluster_id, farmer_id')
+    .in('cluster_id', clusterIds);
+  if (amErr) throw amErr;
+
+  return (clusters ?? []).map((cluster) => {
+    const myMember = myMembers.find((m) => m.cluster_id === cluster.id);
+    const clusterMembers = (allMembers ?? []).filter((m) => m.cluster_id === cluster.id);
+    const uniqueFarmers = new Set(clusterMembers.map((m) => m.farmer_id));
+    return {
+      ...cluster,
+      member_count: clusterMembers.length,
+      farmer_count: uniqueFarmers.size,
+      my_quantity: Number(myMember?.quantity_contributed ?? 0),
+      my_payout_share: Number(myMember?.payout_share_percent ?? 0),
+    };
+  });
+}
+
+export async function joinCluster(clusterId: string, cropListingId: string): Promise<CropCluster> {
+  const { data, error } = await supabase.rpc('join_cluster', {
+    p_cluster_id: clusterId,
+    p_crop_listing_id: cropListingId,
+  });
+  if (error) throw error;
+  return data as CropCluster;
+}
+
+export async function dismissClusterInvite(clusterId: string): Promise<void> {
+  const { error } = await supabase
+    .from('dismissed_cluster_invites')
+    .insert({ cluster_id: clusterId });
+  if (error) throw error;
+}
+
+function lower(s: string | null | undefined): string {
+  return (s ?? '').toLowerCase();
+}
+
+function coalesce(s: string | null | undefined): string {
+  return s ?? '';
 }
