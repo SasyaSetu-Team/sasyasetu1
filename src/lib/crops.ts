@@ -133,3 +133,90 @@ export function formatDate(dateStr: string | null): string {
   const d = new Date(dateStr);
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 }
+
+export function formatDateShort(dateStr: string | null): string {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+export interface CropCluster {
+  id: string;
+  crop_name: string;
+  variety: string | null;
+  location_area: string | null;
+  harvest_window_start: string | null;
+  harvest_window_end: string | null;
+  overall_quality_grade: string | null;
+  total_quantity: number;
+  status: string;
+  closes_at: string | null;
+  transport_status: string | null;
+  created_at: string;
+}
+
+export interface CropClusterMember {
+  id: string;
+  cluster_id: string;
+  crop_id: string;
+  farmer_id: string;
+  quantity_contributed: number;
+  quality_grade: string | null;
+  payout_share_percent: number;
+  created_at: string;
+}
+
+export interface CropClusterWithMembers extends CropCluster {
+  member_count: number;
+  farmer_count: number;
+}
+
+export async function fetchClusters(): Promise<CropClusterWithMembers[]> {
+  const { data: clusters, error } = await supabase
+    .from('crop_clusters')
+    .select('*')
+    .in('status', ['forming', 'ready'])
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+
+  if (!clusters || clusters.length === 0) return [];
+
+  const clusterIds = clusters.map((c) => c.id);
+  const { data: members, error: mErr } = await supabase
+    .from('crop_cluster_members')
+    .select('cluster_id, farmer_id')
+    .in('cluster_id', clusterIds);
+  if (mErr) throw mErr;
+
+  return clusters.map((c) => {
+    const clusterMembers = (members ?? []).filter((m) => m.cluster_id === c.id);
+    const uniqueFarmers = new Set(clusterMembers.map((m) => m.farmer_id));
+    return {
+      ...c,
+      member_count: clusterMembers.length,
+      farmer_count: uniqueFarmers.size,
+    } as CropClusterWithMembers;
+  });
+}
+
+export function formatHarvestWindow(cluster: CropCluster): string {
+  const start = formatDateShort(cluster.harvest_window_start);
+  const end = formatDateShort(cluster.harvest_window_end);
+  if (start === '—' && end === '—') return '—';
+  if (start === end) return start;
+  return `${start} – ${end}`;
+}
+
+export function timeLeftUntil(closesAt: string | null): string {
+  if (!closesAt) return '—';
+  const now = new Date();
+  const target = new Date(closesAt);
+  const diffMs = target.getTime() - now.getTime();
+  if (diffMs <= 0) return 'Closed';
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const days = Math.floor(hours / 24);
+  if (days > 0) return `${days}d ${hours % 24}h`;
+  if (hours > 0) return `${hours}h`;
+  const mins = Math.floor(diffMs / (1000 * 60));
+  return `${mins}m`;
+}
