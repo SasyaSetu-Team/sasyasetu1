@@ -396,7 +396,7 @@ function ClusterInviteCard({ invite, t, onJoin, onDismiss, busy }: { invite: Clu
           <div className="cluster-stats">
             <span><Package size={15} /> {formatKg(invite.total_quantity)}</span>
             <span><Users size={15} /> {invite.farmer_count} {t('cluster.farmers')}</span>
-            {invite.location_area && <span><MapPin size={15} /> {invite.location_area}</span>
+            {invite.location_area && <span><MapPin size={15} /> {invite.location_area}</span>}
           </div>
           <div className="cluster-stats">
             <span><CalendarDays size={15} /> {t('cluster.harvestWindow')}: {formatHarvestWindow(invite)}</span>
