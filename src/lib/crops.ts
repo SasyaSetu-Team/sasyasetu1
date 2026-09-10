@@ -371,6 +371,7 @@ export interface ClusterMemberDetail {
   quality_grade: string | null;
   payout_share_percent: number;
   location_area: string | null;
+  indicative_price_per_kg: number | null;
   created_at: string;
 }
 
@@ -392,14 +393,18 @@ export async function fetchClusterMembers(clusterId: string): Promise<ClusterMem
 
   const { data: listings, error: lErr } = await supabase
     .from('crop_listings')
-    .select('id, owner_id, location_area')
+    .select('id, owner_id, location_area, indicative_price_per_kg')
     .in('owner_id', farmerIds);
   if (lErr) throw lErr;
 
   const nameMap = new Map<string, string>();
   for (const p of profiles ?? []) nameMap.set(p.id, p.display_name);
   const locMap = new Map<string, string | null>();
-  for (const l of listings ?? []) locMap.set(l.owner_id, l.location_area);
+  const priceMap = new Map<string, number | null>();
+  for (const l of listings ?? []) {
+    locMap.set(l.owner_id, l.location_area);
+    priceMap.set(l.owner_id, l.indicative_price_per_kg);
+  }
 
   return members.map((m) => ({
     id: m.id,
@@ -409,6 +414,7 @@ export async function fetchClusterMembers(clusterId: string): Promise<ClusterMem
     quality_grade: m.quality_grade,
     payout_share_percent: Number(m.payout_share_percent),
     location_area: locMap.get(m.farmer_id) ?? null,
+    indicative_price_per_kg: priceMap.get(m.farmer_id) ?? null,
     created_at: m.created_at,
   }));
 }
