@@ -384,12 +384,15 @@ function ClusterSummaryCard({ cluster, t, badge, onClick }: { cluster: CropClust
   const isInTransit = cluster.transport_status != null && cluster.transport_status !== '';
   const tone = isHarvested ? 'blue' : isInTransit ? 'orange' : 'green';
   const statusText = isHarvested ? t('cluster.completed') : isInTransit ? t('cluster.inTransit') : t('cluster.youAreMember');
-  return <Card className="crop-row" onClick={onClick}>
-    <Illustration label={name} color={cropColorFor(name)} icon={Icon} />
-    <div>
-      <Badge tone={tone}>{statusText}</Badge>
+  return <Card className="cluster-row-card" onClick={onClick}>
+    <span className={`cluster-row-illustration ${cropColorFor(name)}`}><Icon size={38} strokeWidth={1.5} /></span>
+    <div className="cluster-row-content">
+      <div className="cluster-row-badges">
+        <span className="cluster-row-pill"><Layers size={12} /> {t('cluster.label')}</span>
+        <Badge tone={tone}>{statusText}</Badge>
+      </div>
       <h3>{name}{cluster.variety ? ` · ${cluster.variety}` : ''}</h3>
-      <p>{cluster.farmer_count} {t('cluster.farmers')}{isHarvested && 'my_payout_share' in cluster ? ` · ${t('cluster.payout')}: ${formatKg(((cluster as ClusterMembership).my_payout_share / 100) * cluster.total_quantity)}` : ''}</p>
+      <p>{cluster.farmer_count} {t('cluster.farmers')} · {formatKg(cluster.total_quantity)}{isHarvested && 'my_payout_share' in cluster ? ` · ${t('cluster.payout')}: ${formatKg(((cluster as ClusterMembership).my_payout_share / 100) * cluster.total_quantity)}` : ''}</p>
     </div>
     <ArrowRight size={19} />
   </Card>;
@@ -398,12 +401,14 @@ function ClusterSummaryCard({ cluster, t, badge, onClick }: { cluster: CropClust
 function InviteCard({ invite, t, onAccept, onDeny, busy }: { invite: ClusterInvite; t: T; onAccept: () => void; onDeny: () => void; busy: boolean }) {
   const name = invite.crop_name;
   const Icon = cropIconFor(name);
-  return <Card className="crop-row" onClick={onAccept}>
-    <Illustration label={name} color={cropColorFor(name)} icon={Icon} />
-    <div>
-      <Badge tone="orange">{t('cluster.inviteBadge')}</Badge>
+  return <Card className="cluster-row-card cluster-invite-card" onClick={onAccept}>
+    <span className={`cluster-row-illustration ${cropColorFor(name)}`}><Icon size={38} strokeWidth={1.5} /></span>
+    <div className="cluster-row-content">
+      <div className="cluster-row-badges">
+        <span className="cluster-row-pill cluster-invite-pill"><Layers size={12} /> {t('cluster.inviteBadge')}</span>
+      </div>
       <h3>{name}{invite.variety ? ` · ${invite.variety}` : ''}</h3>
-      <p>{invite.location_area ?? '—'} · {invite.farmer_count} {t('cluster.farmers')}</p>
+      <p>{invite.location_area ?? '—'} · {invite.farmer_count} {t('cluster.farmers')} · {formatKg(invite.total_quantity)}</p>
       <div className="row" style={{ marginTop: 8 }}>
         <Button icon={Check} onClick={onAccept} disabled={busy} wide>{busy ? '…' : t('cluster.accept')}</Button>
         <Button variant="outline" onClick={onDeny} disabled={busy}>{t('cluster.deny')}</Button>
@@ -415,8 +420,10 @@ function InviteCard({ invite, t, onAccept, onDeny, busy }: { invite: ClusterInvi
 function ClusterDetail({ cluster, members, t, invite, busy, onAccept, onDeny, onClose }: { cluster: CropClusterWithMembers; members: ClusterMemberDetail[]; t: T; invite?: ClusterInvite; busy: boolean; onAccept: () => void; onDeny: () => void; onClose: () => void }) {
   const [selectedFarmer, setSelectedFarmer] = useState<ClusterMemberDetail | null>(null);
   const harvested = cluster.status === 'sold' || cluster.status === 'closed';
-  const remaining = Math.max(0, cluster.total_quantity - members.reduce((sum, member) => sum + member.quantity_contributed, 0));
+  const isInTransit = cluster.transport_status != null && cluster.transport_status !== '' && !harvested;
   const shareAmount = selectedFarmer ? (selectedFarmer.payout_share_percent / 100) * cluster.total_quantity : 0;
+  const statusLabel = cluster.status === 'forming' ? t('cluster.forming') : cluster.status === 'ready' ? t('cluster.ready') : cluster.status === 'sold' ? t('cluster.sold') : t('cluster.closed');
+  const statusTone = cluster.status === 'ready' ? 'green' : cluster.status === 'forming' ? 'orange' : 'blue';
   return <div className="modal-backdrop" onClick={onClose}>
     <div className="cluster-detail-modal" onClick={(event) => event.stopPropagation()}>
       <div className="cluster-detail-header"><div><span className="eyebrow">{selectedFarmer ? t('cluster.farmerDetail') : t('cluster.detailTitle')}</span><h2>{selectedFarmer?.farmer_name ?? `${cluster.crop_name}${cluster.variety ? ` · ${cluster.variety}` : ''}`}</h2></div><button className="icon-button" onClick={onClose} aria-label={t('common.close')}><X size={22} /></button></div>
@@ -427,22 +434,17 @@ function ClusterDetail({ cluster, members, t, invite, busy, onAccept, onDeny, on
           <Detail label={t('cluster.sharePercent')} value={`${selectedFarmer.payout_share_percent.toFixed(1)}%`} />
           <Detail label={t('cluster.shareAmount')} value={formatKg(shareAmount)} />
         </div>
-        <div className="cluster-detail-section"><h3>{t('cluster.notes')}</h3><p>{t('cluster.detailsUnavailable')}</p></div>
         <Button variant="outline" onClick={() => setSelectedFarmer(null)}>{t('common.back')}</Button>
       </> : <>
         <div className="cluster-detail-grid">
           <Detail label={t('cluster.location')} value={cluster.location_area ?? '—'} />
-          <Detail label={t('cluster.fpo')} value="—" />
           <Detail label={t('cluster.harvestWindow')} value={formatHarvestWindow(cluster)} />
           <Detail label={t('cluster.requiredTotal')} value={formatKg(cluster.total_quantity)} />
-          {!harvested && <Detail label={t('cluster.remainingSlots')} value={formatKg(remaining)} />}
-          {harvested && <Detail label={t('cluster.harvestedDate')} value={formatDate(cluster.harvest_window_end)} />}
+          <div><small>&nbsp;</small><strong><Badge tone={statusTone}>{statusLabel}</Badge></strong></div>
         </div>
-        <div className="cluster-detail-section"><h3>{t('cluster.concept')}</h3><p>{t('cluster.conceptBody')}</p><p><strong>{t('cluster.benefits')}:</strong> {t('cluster.benefits')}</p></div>
+        {isInTransit && <div className="cluster-detail-section"><h3>{t('cluster.transportProgress')}</h3><p>{t('cluster.inTransit')}</p></div>}
+        {harvested && <div className="cluster-detail-section"><h3>{t('cluster.soldQuantity')}</h3><p>{formatKg(cluster.total_quantity)}</p><h3>{t('cluster.buyerAmount')}</h3><p>{t('cluster.paymentsPlaceholder')}</p></div>}
         <div className="cluster-detail-section"><h3>{t('cluster.members')}</h3>{members.length === 0 ? <p>{t('cluster.noMemberships')}</p> : <div className="cluster-member-list">{members.map((member) => <button className="cluster-member-row" key={member.id} onClick={() => setSelectedFarmer(member)}><div><strong>{member.farmer_name}</strong></div><ArrowRight size={16} /></button>)}</div>}</div>
-        <div className="cluster-detail-section"><h3>{t('cluster.transportPlan')}</h3><p>{cluster.transport_status ?? t('cluster.detailsUnavailable')}</p><h3>{t('cluster.storagePlan')}</h3><p>{t('cluster.detailsUnavailable')}</p></div>
-        <div className="cluster-detail-section"><h3>{t('cluster.paymentsShares')}</h3><p>{t('cluster.paymentsPlaceholder')}</p></div>
-        <div className="cluster-detail-section"><h3>{t('cluster.timeline')}</h3><div className="cluster-timeline"><span>{t('cluster.timelineFormed')}</span><span>{t('cluster.timelineContributions')}</span><span>{harvested ? t('cluster.timelineHarvested') : t('cluster.timelineTransport')}</span></div></div>
         {invite && <div className="row"><Button icon={Check} onClick={onAccept} wide>{busy ? '…' : t('cluster.accept')}</Button><Button variant="outline" onClick={onDeny} disabled={busy}>{t('cluster.deny')}</Button></div>}
       </>}
     </div>
@@ -452,7 +454,7 @@ function ClusterDetail({ cluster, members, t, invite, busy, onAccept, onDeny, on
 type ClusterModalState = { cluster: CropClusterWithMembers; members: ClusterMemberDetail[]; invite?: ClusterInvite } | null;
 
 function CropView({ open, selectCrop, t, role, notify }: { open: (view: View) => void; selectCrop: (listing: CropListing) => void; t: T; role: Role; notify: (message: string) => void }) {
-  const [type, setType] = useState<'Upcoming' | 'Harvested'>('Upcoming');
+  const [type, setType] = useState<'Upcoming' | 'Harvested' | 'Cluster'>('Upcoming');
   const [listings, setListings] = useState<CropListing[]>([]);
   const [invites, setInvites] = useState<ClusterInvite[]>([]);
   const [memberships, setMemberships] = useState<ClusterMembership[]>([]);
@@ -534,55 +536,61 @@ function CropView({ open, selectCrop, t, role, notify }: { open: (view: View) =>
     }
   };
 
-  const upcoming = type === 'Upcoming';
-  const filtered = listings.filter((l) => upcoming ? l.status === 'Upcoming' : l.status === 'Harvested');
   const showClusterSections = role === 'Farmer' || role === 'FPO';
+  const upcoming = type === 'Upcoming';
+  const isClusterTab = type === 'Cluster';
+  const filtered = listings.filter((l) => upcoming ? l.status === 'Upcoming' : l.status === 'Harvested');
   const joinedForTab = memberships.filter((m) => upcoming ? m.status !== 'sold' && m.status !== 'closed' : m.status === 'sold' || m.status === 'closed');
 
   return <Page title={t('crops.title')} body={t('crops.body')} back={() => open('home')} t={t}>
-    {showClusterSections && invites.length > 0 && (
+    <div className="filter-row">
+      <button className={type === 'Upcoming' ? 'selected' : ''} onClick={() => setType('Upcoming')}>{t('crops.Upcoming')}</button>
+      <button className={type === 'Harvested' ? 'selected' : ''} onClick={() => setType('Harvested')}>{t('crops.Harvested')}</button>
+      {showClusterSections && <button className={isClusterTab ? 'selected' : ''} onClick={() => setType('Cluster')}><Layers size={14} /> {t('cluster.tab')}</button>}
+    </div>
+
+    {isClusterTab ? (
       <>
         <h3 className="subhead cluster-section-heading"><Layers size={18} /> {t('cluster.invitesTitle')}</h3>
+        {loading && <p className="calendar-empty">{t('crops.loading')}</p>}
+        {error && <p className="calendar-empty">{error}</p>}
+        {!loading && !error && invites.length === 0 && <p className="calendar-empty">{t('cluster.noInvites')}</p>}
         <div className="crop-stack">
           {invites.map((invite) => (
             <InviteCard key={invite.id} invite={invite} t={t} busy={busyClusterId === invite.id} onAccept={() => openClusterModal(invite, invite)} onDeny={async () => { setBusyClusterId(invite.id); try { await dismissClusterInvite(invite.id); notify(t('cluster.dismissed')); await loadAll(); } catch { notify(t('cluster.dismissError')); } finally { setBusyClusterId(null); } }} />
           ))}
         </div>
       </>
-    )}
-    {showClusterSections && !loading && !error && invites.length === 0 && memberships.length === 0 && (
-      <p className="calendar-empty">{t('cluster.noInvites')}</p>
-    )}
-    <div className="filter-row">
-      <button className={upcoming ? 'selected' : ''} onClick={() => setType('Upcoming')}>{t('crops.Upcoming')}</button>
-      <button className={!upcoming ? 'selected' : ''} onClick={() => setType('Harvested')}>{t('crops.Harvested')}</button>
-    </div>
-    <h3 className="subhead">{upcoming ? t('crops.upcomingCrops') : t('crops.harvestedCrops')}</h3>
-    {showClusterSections && joinedForTab.length > 0 && (
-      <div className="crop-stack">
-        {joinedForTab.map((membership) => (
-          <ClusterSummaryCard key={membership.id} cluster={membership} t={t} badge={t('cluster.memberBadge')} onClick={() => openClusterModal(membership)} />
-        ))}
-      </div>
-    )}
-    {loading && <p className="calendar-empty">{t('crops.loading')}</p>}
-    {error && <p className="calendar-empty">{error}</p>}
-    {!loading && !error && filtered.length === 0 && <p className="calendar-empty">{upcoming ? t('crops.noUpcoming') : t('crops.noHarvested')}</p>}
-    <div className="crop-stack">
-      {filtered.map((listing) => {
-        const name = cropDisplayName(listing);
-        return <Card key={listing.id} className="crop-row" onClick={() => { selectCrop(listing); open('crop-detail'); }}>
-          <Illustration label={name} color={cropColorFor(name)} icon={cropIconFor(name)} />
-          <div>
-            <Badge tone={upcoming ? 'green' : 'orange'}>{upcoming ? t('crops.Upcoming') : t('crops.Harvested')}</Badge>
-            <h3>{name} · {cropDisplayVariety(listing)}</h3>
-            <p>{formatKg(listing.quantity_kg)} · {upcoming ? formatDate(listing.expected_harvest_date) : formatDate(listing.harvested_at)}</p>
+    ) : (
+      <>
+        <h3 className="subhead">{upcoming ? t('crops.upcomingCrops') : t('crops.harvestedCrops')}</h3>
+        {showClusterSections && joinedForTab.length > 0 && (
+          <div className="crop-stack">
+            {joinedForTab.map((membership) => (
+              <ClusterSummaryCard key={membership.id} cluster={membership} t={t} badge={t('cluster.memberBadge')} onClick={() => openClusterModal(membership)} />
+            ))}
           </div>
-          <ArrowRight size={19} />
-        </Card>;
-      })}
-    </div>
-    {(role === 'Farmer' || role === 'FPO') && <Button icon={Plus} onClick={() => open('crop-create')}>{t('crops.createCrop')}</Button>}
+        )}
+        {loading && <p className="calendar-empty">{t('crops.loading')}</p>}
+        {error && <p className="calendar-empty">{error}</p>}
+        {!loading && !error && filtered.length === 0 && <p className="calendar-empty">{upcoming ? t('crops.noUpcoming') : t('crops.noHarvested')}</p>}
+        <div className="crop-stack">
+          {filtered.map((listing) => {
+            const name = cropDisplayName(listing);
+            return <Card key={listing.id} className="crop-row" onClick={() => { selectCrop(listing); open('crop-detail'); }}>
+              <Illustration label={name} color={cropColorFor(name)} icon={cropIconFor(name)} />
+              <div>
+                <Badge tone={upcoming ? 'green' : 'orange'}>{upcoming ? t('crops.Upcoming') : t('crops.Harvested')}</Badge>
+                <h3>{name} · {cropDisplayVariety(listing)}</h3>
+                <p>{formatKg(listing.quantity_kg)} · {upcoming ? formatDate(listing.expected_harvest_date) : formatDate(listing.harvested_at)}</p>
+              </div>
+              <ArrowRight size={19} />
+            </Card>;
+          })}
+        </div>
+      </>
+    )}
+    {(role === 'Farmer' || role === 'FPO') && !isClusterTab && <Button icon={Plus} onClick={() => open('crop-create')}>{t('crops.createCrop')}</Button>}
     <Demo>{t('crops.cropDetailsSample')}</Demo>
     {modal && <ClusterDetail cluster={modal.cluster} members={modal.members} t={t} invite={modal.invite} busy={busyClusterId === modal.cluster.id} onAccept={handleAccept} onDeny={handleDeny} onClose={() => setModal(null)} />}
   </Page>;
