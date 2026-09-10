@@ -89,16 +89,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error: rpcError } = await supabase.rpc('claim_demo_role', { p_role: selectedRole });
       if (rpcError) throw rpcError;
 
-      if (buyerCategory) {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        if (currentSession) {
-          const { error: profileError } = await supabase.from('profiles').update({ buyer_category: buyerCategory }).eq('id', currentSession.user.id);
-          if (profileError) throw profileError;
-        }
-      }
-
       const { data: { session: finalSession } } = await supabase.auth.getSession();
       if (!finalSession) throw new Error('Your sign-in session could not be created.');
+
+      if (buyerCategory) {
+        const { error: profileError } = await supabase.from('profiles').update({ buyer_category: buyerCategory }).eq('id', finalSession.user.id);
+        if (profileError) throw profileError;
+      }
+
       const assignedRole = await loadUserData(finalSession.user.id);
       if (assignedRole !== selectedRole) {
         throw new Error(`This account is assigned to ${assignedRole ?? 'another role'}, not ${selectedRole}.`);

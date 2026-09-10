@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, getCachedUserId } from './supabase';
 
 export interface Crop {
   id: string;
@@ -233,38 +233,36 @@ export function timeLeftUntil(closesAt: string | null): string {
 }
 
 export async function fetchClusterInvites(): Promise<ClusterInvite[]> {
+  const userId = await getCachedUserId();
+  if (!userId) return [];
+
   const { data: listings, error: lErr } = await supabase
     .from('crop_listings')
     .select('id, owner_id, crop_id, custom_crop_name, quantity_kg, expected_harvest_date, harvested_at, location_area, status')
-    .eq('owner_id', (await supabase.auth.getUser()).data.user?.id ?? '')
+    .eq('owner_id', userId)
     .in('status', ['Upcoming', 'Harvested']);
   if (lErr) throw lErr;
   if (!listings || listings.length === 0) return [];
 
   const listingIds = listings.map((l) => l.id);
 
-  const { data: existingMembers, error: mErr } = await supabase
-    .from('crop_cluster_members')
-    .select('crop_id')
-    .in('crop_id', listingIds);
-  if (mErr) throw mErr;
+  const [existingMembersRes, clustersRes, dismissedRes] = await Promise.all([
+    supabase.from('crop_cluster_members').select('crop_id').in('crop_id', listingIds),
+    supabase.from('crop_clusters').select('*').in('status', ['forming', 'ready']),
+    supabase.from('dismissed_cluster_invites').select('cluster_id'),
+  ]);
+  if (existingMembersRes.error) throw existingMembersRes.error;
+  if (clustersRes.error) throw clustersRes.error;
+  if (dismissedRes.error) throw dismissedRes.error;
 
-  const clusteredListingIds = new Set((existingMembers ?? []).map((m) => m.crop_id));
+  const clusteredListingIds = new Set((existingMembersRes.data ?? []).map((m) => m.crop_id));
   const unclusteredListings = listings.filter((l) => !clusteredListingIds.has(l.id));
   if (unclusteredListings.length === 0) return [];
 
-  const { data: clusters, error: cErr } = await supabase
-    .from('crop_clusters')
-    .select('*')
-    .in('status', ['forming', 'ready']);
-  if (cErr) throw cErr;
+  const clusters = clustersRes.data;
   if (!clusters || clusters.length === 0) return [];
 
-  const { data: dismissed, error: dErr } = await supabase
-    .from('dismissed_cluster_invites')
-    .select('cluster_id');
-  if (dErr) throw dErr;
-  const dismissedClusterIds = new Set((dismissed ?? []).map((d) => d.cluster_id));
+  const dismissedClusterIds = new Set((dismissedRes.data ?? []).map((d) => d.cluster_id));
 
   const { data: allMembers, error: amErr } = await supabase
     .from('crop_cluster_members')
@@ -309,7 +307,7 @@ export async function fetchClusterInvites(): Promise<ClusterInvite[]> {
 }
 
 export async function fetchClusterMemberships(): Promise<ClusterMembership[]> {
-  const userId = (await supabase.auth.getUser()).data.user?.id ?? '';
+  const userId = await getCachedUserId();
   if (!userId) return [];
 
   const { data: myMembers, error: mErr } = await supabase
@@ -321,17 +319,15 @@ export async function fetchClusterMemberships(): Promise<ClusterMembership[]> {
 
   const clusterIds = myMembers.map((m) => m.cluster_id);
 
-  const { data: clusters, error: cErr } = await supabase
-    .from('crop_clusters')
-    .select('*')
-    .in('id', clusterIds);
-  if (cErr) throw cErr;
+  const [clustersRes, allMembersRes] = await Promise.all([
+    supabase.from('crop_clusters').select('*').in('id', clusterIds),
+    supabase.from('crop_cluster_members').select('cluster_id, farmer_id').in('cluster_id', clusterIds),
+  ]);
+  if (clustersRes.error) throw clustersRes.error;
+  if (allMembersRes.error) throw allMembersRes.error;
 
-  const { data: allMembers, error: amErr } = await supabase
-    .from('crop_cluster_members')
-    .select('cluster_id, farmer_id')
-    .in('cluster_id', clusterIds);
-  if (amErr) throw amErr;
+  const clusters = clustersRes.data;
+  const allMembers = allMembersRes.data;
 
   return (clusters ?? []).map((cluster) => {
     const myMember = myMembers.find((m) => m.cluster_id === cluster.id);
@@ -385,23 +381,18 @@ export async function fetchClusterMembers(clusterId: string): Promise<ClusterMem
   if (!members || members.length === 0) return [];
 
   const farmerIds = [...new Set(members.map((m) => m.farmer_id))];
-  const { data: profiles, error: pErr } = await supabase
-    .from('profiles')
-    .select('id, display_name')
-    .in('id', farmerIds);
-  if (pErr) throw pErr;
-
-  const { data: listings, error: lErr } = await supabase
-    .from('crop_listings')
-    .select('id, owner_id, location_area, indicative_price_per_kg')
-    .in('owner_id', farmerIds);
-  if (lErr) throw lErr;
+  const [profilesRes, listingsRes] = await Promise.all([
+    supabase.from('profiles').select('id, display_name').in('id', farmerIds),
+    supabase.from('crop_listings').select('id, owner_id, location_area, indicative_price_per_kg').in('owner_id', farmerIds),
+  ]);
+  if (profilesRes.error) throw profilesRes.error;
+  if (listingsRes.error) throw listingsRes.error;
 
   const nameMap = new Map<string, string>();
-  for (const p of profiles ?? []) nameMap.set(p.id, p.display_name);
+  for (const p of profilesRes.data ?? []) nameMap.set(p.id, p.display_name);
   const locMap = new Map<string, string | null>();
   const priceMap = new Map<string, number | null>();
-  for (const l of listings ?? []) {
+  for (const l of listingsRes.data ?? []) {
     locMap.set(l.owner_id, l.location_area);
     priceMap.set(l.owner_id, l.indicative_price_per_kg);
   }
