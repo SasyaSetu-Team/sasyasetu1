@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS crop_listings_custom_crop_name_lower_idx ON public.crop_listings (lower(custom_crop_name)) WHERE custom_crop_name IS NOT NULL;

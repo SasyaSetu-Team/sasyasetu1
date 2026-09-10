@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS dismissed_invites_cluster_idx ON public.dismissed_cluster_invites (cluster_id);

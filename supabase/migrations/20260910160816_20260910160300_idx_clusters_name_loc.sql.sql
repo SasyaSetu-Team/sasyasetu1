@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS clusters_name_loc_status_lower_idx ON public.crop_clusters (lower(crop_name), lower(COALESCE(location_area, '')), status) WHERE status IN ('forming', 'ready');

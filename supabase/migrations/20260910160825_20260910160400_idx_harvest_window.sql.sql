@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS clusters_harvest_window_idx ON public.crop_clusters (harvest_window_start, harvest_window_end) WHERE status IN ('forming', 'ready');

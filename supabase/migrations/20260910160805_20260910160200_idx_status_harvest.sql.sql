@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS crop_listings_status_harvest_idx ON public.crop_listings (status, COALESCE(expected_harvest_date, harvested_at)) WHERE status IN ('Upcoming', 'Harvested');

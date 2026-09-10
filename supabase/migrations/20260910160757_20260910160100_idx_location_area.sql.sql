@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS crop_listings_location_area_lower_idx ON public.crop_listings (lower(location_area)) WHERE location_area IS NOT NULL;
