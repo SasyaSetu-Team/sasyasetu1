@@ -189,6 +189,18 @@ export function computeCurrentPrice(listing: CropListing): number | null {
   return Math.max(computed, Number(listing.price_floor_per_kg));
 }
 
+export function nextDropMinutes(listing: CropListing): number | null {
+  if (listing.status !== 'Harvested') return null;
+  if (listing.price_drop_started_at == null || listing.step_interval_minutes == null) return null;
+  const elapsedMs = Date.now() - new Date(listing.price_drop_started_at).getTime();
+  if (elapsedMs < 0) return listing.step_interval_minutes;
+  const elapsedMinutes = elapsedMs / (1000 * 60);
+  const completedSteps = Math.floor(elapsedMinutes / listing.step_interval_minutes);
+  const nextDropMs = (completedSteps + 1) * listing.step_interval_minutes * 60 * 1000;
+  const remaining = nextDropMs - elapsedMs;
+  return Math.max(0, Math.ceil(remaining / (60 * 1000)));
+}
+
 export function formatDate(dateStr: string | null): string {
   if (!dateStr) return '—';
   const d = new Date(dateStr);
