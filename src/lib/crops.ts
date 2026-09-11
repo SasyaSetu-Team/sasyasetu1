@@ -228,6 +228,12 @@ export interface CropCluster {
   transport_cost: number | null;
   storage_cost: number | null;
   created_at: string;
+  price_start_per_kg: number | null;
+  price_floor_per_kg: number | null;
+  price_drop_started_at: string | null;
+  step_interval_minutes: number | null;
+  step_drop_amount: number | null;
+  decay_speed: string | null;
 }
 
 export interface CropClusterMember {
@@ -494,6 +500,30 @@ export async function fetchClusterMembers(clusterId: string): Promise<ClusterMem
     indicative_price_per_kg: priceMap.get(m.farmer_id) ?? null,
     created_at: m.created_at,
   }));
+}
+
+export function computeClusterCurrentPrice(cluster: CropCluster): number | null {
+  if (cluster.price_start_per_kg == null || cluster.price_floor_per_kg == null) return null;
+  if (cluster.price_drop_started_at == null || cluster.step_interval_minutes == null || cluster.step_drop_amount == null) {
+    return cluster.price_start_per_kg;
+  }
+  const elapsedMs = Date.now() - new Date(cluster.price_drop_started_at).getTime();
+  if (elapsedMs < 0) return cluster.price_start_per_kg;
+  const elapsedMinutes = elapsedMs / (1000 * 60);
+  const completedSteps = Math.floor(elapsedMinutes / cluster.step_interval_minutes);
+  const computed = Number(cluster.price_start_per_kg) - completedSteps * Number(cluster.step_drop_amount);
+  return Math.max(computed, Number(cluster.price_floor_per_kg));
+}
+
+export function clusterNextDropMinutes(cluster: CropCluster): number | null {
+  if (cluster.price_drop_started_at == null || cluster.step_interval_minutes == null) return null;
+  const elapsedMs = Date.now() - new Date(cluster.price_drop_started_at).getTime();
+  if (elapsedMs < 0) return cluster.step_interval_minutes;
+  const elapsedMinutes = elapsedMs / (1000 * 60);
+  const completedSteps = Math.floor(elapsedMinutes / cluster.step_interval_minutes);
+  const nextDropMs = (completedSteps + 1) * cluster.step_interval_minutes * 60 * 1000;
+  const remaining = nextDropMs - elapsedMs;
+  return Math.max(0, Math.ceil(remaining / (60 * 1000)));
 }
 
 function lower(s: string | null | undefined): string {
