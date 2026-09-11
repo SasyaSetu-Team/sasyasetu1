@@ -481,7 +481,7 @@ function ClusterDetail({ cluster, members, t, invite, busy, onAccept, onDeny, on
         {invite && <div className="cluster-detail-section"><h3>{t('cluster.expectedContribution')}</h3>
           <div className="cluster-detail-grid">
             <Detail label={t('cluster.yourContribution')} value={formatKg(inviteMyQty)} />
-            <Detail label={t('cluster.totalContributed')} value={formatKg(inviteCombinedTotal)} />
+            <Detail label={t('cluster.totalContributed')} value={formatKg(invite.total_quantity)} />
             <Detail label={t('cluster.yourPayoutShare')} value={`${inviteMySharePct.toFixed(1)}%`} />
             <Detail label={t('cluster.yourPayoutAmount')} value={`₹${Math.round(inviteMyPayoutAmt).toLocaleString('en-IN')}`} />
           </div>
@@ -600,7 +600,7 @@ function CropView({ open, selectCrop, t, role, notify, currentUserId }: { open: 
     }
   };
 
-  const showClusterSections = role === 'Farmer' || role === 'FPO';
+  const showClusterSections = role === 'Farmer';
   const upcoming = type === 'Upcoming';
   const isClusterTab = type === 'Cluster';
   const filtered = listings.filter((l) => upcoming ? l.status === 'Upcoming' : l.status === 'Harvested');
