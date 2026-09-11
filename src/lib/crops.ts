@@ -122,6 +122,44 @@ export async function markAsHarvested(id: string, harvestedAt: string): Promise<
   return updateListing(id, { status: 'Harvested', harvested_at: harvestedAt });
 }
 
+export interface BuyNowResult {
+  order_id: string;
+  listing_id: string;
+  quantity_kg: number;
+  unit_price: number;
+  total_amount: number;
+  status: string;
+  booked_at: string;
+}
+
+export async function buyNow(listingId: string): Promise<BuyNowResult> {
+  const { data, error } = await supabase.rpc('buy_now', {
+    p_listing_id: listingId,
+  });
+  if (error) throw error;
+  const order = data as {
+    id: string;
+    listing_id: string;
+    quantity_kg: number;
+    unit_price: number;
+    status: string;
+    booked_at: string;
+  };
+  return {
+    order_id: order.id,
+    listing_id: order.listing_id,
+    quantity_kg: Number(order.quantity_kg),
+    unit_price: Number(order.unit_price),
+    total_amount: round2(Number(order.quantity_kg) * Number(order.unit_price)),
+    status: order.status,
+    booked_at: order.booked_at,
+  };
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
 export function bookedQuantity(listing: CropListing): number {
   return Number(listing.quantity_kg) - Number(listing.available_quantity_kg);
 }
