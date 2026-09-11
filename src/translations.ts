@@ -280,6 +280,11 @@ const en: Dict = {
   'cluster.contributionLabel': 'Contribution',
   'cluster.earningsLabel': 'Earnings',
   'cluster.pricePerKg': 'Price per kg',
+  'cluster.sharedCosts': 'Shared Costs',
+  'cluster.transportCost': 'Transport cost',
+  'cluster.storageCost': 'Cold storage cost',
+  'cluster.transportCostPreview': 'Transport share: ₹{amount}',
+  'cluster.storageCostPreview': 'Storage share: ₹{amount}',
 
   // Calendar
   'calendar.title': 'Harvest Calendar',
@@ -929,6 +934,11 @@ const te: Dict = {
   'cluster.contributionLabel': 'సహకారం',
   'cluster.earningsLabel': 'ఆదాయం',
   'cluster.pricePerKg': 'కిలో ధర',
+  'cluster.sharedCosts': 'భాగస్వామ్య ఖర్చులు',
+  'cluster.transportCost': 'రవాణా ఖర్చు',
+  'cluster.storageCost': 'కోల్డ్ స్టోరేజ్ ఖర్చు',
+  'cluster.transportCostPreview': 'రవాణా వాటా: ₹{amount}',
+  'cluster.storageCostPreview': 'నిల్వ వాటా: ₹{amount}',
 
   'calendar.title': 'పంట క్యాలెండర్',
   'calendar.body': 'పంట తేదీలు, బుకింగ్‌లు, మరియు ఆశించిన దిగుబడి.',
@@ -1561,6 +1571,11 @@ const hi: Dict = {
   'cluster.contributionLabel': 'योगदान',
   'cluster.earningsLabel': 'आय',
   'cluster.pricePerKg': 'प्रति किलो मूल्य',
+  'cluster.sharedCosts': 'साझा लागत',
+  'cluster.transportCost': 'परिवहन लागत',
+  'cluster.storageCost': 'कोल्ड स्टोरेज लागत',
+  'cluster.transportCostPreview': 'परिवहन हिस्सा: ₹{amount}',
+  'cluster.storageCostPreview': 'भंडारण हिस्सा: ₹{amount}',
 
   'calendar.title': 'कटाई कैलेंडर',
   'calendar.body': 'कटाई तिथियां, बुकिंग, और अपेक्षित उपज।',

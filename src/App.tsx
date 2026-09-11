@@ -422,6 +422,8 @@ function InviteCard({ invite, t, onAccept, onDeny, busy }: { invite: ClusterInvi
       <p style={{ marginTop: 2 }}>{t('cluster.becomesNIfJoin', { count: invite.farmer_count, next: invite.farmer_count + 1 })}</p>
       <p style={{ marginTop: 4 }}>{t('cluster.contributionPreview', { qty: formatKg(myQty) })}</p>
       <p style={{ marginTop: 2 }}>{t('cluster.payoutPreview', { amount: Math.round(myPayoutAmt).toLocaleString('en-IN'), percent: mySharePct.toFixed(1) })}</p>
+      {invite.transport_cost != null && <p style={{ marginTop: 2 }}>{t('cluster.transportCostPreview', { amount: Math.round((mySharePct / 100) * invite.transport_cost).toLocaleString('en-IN') })}</p>}
+      {invite.storage_cost != null && <p style={{ marginTop: 2 }}>{t('cluster.storageCostPreview', { amount: Math.round((mySharePct / 100) * invite.storage_cost).toLocaleString('en-IN') })}</p>}
       <div className="row" style={{ marginTop: 8 }}>
         <Button icon={Check} onClick={onAccept} disabled={busy} wide>{busy ? '…' : t('cluster.accept')}</Button>
         <Button variant="outline" onClick={onDeny} disabled={busy}>{t('cluster.deny')}</Button>
@@ -450,6 +452,12 @@ function ClusterDetail({ cluster, members, t, invite, busy, onAccept, onDeny, on
   const inviteCombinedTotal = invite ? invite.total_quantity + inviteMyQty : 0;
   const inviteMySharePct = inviteCombinedTotal > 0 ? (inviteMyQty / inviteCombinedTotal) * 100 : 0;
   const inviteMyPayoutAmt = (inviteMySharePct / 100) * inviteCombinedTotal * estPricePerKg;
+  const clusterTransportCost = cluster.transport_cost ?? null;
+  const clusterStorageCost = cluster.storage_cost ?? null;
+  const myTransportShare = clusterTransportCost != null && totalContributed > 0 ? (myQty / totalContributed) * clusterTransportCost : 0;
+  const myStorageShare = clusterStorageCost != null && totalContributed > 0 ? (myQty / totalContributed) * clusterStorageCost : 0;
+  const inviteTransportShare = invite && clusterTransportCost != null && inviteCombinedTotal > 0 ? (inviteMyQty / inviteCombinedTotal) * clusterTransportCost : 0;
+  const inviteStorageShare = invite && clusterStorageCost != null && inviteCombinedTotal > 0 ? (inviteMyQty / inviteCombinedTotal) * clusterStorageCost : 0;
   return <div className="modal-backdrop" onClick={onClose}>
     <div className="cluster-detail-modal" onClick={(event) => event.stopPropagation()}>
       <div className="cluster-detail-header"><div><span className="eyebrow">{selectedFarmer ? t('cluster.farmerDetail') : t('cluster.detailTitle')}</span><h2>{selectedFarmer?.farmer_name ?? `${cluster.crop_name}${cluster.variety ? ` · ${cluster.variety}` : ''}`}</h2></div><button className="icon-button" onClick={onClose} aria-label={t('common.close')}><X size={22} /></button></div>
@@ -484,6 +492,16 @@ function ClusterDetail({ cluster, members, t, invite, busy, onAccept, onDeny, on
             <Detail label={t('cluster.totalContributed')} value={formatKg(invite.total_quantity)} />
             <Detail label={t('cluster.yourPayoutShare')} value={`${inviteMySharePct.toFixed(1)}%`} />
             <Detail label={t('cluster.yourPayoutAmount')} value={`₹${Math.round(inviteMyPayoutAmt).toLocaleString('en-IN')}`} />
+          </div>
+        </div>}
+        {(clusterTransportCost != null || clusterStorageCost != null) && <div className="cluster-detail-section"><h3>{t('cluster.sharedCosts')}</h3>
+          <div className="cluster-detail-grid">
+            {clusterTransportCost != null && <Detail label={t('cluster.transportCost')} value={`₹${Math.round(clusterTransportCost).toLocaleString('en-IN')} total`} />}
+            {clusterTransportCost != null && (isMembership || myMember) && <Detail label={t('cluster.transportCost')} value={`₹${Math.round(myTransportShare).toLocaleString('en-IN')}`} />}
+            {clusterTransportCost != null && invite && <Detail label={t('cluster.transportCost')} value={`₹${Math.round(inviteTransportShare).toLocaleString('en-IN')}`} />}
+            {clusterStorageCost != null && <Detail label={t('cluster.storageCost')} value={`₹${Math.round(clusterStorageCost).toLocaleString('en-IN')} total`} />}
+            {clusterStorageCost != null && (isMembership || myMember) && <Detail label={t('cluster.storageCost')} value={`₹${Math.round(myStorageShare).toLocaleString('en-IN')}`} />}
+            {clusterStorageCost != null && invite && <Detail label={t('cluster.storageCost')} value={`₹${Math.round(inviteStorageShare).toLocaleString('en-IN')}`} />}
           </div>
         </div>}
         {isInTransit && <div className="cluster-detail-section"><h3>{t('cluster.transportProgress')}</h3>

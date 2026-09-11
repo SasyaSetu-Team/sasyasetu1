@@ -153,6 +153,8 @@ export interface CropCluster {
   status: string;
   closes_at: string | null;
   transport_status: string | null;
+  transport_cost: number | null;
+  storage_cost: number | null;
   created_at: string;
 }
 
