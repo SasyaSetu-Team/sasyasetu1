@@ -388,6 +388,9 @@ function ClusterSummaryCard({ cluster, t, badge, onClick }: { cluster: CropClust
   const myQty = isMembership ? (cluster as ClusterMembership).my_quantity : 0;
   const myShare = isMembership ? (cluster as ClusterMembership).my_payout_share : 0;
   const myPayoutAmt = isMembership ? (myShare / 100) * cluster.total_quantity : 0;
+  const currentPrice = computeClusterCurrentPrice(cluster);
+  const dropIn = clusterNextDropMinutes(cluster);
+  const isAtFloor = currentPrice != null && cluster.price_floor_per_kg != null && currentPrice <= cluster.price_floor_per_kg;
   return <Card className="cluster-row-card" onClick={onClick}>
     <span className={`cluster-row-illustration ${cropColorFor(name)}`}><Icon size={38} strokeWidth={1.5} /></span>
     <div className="cluster-row-content">
@@ -398,6 +401,13 @@ function ClusterSummaryCard({ cluster, t, badge, onClick }: { cluster: CropClust
       <h3>{name}{cluster.variety ? ` · ${cluster.variety}` : ''}</h3>
       <p>{cluster.farmer_count} {t('cluster.farmers')} · {formatKg(cluster.total_quantity)}{isMembership ? ` · ${t('cluster.yourContribution')}: ${formatKg(myQty)}` : ''}{isMembership && isHarvested ? ` · ${t('cluster.payout')}: ₹${Math.round(myPayoutAmt).toLocaleString('en-IN')}` : ''}</p>
       {isMembership && !isHarvested && <p style={{ marginTop: 2 }}>{t('cluster.yourPayoutShare')}: {myShare.toFixed(1)}% · {t('cluster.harvestWindow')}: {formatHarvestWindow(cluster)}</p>}
+      {currentPrice != null && !isHarvested && <div className="price-clock-widget" style={{ marginTop: 6 }}>
+        <div className="price-clock-left">
+          <span className="price-clock-price"><TrendingDown size={14} /> <strong>{formatPrice(currentPrice)}</strong></span>
+          <span className="price-clock-drop">{dropIn != null && dropIn > 0 && !isAtFloor ? t('market.nextDropIn', { minutes: dropIn }) : t('market.lowestPrice')}</span>
+          {cluster.price_floor_per_kg != null && <span className="price-clock-floor">· {t('market.floorPrice', { price: formatPrice(cluster.price_floor_per_kg) })}</span>}
+        </div>
+      </div>}
     </div>
     <ArrowRight size={19} />
   </Card>;
