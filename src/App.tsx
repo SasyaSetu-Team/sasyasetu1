@@ -418,7 +418,8 @@ function InviteCard({ invite, t, onAccept, onDeny, busy }: { invite: ClusterInvi
         <span className="cluster-row-pill cluster-invite-pill"><Layers size={12} /> {t('cluster.inviteBadge')}</span>
       </div>
       <h3>{name}{invite.variety ? ` · ${invite.variety}` : ''}</h3>
-      <p>{invite.location_area ?? '—'} · {invite.farmer_count} {t('cluster.farmers')} · {formatKg(invite.total_quantity)}</p>
+      <p>{invite.location_area ?? '—'} · {invite.farmer_names.join(', ')}</p>
+      <p style={{ marginTop: 2 }}>{t('cluster.becomesNIfJoin', { count: invite.farmer_count, next: invite.farmer_count + 1 })}</p>
       <p style={{ marginTop: 4 }}>{t('cluster.contributionPreview', { qty: formatKg(myQty) })}</p>
       <p style={{ marginTop: 2 }}>{t('cluster.payoutPreview', { amount: Math.round(myPayoutAmt).toLocaleString('en-IN'), percent: mySharePct.toFixed(1) })}</p>
       <div className="row" style={{ marginTop: 8 }}>
@@ -465,7 +466,6 @@ function ClusterDetail({ cluster, members, t, invite, busy, onAccept, onDeny, on
           <div className="cluster-detail-grid">
             <Detail label={t('cluster.location')} value={cluster.location_area ?? '—'} />
             <Detail label={t('cluster.harvestWindow')} value={formatHarvestWindow(cluster)} />
-            <Detail label={t('cluster.requiredTotal')} value={formatKg(cluster.total_quantity)} />
             <Detail label={t('cluster.pricePerKg')} value={formatPrice(estPricePerKg)} />
             <div><small>&nbsp;</small><strong><Badge tone={statusTone}>{statusLabel}</Badge></strong></div>
           </div>

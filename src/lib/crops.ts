@@ -175,6 +175,7 @@ export interface CropClusterWithMembers extends CropCluster {
 export interface ClusterInvite extends CropClusterWithMembers {
   matching_listing_id: string;
   matching_listing_quantity: number;
+  farmer_names: string[];
 }
 
 export interface ClusterMembership extends CropClusterWithMembers {
@@ -270,6 +271,15 @@ export async function fetchClusterInvites(): Promise<ClusterInvite[]> {
     .in('cluster_id', clusters.map((c) => c.id));
   if (amErr) throw amErr;
 
+  const allFarmerIds = [...new Set((allMembers ?? []).map((m) => m.farmer_id))];
+  const { data: profiles, error: pErr } = await supabase
+    .from('profiles')
+    .select('id, display_name')
+    .in('id', allFarmerIds);
+  if (pErr) throw pErr;
+  const nameMap = new Map<string, string>();
+  for (const p of profiles ?? []) nameMap.set(p.id, p.display_name);
+
   const invites: ClusterInvite[] = [];
   for (const listing of unclusteredListings) {
     const cropName = listing.custom_crop_name?.toLowerCase() ?? '';
@@ -293,12 +303,14 @@ export async function fetchClusterInvites(): Promise<ClusterInvite[]> {
 
       const clusterMembers = (allMembers ?? []).filter((m) => m.cluster_id === cluster.id);
       const uniqueFarmers = new Set(clusterMembers.map((m) => m.farmer_id));
+      const farmerNames = [...uniqueFarmers].map((fid) => nameMap.get(fid) ?? 'Unknown').slice(0, 4);
       invites.push({
         ...cluster,
         member_count: clusterMembers.length,
         farmer_count: uniqueFarmers.size,
         matching_listing_id: listing.id,
         matching_listing_quantity: Number(listing.quantity_kg),
+        farmer_names: farmerNames,
       });
     }
   }
