@@ -27,6 +27,12 @@ export interface CropListing {
   created_at: string;
   updated_at: string;
   crop?: Crop;
+  price_start_per_kg: number | null;
+  price_floor_per_kg: number | null;
+  decay_speed: string | null;
+  price_drop_started_at: string | null;
+  step_interval_minutes: number | null;
+  step_drop_amount: number | null;
 }
 
 export type CropAvailability = 'Upcoming' | 'Harvested';
@@ -127,6 +133,22 @@ export function formatKg(value: number): string {
 export function formatPrice(value: number | null): string {
   if (value == null) return '—';
   return '₹' + Number(value).toLocaleString('en-IN') + '/kg';
+}
+
+export function computeCurrentPrice(listing: CropListing): number | null {
+  if (listing.status !== 'Harvested') return listing.indicative_price_per_kg;
+  if (listing.price_start_per_kg == null || listing.price_floor_per_kg == null) {
+    return listing.indicative_price_per_kg;
+  }
+  if (listing.price_drop_started_at == null || listing.step_interval_minutes == null || listing.step_drop_amount == null) {
+    return listing.price_start_per_kg;
+  }
+  const elapsedMs = Date.now() - new Date(listing.price_drop_started_at).getTime();
+  if (elapsedMs < 0) return listing.price_start_per_kg;
+  const elapsedMinutes = elapsedMs / (1000 * 60);
+  const completedSteps = Math.floor(elapsedMinutes / listing.step_interval_minutes);
+  const computed = Number(listing.price_start_per_kg) - completedSteps * Number(listing.step_drop_amount);
+  return Math.max(computed, Number(listing.price_floor_per_kg));
 }
 
 export function formatDate(dateStr: string | null): string {
