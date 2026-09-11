@@ -544,6 +544,7 @@ function CropView({ open, selectCrop, t, role, notify, currentUserId }: { open: 
   const [error, setError] = useState<string | null>(null);
   const [busyClusterId, setBusyClusterId] = useState<string | null>(null);
   const [modal, setModal] = useState<ClusterModalState>(null);
+  const [soldIds, setSoldIds] = useState<Set<string>>(new Set());
 
   const tRef = useRef(t);
   useEffect(() => { tRef.current = t; }, [t]);
@@ -618,6 +619,20 @@ function CropView({ open, selectCrop, t, role, notify, currentUserId }: { open: 
     }
   };
 
+  const handleBuyNow = async (listing: CropListing): Promise<BuyNowResult | null> => {
+    try {
+      const result = await buyNow(listing.id);
+      notify(t('market.buyNowSuccess', { price: formatPrice(result.unit_price) }));
+      return result;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleSold = (listingId: string) => {
+    setSoldIds((prev) => new Set(prev).add(listingId));
+  };
+
   const showClusterSections = role === 'Farmer';
   const upcoming = type === 'Upcoming';
   const isClusterTab = type === 'Cluster';
@@ -658,13 +673,16 @@ function CropView({ open, selectCrop, t, role, notify, currentUserId }: { open: 
         {!loading && !error && filtered.length === 0 && <p className="calendar-empty">{upcoming ? t('crops.noUpcoming') : t('crops.noHarvested')}</p>}
         <div className="crop-stack">
           {filtered.map((listing) => {
+            if (!upcoming) {
+              return <PriceClockCard key={listing.id} listing={listing} t={t} onBuyNow={handleBuyNow} onSold={handleSold} />;
+            }
             const name = cropDisplayName(listing);
             return <Card key={listing.id} className="crop-row" onClick={() => { selectCrop(listing); open('crop-detail'); }}>
               <Illustration label={name} color={cropColorFor(name)} icon={cropIconFor(name)} />
               <div>
-                <Badge tone={upcoming ? 'green' : 'orange'}>{upcoming ? t('crops.Upcoming') : t('crops.Harvested')}</Badge>
+                <Badge tone="green">{t('crops.Upcoming')}</Badge>
                 <h3>{name} · {cropDisplayVariety(listing)}</h3>
-                <p>{formatKg(listing.quantity_kg)} · {upcoming ? formatDate(listing.expected_harvest_date) : formatDate(listing.harvested_at)}</p>
+                <p>{formatKg(listing.quantity_kg)} · {formatDate(listing.expected_harvest_date)}</p>
               </div>
               <ArrowRight size={19} />
             </Card>;
@@ -742,6 +760,44 @@ function ClusterCropCard({ cluster, t, onNotify }: { cluster: CropClusterWithMem
       <Button variant="soft" onClick={() => onNotify(t('cluster.expressInterest', { crop: name }))}>{t('cluster.expressInterestBtn')}</Button>
     </Card>
   );
+}
+
+function BuyerHarvestedCard({ listing, t, onBuyNow, onSold }: { listing: CropListing; t: T; onBuyNow: (listing: CropListing) => Promise<BuyNowResult | null>; onSold: (listingId: string) => void }) {
+  const [purchasing, setPurchasing] = useState(false);
+  const [purchased, setPurchased] = useState(false);
+  const name = cropDisplayName(listing);
+  const currentPrice = computeCurrentPrice(listing);
+
+  const handleBuy = async () => {
+    if (purchasing || purchased) return;
+    setPurchasing(true);
+    try {
+      const result = await onBuyNow(listing);
+      if (result) { setPurchased(true); onSold(listing.id); }
+    } catch { } finally { setPurchasing(false); }
+  };
+
+  if (purchased) {
+    return <Card className="buyer-crop-card sold-card">
+      <Illustration label={`${name} illustration`} color={cropColorFor(name)} icon={cropIconFor(name)} />
+      <div>
+        <Badge tone="blue">{t('market.sold')}</Badge>
+        <h2>{name} · {cropDisplayVariety(listing)}</h2>
+        <p>{t('market.soldAtPrice', { price: formatPrice(currentPrice) })}</p>
+      </div>
+    </Card>;
+  }
+
+  return <Card className="buyer-crop-card">
+    <Illustration label={`${name} illustration`} color={cropColorFor(name)} icon={cropIconFor(name)} />
+    <div>
+      <Badge tone="green">{t('crops.Harvested')}</Badge>
+      <h2>{name} · {cropDisplayVariety(listing)}</h2>
+      <p>{formatKg(listing.available_quantity_kg)} · {formatDate(listing.harvested_at)}</p>
+      <strong>{formatPrice(currentPrice)}</strong>
+      <Button variant="soft" onClick={handleBuy} disabled={purchasing}>{purchasing ? '…' : t('market.buyNow')}</Button>
+    </div>
+  </Card>;
 }
 
 function PriceClockCard({ listing, t, onBuyNow, onSold }: { listing: CropListing; t: T; onBuyNow: (listing: CropListing) => Promise<BuyNowResult | null>; onSold: (listingId: string) => void }) {
@@ -872,7 +928,7 @@ function MarketView({ role, open, notify, t }: { role: Role; open: (view: View) 
       {!loading && !error && filtered.length === 0 && clusters.length === 0 && <p className="calendar-empty">{t('crops.noCrops')}</p>}
       <div className="buyer-crop-list">{(clusters.length > 0 ? individualListings : filtered).map((listing) => {
         if (filter === 'Harvested') {
-          return <PriceClockCard key={listing.id} listing={listing} t={t} onBuyNow={handleBuyNow} onSold={handleSold} />;
+          return <BuyerHarvestedCard key={listing.id} listing={listing} t={t} onBuyNow={handleBuyNow} onSold={handleSold} />;
         }
         const name = cropDisplayName(listing);
         return <Card className="buyer-crop-card" key={listing.id}><Illustration label={`${name} illustration`} color={cropColorFor(name)} icon={cropIconFor(name)} /><div><Badge tone="blue">{t('crops.Upcoming')}</Badge><h2>{name} · {cropDisplayVariety(listing)}</h2><p>{formatKg(listing.quantity_kg)} · {formatDate(listing.expected_harvest_date)}</p><strong>{formatPrice(listing.indicative_price_per_kg)} · {t('market.samplePrice')}</strong><Button variant="soft" onClick={() => notify(t('market.preBookFlow', { crop: name }))}>{t('market.preBook')}</Button></div></Card>;
