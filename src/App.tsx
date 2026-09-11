@@ -795,25 +795,15 @@ function PriceClockCard({ listing, t, onBuyNow, onSold }: { listing: CropListing
       <Badge tone="green">{t('crops.Harvested')}</Badge>
       <h2>{name} · {cropDisplayVariety(listing)}</h2>
       <p>{formatKg(listing.available_quantity_kg)} · {formatDate(listing.harvested_at)}</p>
-      <div className="price-clock-area">
-        <div className="price-clock-current">
-          <TrendingDown size={16} />
-          <strong>{formatPrice(currentPrice)}</strong>
-          <span>/kg</span>
+      <div className="price-clock-widget">
+        <div className="price-clock-left">
+          <span className="price-clock-price"><TrendingDown size={15} /> <strong>{formatPrice(currentPrice)}</strong></span>
+          <span className="price-clock-drop">{dropIn != null && dropIn > 0 && !isAtFloor ? t('market.nextDropIn', { minutes: dropIn }) : t('market.lowestPrice')}</span>
+          {listing.price_floor_per_kg != null && <span className="price-clock-floor">· {t('market.floorPrice', { price: formatPrice(listing.price_floor_per_kg) })}</span>}
         </div>
-        {!isAtFloor && dropIn != null && dropIn > 0 && (
-          <div className="price-clock-next-drop">
-            <Clock3 size={13} /> {t('market.nextDropIn', { minutes: dropIn })}
-          </div>
-        )}
-        {isAtFloor && (
-          <div className="price-clock-next-drop">
-            <Clock3 size={13} /> {t('market.lowestPrice')}
-          </div>
-        )}
+        <button className="button primary price-clock-buy" onClick={handleBuy} disabled={purchasing}>{purchasing ? '…' : t('market.buyNow')}</button>
       </div>
       {error && <p className="price-clock-error">{error}</p>}
-      <Button variant="primary" onClick={handleBuy} disabled={purchasing}>{purchasing ? '…' : t('market.buyNow')}</Button>
     </div>
   </Card>;
 }
