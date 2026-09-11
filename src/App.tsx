@@ -665,7 +665,7 @@ function CropView({ open, selectCrop, t, role, notify, currentUserId }: { open: 
         )}
         {loading && <p className="calendar-empty">{t('crops.loading')}</p>}
         {error && <p className="calendar-empty">{error}</p>}
-        {!loading && !error && filtered.length === 0 && <Card className="crop-row demo-buffer-card"><Illustration label="Chilli" color="orange" icon={Sprout} /><div><Badge tone="orange">{t('crops.demoBuffer')}</Badge><h3>Chilli · Guntur Red</h3><p>{t('crops.demoBuffer')}</p><p style={{ marginTop: 4 }}>350 kg · Grade A · 3 Oct 2026 · ₹42/kg</p></div></Card>}
+        {!loading && !error && filtered.length === 0 && <Card className="crop-row demo-buffer-card"><Illustration label="Chilli" color="orange" icon={Sprout} /><div><Badge tone="orange">{t('crops.demoBuffer')}</Badge><h3>Chilli · Guntur Red</h3><p>{t('crops.demoBuffer')}</p><p style={{ marginTop: 4 }}>350 kg · Grade A · 3 Oct 2026 · ₹42/kg</p><p style={{ marginTop: 2 }}>1 member joined</p></div></Card>}
         <div className="crop-stack">
           {filtered.map((listing) => {
             if (!upcoming) {
@@ -978,7 +978,7 @@ function MarketView({ role, open, notify, t }: { role: Role; open: (view: View) 
           <h3 className="subhead">{t('cluster.individualListings')}</h3>
         </>
       )}
-      {!loading && !error && filtered.length === 0 && clusters.length === 0 && <Card className="buyer-crop-card demo-buffer-card"><Illustration label="Paddy" color="teal" icon={Sprout} /><div><Badge tone="orange">{t('crops.demoBuffer')}</Badge><h2>Paddy · Sona Masuri</h2><p>{t('crops.demoBuffer')}</p><p style={{ marginTop: 4 }}>800 kg · 28 Oct 2026 · ₹22/kg · Warangal, TS</p></div></Card>}
+      {!loading && !error && filtered.length === 0 && clusters.length === 0 && <Card className="buyer-crop-card demo-buffer-card"><Illustration label="Paddy" color="teal" icon={Sprout} /><div><Badge tone="orange">{t('crops.demoBuffer')}</Badge><h2>Paddy · Sona Masuri</h2><p>{t('crops.demoBuffer')}</p><p style={{ marginTop: 4 }}>800 kg · 28 Oct 2026 · ₹22/kg · Warangal, TS</p><p style={{ marginTop: 2 }}>3 members joined</p></div></Card>}
       <div className="buyer-crop-list">{(clusters.length > 0 ? individualListings : filtered).map((listing) => {
         if (filter === 'Harvested') {
           return <BuyerHarvestedCard key={listing.id} listing={listing} t={t} onBuyNow={handleBuyNow} onSold={handleSold} sold={soldIds.has(listing.id)} />;
