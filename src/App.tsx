@@ -391,7 +391,8 @@ function ClusterSummaryCard({ cluster, t, badge, onClick }: { cluster: CropClust
   const currentPrice = computeClusterCurrentPrice(cluster);
   const dropIn = clusterNextDropMinutes(cluster);
   const isAtFloor = currentPrice != null && cluster.price_floor_per_kg != null && currentPrice <= cluster.price_floor_per_kg;
-  return <Card className="cluster-row-card" onClick={onClick}>
+  const isSoldCluster = cluster.status === 'sold';
+  return <Card className={`cluster-row-card${isSoldCluster ? ' sold-card' : ''}`} onClick={onClick}>
     <span className={`cluster-row-illustration ${cropColorFor(name)}`}><Icon size={38} strokeWidth={1.5} /></span>
     <div className="cluster-row-content">
       <div className="cluster-row-badges">
@@ -404,7 +405,7 @@ function ClusterSummaryCard({ cluster, t, badge, onClick }: { cluster: CropClust
       {currentPrice != null && isHarvested && <div className="price-clock-widget" style={{ marginTop: 6 }}>
         <div className="price-clock-left">
           <span className="price-clock-price"><TrendingDown size={14} /> <strong>{formatPrice(currentPrice)}</strong></span>
-          <span className="price-clock-drop">{dropIn != null && dropIn > 0 && !isAtFloor ? t('market.nextDropIn', { minutes: dropIn }) : ''}</span>
+          {!isSoldCluster && <span className="price-clock-drop">{dropIn != null && dropIn > 0 && !isAtFloor ? t('market.nextDropIn', { minutes: dropIn }) : ''}</span>}
           {cluster.price_floor_per_kg != null && <span className="price-clock-floor">· {formatPrice(cluster.price_floor_per_kg)}</span>}
         </div>
       </div>}
@@ -910,16 +911,17 @@ function PriceClockCard({ listing, t }: { listing: CropListing; t: T }) {
   const dropIn = nextDropMinutes(listing);
   const isAtFloor = currentPrice != null && listing.price_floor_per_kg != null && currentPrice <= listing.price_floor_per_kg;
 
-  return <Card className="buyer-crop-card">
+  const isSold = listing.status === 'Sold';
+  return <Card className={`buyer-crop-card${isSold ? ' sold-card' : ''}`}>
     <Illustration label={`${name} illustration`} color={cropColorFor(name)} icon={cropIconFor(name)} />
     <div>
-      <Badge tone="green">{t('crops.Harvested')}</Badge>
+      <Badge tone={isSold ? 'blue' : 'green'}>{isSold ? t('market.sold') : t('crops.Harvested')}</Badge>
       <h2>{name} · {cropDisplayVariety(listing)}</h2>
       <p>{formatKg(listing.available_quantity_kg)} · {formatDate(listing.harvested_at)}</p>
       <div className="price-clock-widget">
         <div className="price-clock-left">
           <span className="price-clock-price"><TrendingDown size={15} /> <strong>{formatPrice(currentPrice)}</strong></span>
-          <span className="price-clock-drop">{dropIn != null && dropIn > 0 && !isAtFloor ? t('market.nextDropIn', { minutes: dropIn }) : ''}</span>
+          {!isSold && <span className="price-clock-drop">{dropIn != null && dropIn > 0 && !isAtFloor ? t('market.nextDropIn', { minutes: dropIn }) : ''}</span>}
           {listing.price_floor_per_kg != null && <span className="price-clock-floor">· {formatPrice(listing.price_floor_per_kg)}</span>}
         </div>
       </div>
