@@ -23,6 +23,7 @@ export interface CropListing {
   indicative_price_per_kg: number | null;
   status: string;
   is_visible: boolean;
+  is_cluster_linked: boolean;
   location_area: string | null;
   created_at: string;
   updated_at: string;

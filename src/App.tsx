@@ -631,7 +631,7 @@ function CropView({ open, selectCrop, t, role, notify, currentUserId }: { open: 
   const showClusterSections = role === 'Farmer';
   const upcoming = type === 'Upcoming';
   const isClusterTab = type === 'Cluster';
-  const filtered = listings.filter((l) => upcoming ? l.status === 'Upcoming' : l.status === 'Harvested' || l.status === 'Sold');
+  const filtered = listings.filter((l) => !l.is_cluster_linked && (upcoming ? l.status === 'Upcoming' : l.status === 'Harvested' || l.status === 'Sold'));
   const joinedForTab = memberships.filter((m) => upcoming ? m.status !== 'sold' && m.status !== 'closed' : m.status === 'sold' || m.status === 'closed');
 
   return <Page title={t('crops.title')} body={t('crops.body')} back={() => open('home')} t={t}>
@@ -754,6 +754,7 @@ function ClusterCropCard({ cluster, t, onNotify, role, onBuyNow, onSold, sold }:
         indicative_price_per_kg: currentPrice,
         status: 'Harvested',
         is_visible: true,
+        is_cluster_linked: true,
         location_area: cluster.location_area,
         created_at: cluster.created_at,
         updated_at: cluster.created_at,
