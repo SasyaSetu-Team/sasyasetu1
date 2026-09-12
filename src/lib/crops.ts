@@ -69,9 +69,11 @@ export function cropDisplayVariety(listing: CropListing): string {
 }
 
 export async function fetchMyListings(): Promise<CropListing[]> {
+  const userId = await getCachedUserId();
   const { data, error } = await supabase
     .from('crop_listings')
     .select('*, crop:crops(id, name, variety, unit, description)')
+    .eq('owner_id', userId)
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data ?? []) as CropListing[];
