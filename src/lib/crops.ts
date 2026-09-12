@@ -174,7 +174,7 @@ export function formatPrice(value: number | null): string {
 }
 
 export function computeCurrentPrice(listing: CropListing): number | null {
-  if (listing.status !== 'Harvested') return listing.indicative_price_per_kg;
+  if (listing.status !== 'Harvested' && listing.status !== 'Sold') return listing.indicative_price_per_kg;
   if (listing.price_start_per_kg == null || listing.price_floor_per_kg == null) {
     return listing.indicative_price_per_kg;
   }
@@ -190,7 +190,7 @@ export function computeCurrentPrice(listing: CropListing): number | null {
 }
 
 export function nextDropMinutes(listing: CropListing): number | null {
-  if (listing.status !== 'Harvested') return null;
+  if (listing.status !== 'Harvested' && listing.status !== 'Sold') return null;
   if (listing.price_drop_started_at == null || listing.step_interval_minutes == null) return null;
   const elapsedMs = Date.now() - new Date(listing.price_drop_started_at).getTime();
   if (elapsedMs < 0) return listing.step_interval_minutes;

@@ -631,7 +631,7 @@ function CropView({ open, selectCrop, t, role, notify, currentUserId }: { open: 
   const showClusterSections = role === 'Farmer';
   const upcoming = type === 'Upcoming';
   const isClusterTab = type === 'Cluster';
-  const filtered = listings.filter((l) => upcoming ? l.status === 'Upcoming' : l.status === 'Harvested');
+  const filtered = listings.filter((l) => upcoming ? l.status === 'Upcoming' : l.status === 'Harvested' || l.status === 'Sold');
   const joinedForTab = memberships.filter((m) => upcoming ? m.status !== 'sold' && m.status !== 'closed' : m.status === 'sold' || m.status === 'closed');
 
   return <Page title={t('crops.title')} body={t('crops.body')} back={() => open('home')} t={t}>
@@ -841,8 +841,17 @@ function ClusterCropCard({ cluster, t, onNotify, role, onBuyNow, onSold, sold }:
 }
 
 function BuyerHarvestedCard({ listing, t, onBuyNow, onSold, sold }: { listing: CropListing; t: T; onBuyNow: (listing: CropListing) => Promise<BuyNowResult | null>; onSold: (listingId: string) => void; sold?: boolean }) {
+  const [now, setNow] = useState(Date.now());
   const [purchasing, setPurchasing] = useState(false);
   const [purchased, setPurchased] = useState(sold ?? false);
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  void now;
+
   const name = cropDisplayName(listing);
   const currentPrice = computeCurrentPrice(listing);
   const dropIn = nextDropMinutes(listing);
@@ -878,7 +887,6 @@ function BuyerHarvestedCard({ listing, t, onBuyNow, onSold, sold }: { listing: C
         <div className="price-clock-left">
           <span className="price-clock-price"><TrendingDown size={15} /> <strong>{formatPrice(currentPrice)}</strong></span>
           <span className="price-clock-drop">{dropIn != null && dropIn > 0 && !isAtFloor ? t('market.nextDropIn', { minutes: dropIn }) : ''}</span>
-          {listing.price_floor_per_kg != null && <span className="price-clock-floor">· {formatPrice(listing.price_floor_per_kg)}</span>}
         </div>
         <button className="button primary price-clock-buy" onClick={handleBuy} disabled={purchasing}>{purchasing ? '…' : t('market.buyNow')}</button>
       </div>
@@ -958,7 +966,7 @@ function MarketView({ role, open, notify, t }: { role: Role; open: (view: View) 
   };
 
   if (role === 'Buyer') {
-    const filtered = listings.filter((l) => l.status === filter || (l.status === 'Sold' && soldIds.has(l.id) && filter === 'Harvested'));
+    const filtered = listings.filter((l) => l.status === filter || (l.status === 'Sold' && filter === 'Harvested'));
     const clusterCropNames = new Set(clusters.map((c) => c.crop_name.toLowerCase()));
     const individualListings = filtered.filter((l) => {
       const name = cropDisplayName(l).toLowerCase();
