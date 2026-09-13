@@ -677,7 +677,7 @@ function CropView({ open, selectCrop, t, role, notify, currentUserId }: { open: 
             return <Card key={listing.id} className="crop-row" onClick={() => { selectCrop(listing); open('crop-detail'); }}>
               {listing.listing_verified && <button type="button" className="verified-badge" onClick={(e) => { e.stopPropagation(); selectCrop(listing); open('farmeye-detail'); }}><Satellite size={11} /> Verified</button>}
               <Illustration label={name} color={cropColorFor(name)} icon={cropIconFor(name)} />
-              <div>
+              <div className="crop-row-text">
                 <Badge tone="green">{t('crops.Upcoming')}</Badge>
                 <h3>{name} · {cropDisplayVariety(listing)}</h3>
                 <p>{formatKg(listing.quantity_kg)} · {formatDate(listing.expected_harvest_date)}</p>
@@ -883,7 +883,7 @@ function BuyerHarvestedCard({ listing, t, onBuyNow, onSold, sold }: { listing: C
   if (purchased) {
     return <Card className="buyer-crop-card sold-card">
       <Illustration label={`${name} illustration`} color={cropColorFor(name)} icon={cropIconFor(name)} />
-      <div>
+      <div className="buyer-card-text">
         <Badge tone="blue">{t('market.sold')}</Badge>
         <h2>{name} · {cropDisplayVariety(listing)}</h2>
         <p>{t('market.soldAtPrice', { price: formatPrice(currentPrice) })}</p>
@@ -894,7 +894,7 @@ function BuyerHarvestedCard({ listing, t, onBuyNow, onSold, sold }: { listing: C
   return <Card className="buyer-crop-card">
     {listing.harvest_timing_verified && listing.harvest_quantity_verified && <span className="verified-badge"><Satellite size={11} /> Verified</span>}
     <Illustration label={`${name} illustration`} color={cropColorFor(name)} icon={cropIconFor(name)} />
-    <div>
+    <div className="buyer-card-text">
       <Badge tone="green">{t('crops.Harvested')}</Badge>
       <h2>{name} · {cropDisplayVariety(listing)}</h2>
       <p>{formatKg(listing.available_quantity_kg)} · {formatDate(listing.harvested_at)}</p>
@@ -928,7 +928,7 @@ function PriceClockCard({ listing, t, onFarmEye }: { listing: CropListing; t: T;
   return <Card className={`buyer-crop-card${isSold ? ' sold-card' : ''}`}>
     {listing.harvest_timing_verified && listing.harvest_quantity_verified && onFarmEye && <button type="button" className="verified-badge" onClick={(e) => { e.stopPropagation(); onFarmEye(); }}><Satellite size={11} /> Verified</button>}
     <Illustration label={`${name} illustration`} color={cropColorFor(name)} icon={cropIconFor(name)} />
-    <div>
+    <div className="buyer-card-text">
       <Badge tone={isSold ? 'blue' : 'green'}>{isSold ? t('market.sold') : t('crops.Harvested')}</Badge>
       <h2>{name} · {cropDisplayVariety(listing)}</h2>
       <p>{formatKg(listing.available_quantity_kg)} · {formatDate(listing.harvested_at)}</p>
@@ -1003,13 +1003,13 @@ function MarketView({ role, open, notify, t }: { role: Role; open: (view: View) 
           <h3 className="subhead">{t('cluster.individualListings')}</h3>
         </>
       )}
-      {!loading && !error && filtered.length === 0 && clusters.length === 0 && <Card className="buyer-crop-card demo-buffer-card"><Illustration label="Paddy" color="teal" icon={Sprout} /><div><Badge tone="orange">{t('crops.demoBuffer')}</Badge><h2>Paddy · Sona Masuri</h2><p>{t('crops.demoBuffer')}</p><p style={{ marginTop: 4 }}>800 kg · 28 Oct 2026 · ₹22/kg · Warangal, TS</p><p style={{ marginTop: 2 }}>3 members joined</p></div></Card>}
+      {!loading && !error && filtered.length === 0 && clusters.length === 0 && <Card className="buyer-crop-card demo-buffer-card"><Illustration label="Paddy" color="teal" icon={Sprout} /><div className="buyer-card-text"><Badge tone="orange">{t('crops.demoBuffer')}</Badge><h2>Paddy · Sona Masuri</h2><p>{t('crops.demoBuffer')}</p><p style={{ marginTop: 4 }}>800 kg · 28 Oct 2026 · ₹22/kg · Warangal, TS</p><p style={{ marginTop: 2 }}>3 members joined</p></div></Card>}
       <div className="buyer-crop-list">{(clusters.length > 0 ? individualListings : filtered).map((listing) => {
         if (filter === 'Harvested') {
           return <BuyerHarvestedCard key={listing.id} listing={listing} t={t} onBuyNow={handleBuyNow} onSold={handleSold} sold={soldIds.has(listing.id)} />;
         }
         const name = cropDisplayName(listing);
-        return <Card className="buyer-crop-card upcoming-buyer-card" key={listing.id}>{listing.listing_verified && <span className="verified-badge"><Satellite size={11} /> Verified</span>}<Illustration label={`${name} illustration`} color={cropColorFor(name)} icon={cropIconFor(name)} /><div><Badge tone="blue">{t('crops.Upcoming')}</Badge><h2>{name} · {cropDisplayVariety(listing)}</h2><p>{formatKg(listing.quantity_kg)} · {formatDate(listing.expected_harvest_date)}</p><strong>{formatPrice(listing.indicative_price_per_kg)} · {t('market.samplePrice')}</strong><Button variant="soft" onClick={() => notify(t('market.preBookFlow', { crop: name }))}>{t('market.preBook')}</Button></div></Card>;
+        return <Card className="buyer-crop-card upcoming-buyer-card" key={listing.id}>{listing.listing_verified && <span className="verified-badge"><Satellite size={11} /> Verified</span>}<Illustration label={`${name} illustration`} color={cropColorFor(name)} icon={cropIconFor(name)} /><div className="buyer-card-text"><Badge tone="blue">{t('crops.Upcoming')}</Badge><h2>{name} · {cropDisplayVariety(listing)}</h2><p>{formatKg(listing.quantity_kg)} · {formatDate(listing.expected_harvest_date)}</p><strong>{formatPrice(listing.indicative_price_per_kg)} · {t('market.samplePrice')}</strong><Button variant="soft" onClick={() => notify(t('market.preBookFlow', { crop: name }))}>{t('market.preBook')}</Button></div></Card>;
       })}</div>
     </Page>;
   }
