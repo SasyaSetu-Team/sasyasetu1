@@ -34,6 +34,12 @@ export interface CropListing {
   price_drop_started_at: string | null;
   step_interval_minutes: number | null;
   step_drop_amount: number | null;
+  listing_verified: boolean;
+  listing_verified_at: string | null;
+  listing_vegetation_reading: string | null;
+  harvest_timing_verified: boolean;
+  harvest_quantity_verified: boolean;
+  harvest_verified_at: string | null;
 }
 
 export type CropAvailability = 'Upcoming' | 'Harvested';
@@ -49,6 +55,9 @@ export interface CropListingInput {
   expected_yield_kg: number | null;
   indicative_price_per_kg: number | null;
   status: string;
+  listing_verified?: boolean;
+  listing_verified_at?: string | null;
+  listing_vegetation_reading?: string | null;
 }
 
 export async function fetchCrops(): Promise<Crop[]> {
