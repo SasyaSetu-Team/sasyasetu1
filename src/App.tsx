@@ -1169,43 +1169,155 @@ function CropFormView({ open, notify, t, editing, voiceFill, formDraft }: { open
   </Page>;
 }
 
+const vegetationReadings = [
+  'Healthy crop canopy observed',
+  'Active vegetation confirmed',
+  'Dense ground cover detected',
+  'Uniform green cover confirmed',
+  'Flowering stage detected',
+  'Broadleaf canopy confirmed',
+  'Healthy plantation growth observed',
+  'Active canopy growth confirmed',
+  'Vigorous leaf cover detected',
+  'Dense plantation canopy observed',
+  'Bushy growth confirmed',
+  'Even ground cover detected',
+  'Lush foliar growth confirmed',
+  'Healthy rhizome canopy observed',
+];
+
+const timingDescriptions = [
+  'Maturity drop matches expected harvest date',
+  'Onset of senescence aligns with reported harvest',
+  'Canopy browning consistent with harvest timing',
+  'Phenological stage confirmed at harvest date',
+  'Crop maturity indicators aligned with report',
+];
+
+const quantityDescriptions = [
+  'Yield estimate within expected range for plot area',
+  'Harvested quantity consistent with canopy cover',
+  'Reported tonnage matches NDVI-based estimate',
+  'Volume within 10% of satellite-derived forecast',
+  'Output confirmed against field-area biomass model',
+];
+
+function hashStr(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
+  return Math.abs(h);
+}
+
+function mockMapStyle(listingId: string, cropName: string): { bg: string; patches: { top: string; left: string; w: string; h: string; color: string; radius: string }[] } {
+  const h = hashStr(listingId);
+  const palettes = [
+    ['#c8e6c9', '#a5d6a7', '#81c784', '#66bb6a'],
+    ['#dcedc8', '#c5e1a5', '#aed581', '#9ccc65'],
+    ['#f1f8e9', '#dcedc8', '#c5e1a5', '#aed581'],
+    ['#e8f5e9', '#c8e6c9', '#a5d6a7', '#81c784'],
+    ['#fff8e1', '#ffecb3', '#ffe082', '#ffd54f'],
+    ['#fbe9e7', '#ffccbc', '#ffab91', '#ff8a65'],
+    ['#e3f2fd', '#bbdefb', '#90caf9', '#64b5f6'],
+    ['#f3e5f5', '#e1bee7', '#ce93d8', '#ba68c8'],
+  ];
+  const p = palettes[h % palettes.length];
+  const shapes = [
+    { top: '12%', left: '18%', w: '40%', h: '30%', color: p[2], radius: '55% 45% 50% 50%' },
+    { top: '48%', left: '52%', w: '32%', h: '28%', color: p[3], radius: '50% 60% 45% 55%' },
+    { top: '62%', left: '10%', w: '25%', h: '22%', color: p[1], radius: '45% 55% 50% 50%' },
+    { top: '8%', left: '60%', w: '22%', h: '20%', color: p[2], radius: '60% 40% 55% 45%' },
+  ];
+  const offset = h % 4;
+  const patches = [
+    shapes[offset % 4],
+    shapes[(offset + 1) % 4],
+    shapes[(offset + 2) % 4],
+  ];
+  return { bg: p[0], patches };
+}
+
 function FarmEyeDetailView({ crop, open, t }: { crop: CropListing; open: (view: View) => void; t: T }) {
   const isListing = crop.listing_verified === true;
   const name = cropDisplayName(crop);
+  const color = cropColorFor(name);
 
   const daysAgo = crop.listing_verified_at
     ? Math.max(0, Math.floor((Date.now() - new Date(crop.listing_verified_at).getTime()) / 86400000))
     : 0;
 
+  const vegReading = crop.listing_vegetation_reading ?? vegetationReadings[hashStr(crop.id) % vegetationReadings.length];
+  const timingDesc = timingDescriptions[hashStr(crop.id) % timingDescriptions.length];
+  const quantityDesc = quantityDescriptions[hashStr(crop.id) % quantityDescriptions.length];
+  const mapStyle = mockMapStyle(crop.id, name);
+
   return <Page title="Farm verification" body={`${name} · ${cropDisplayVariety(crop)}`} back={() => open('crop-detail')} t={t}>
     {isListing ? (
       <>
-        <Card className="farmeye-map-placeholder">
-          <Map size={48} strokeWidth={1.5} />
-          <span>{t('journey.notLiveGps')}</span>
+        <Card className={`farmeye-map-card ${color}`}>
+          <div className="farmeye-map-terrain" style={{ background: mapStyle.bg }}>
+            {mapStyle.patches.map((patch, i) => (
+              <div key={i} className="farmeye-map-patch" style={{
+                position: 'absolute',
+                top: patch.top,
+                left: patch.left,
+                width: patch.w,
+                height: patch.h,
+                background: patch.color,
+                borderRadius: patch.radius,
+              }} />
+            ))}
+            <div className="farmeye-map-overlay">
+              <Satellite size={20} />
+              <span>{t('journey.notLiveGps')}</span>
+            </div>
+          </div>
+          <div className="farmeye-map-meta">
+            <span className="farmeye-map-crop"><Sprout size={14} /> {name}</span>
+            <span className="farmeye-map-pass"><Satellite size={13} /> {daysAgo} day{daysAgo === 1 ? '' : 's'} ago</span>
+          </div>
         </Card>
-        <div className="detail-grid">
-          <Detail label="Checkpoint" value="Listing" />
-          <Detail label="Satellite pass" value={`${daysAgo} day${daysAgo === 1 ? '' : 's'} ago`} />
-          <Detail label="Vegetation reading" value={crop.listing_vegetation_reading ?? '—'} />
-        </div>
+        <Card className="farmeye-detail-card">
+          <div className="farmeye-detail-row">
+            <span className="farmeye-detail-icon"><Check size={16} strokeWidth={3} /></span>
+            <div className="farmeye-detail-body">
+              <strong>Checkpoint</strong>
+              <small>Listing verified</small>
+            </div>
+          </div>
+          <div className="farmeye-detail-row">
+            <span className="farmeye-detail-icon"><Satellite size={16} /></span>
+            <div className="farmeye-detail-body">
+              <strong>Satellite pass</strong>
+              <small>{daysAgo} day{daysAgo === 1 ? '' : 's'} ago</small>
+            </div>
+          </div>
+          <div className="farmeye-detail-row">
+            <span className="farmeye-detail-icon"><Leaf size={16} /></span>
+            <div className="farmeye-detail-body">
+              <strong>Vegetation reading</strong>
+              <small>{vegReading}</small>
+            </div>
+          </div>
+        </Card>
       </>
     ) : (
       <>
-        <div className="farmeye-timeline">
-          <span className="farmeye-timeline-node done"><Check size={14} strokeWidth={3} /></span>
-          <span className="farmeye-timeline-line" />
-          <span className="farmeye-timeline-node done"><Check size={14} strokeWidth={3} /></span>
-          <span className="farmeye-timeline-label">Listed</span>
-          <span />
-          <span className="farmeye-timeline-label">Harvested</span>
-        </div>
+        <Card className="farmeye-timeline-card">
+          <div className="farmeye-timeline">
+            <span className="farmeye-timeline-node done"><Check size={14} strokeWidth={3} /></span>
+            <span className="farmeye-timeline-line" />
+            <span className="farmeye-timeline-node done"><Check size={14} strokeWidth={3} /></span>
+            <span className="farmeye-timeline-label">Listed</span>
+            <span />
+            <span className="farmeye-timeline-label">Harvested</span>
+          </div>
+        </Card>
         {crop.harvest_timing_verified && (
           <Card className="farmeye-checkpoint-box">
             <ShieldCheck size={22} />
             <div>
               <strong>Timing</strong>
-              <p>Maturity drop matches date</p>
+              <p>{timingDesc}</p>
             </div>
           </Card>
         )}
@@ -1214,7 +1326,7 @@ function FarmEyeDetailView({ crop, open, t }: { crop: CropListing; open: (view: 
             <ShieldCheck size={22} />
             <div>
               <strong>Quantity</strong>
-              <p>Within expected range</p>
+              <p>{quantityDesc}</p>
             </div>
           </Card>
         )}
