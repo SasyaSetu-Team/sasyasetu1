@@ -674,6 +674,7 @@ function CropView({ open, selectCrop, t, role, notify, currentUserId }: { open: 
             }
             const name = cropDisplayName(listing);
             return <Card key={listing.id} className="crop-row" onClick={() => { selectCrop(listing); open('crop-detail'); }}>
+              {listing.listing_verified && <span className="verified-badge"><Check size={11} strokeWidth={3} /> Verified</span>}
               <Illustration label={name} color={cropColorFor(name)} icon={cropIconFor(name)} />
               <div>
                 <Badge tone="green">{t('crops.Upcoming')}</Badge>
@@ -765,6 +766,12 @@ function ClusterCropCard({ cluster, t, onNotify, role, onBuyNow, onSold, sold }:
         price_drop_started_at: cluster.price_drop_started_at,
         step_interval_minutes: cluster.step_interval_minutes,
         step_drop_amount: cluster.step_drop_amount,
+        listing_verified: false,
+        listing_verified_at: null,
+        listing_vegetation_reading: null,
+        harvest_timing_verified: false,
+        harvest_quantity_verified: false,
+        harvest_verified_at: null,
       });
       if (result) {
         setPurchased(true);
@@ -913,6 +920,7 @@ function PriceClockCard({ listing, t }: { listing: CropListing; t: T }) {
 
   const isSold = listing.status === 'Sold';
   return <Card className={`buyer-crop-card${isSold ? ' sold-card' : ''}`}>
+    {listing.harvest_timing_verified && listing.harvest_quantity_verified && <span className="verified-badge"><Check size={11} strokeWidth={3} /> Verified</span>}
     <Illustration label={`${name} illustration`} color={cropColorFor(name)} icon={cropIconFor(name)} />
     <div>
       <Badge tone={isSold ? 'blue' : 'green'}>{isSold ? t('market.sold') : t('crops.Harvested')}</Badge>
