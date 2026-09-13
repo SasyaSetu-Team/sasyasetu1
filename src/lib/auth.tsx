@@ -9,6 +9,10 @@ export interface Profile {
   display_name: string;
   language: string;
   buyer_category: string | null;
+  home_location: string | null;
+  farmer_verification_id: string | null;
+  farmer_category: string | null;
+  verification_status: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -35,6 +39,13 @@ export const demoEmails: Record<AppRole, string> = {
   'Storage Provider': 'demo.storage@sasyasetu.demo',
   'Transport Provider': 'demo.transport@sasyasetu.demo',
 };
+
+export const farmerDemoEmails: { email: string; name: string }[] = [
+  { email: 'demo.farmer@sasyasetu.demo', name: 'Ramesh Kumar' },
+  { email: 'lakshmi.farmer@demo.sasyasetu', name: 'Lakshmi Devi' },
+  { email: 'anjali.farmer@demo.sasyasetu', name: 'Anjali Reddy' },
+  { email: 'prasad.farmer@demo.sasyasetu', name: 'Prasad Rao' },
+];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
