@@ -1098,7 +1098,7 @@ function CropFormView({ open, notify, t, editing, voiceFill, formDraft }: { open
       crop_id: resolvedCropId,
       custom_crop_name: isOther ? customCropName.trim() : null,
       quantity_kg: Number(quantityKg) || 0,
-      available_quantity_kg: Number(availableKg) || 0,
+      available_quantity_kg: Number(availableKg) || Number(quantityKg) || 0,
       expected_harvest_date: status === 'Upcoming' ? (harvestDate || null) : null,
       harvested_at: status === 'Harvested' ? (harvestedAt || null) : null,
       area_acres: areaAcres ? Number(areaAcres) : null,
@@ -1132,9 +1132,7 @@ function CropFormView({ open, notify, t, editing, voiceFill, formDraft }: { open
         </label>
         {isOther && <label>{t('crops.cropName')}<input type="text" value={customCropName} onChange={(e) => setCustomCropName(e.target.value)} placeholder={t('crops.cropNamePlaceholder')} required /></label>}
         <label>{t('crops.totalQuantity')}<input type="number" min="1" step="1" value={quantityKg} onChange={(e) => setQuantityKg(e.target.value)} required /></label>
-        <label>{t('crops.availableQuantity')}<input type="number" min="0" step="1" value={availableKg} onChange={(e) => setAvailableKg(e.target.value)} required /></label>
         <label>{t('crops.areaAcres')}<input type="number" min="0" step="0.1" value={areaAcres} onChange={(e) => setAreaAcres(e.target.value)} /></label>
-        <label>{t('crops.expectedYieldKg')}<input type="number" min="0" step="1" value={expectedYield} onChange={(e) => setExpectedYield(e.target.value)} /></label>
         <label>{t('crops.pricePerKg')}<input type="number" min="0" step="0.01" value={pricePerKg} onChange={(e) => setPricePerKg(e.target.value)} /></label>
         <label>{t('crops.status')}<select value={status} onChange={(e) => setStatus(e.target.value as 'Upcoming' | 'Harvested')}><option value="Upcoming">{t('crops.Upcoming')}</option><option value="Harvested">{t('crops.Harvested')}</option></select></label>
         {status === 'Upcoming' && <label>{t('crops.harvestDate')}<input type="date" value={harvestDate} onChange={(e) => setHarvestDate(e.target.value)} /></label>}

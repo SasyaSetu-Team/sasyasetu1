@@ -179,7 +179,7 @@ function translateResponse(data: EdgeFunctionResponse, _lang: string): IntentRes
         result.intent = 'fill_slot_value';
         result.value = slots.value;
       } else {
-        const knownFields = ['quantity', 'available', 'area', 'yield', 'price', 'date'];
+        const knownFields = ['quantity', 'area', 'price', 'date'];
         const found = knownFields.find((f) => slots[f] !== undefined && slots[f] !== '');
         if (found) {
           result.intent = 'fill_slot_value';

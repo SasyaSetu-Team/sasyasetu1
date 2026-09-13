@@ -38,9 +38,9 @@ function normalizeRole(raw: string): string | null {
   return null;
 }
 
-export type FormField = 'cropName' | 'quantity' | 'available' | 'status' | 'date' | 'area' | 'yield' | 'price';
+export type FormField = 'cropName' | 'quantity' | 'status' | 'date' | 'area' | 'price';
 
-export const FORM_STEPS: FormField[] = ['cropName', 'quantity', 'available', 'area', 'yield', 'price', 'status', 'date'];
+export const FORM_STEPS: FormField[] = ['cropName', 'quantity', 'area', 'price', 'status', 'date'];
 
 export interface VoiceSessionState {
   greeted: boolean;
@@ -191,14 +191,12 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
     switch (field) {
       case 'cropName': return tr('voice.formAskCropName');
       case 'quantity': return tr('voice.formAskQuantity');
-      case 'available': return tr('voice.formAskAvailable');
       case 'status': return tr('voice.formAskStatus');
       case 'date': {
         const st = stateRef.current.slots;
         return st.status === 'Harvested' ? tr('voice.formAskHarvestedDate') : tr('voice.formAskDate');
       }
       case 'area': return tr('voice.formAskArea');
-      case 'yield': return tr('voice.formAskYield');
       case 'price': return tr('voice.formAskPrice');
     }
   }, []);
