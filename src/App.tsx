@@ -400,6 +400,7 @@ function ClusterSummaryCard({ cluster, t, badge, onClick }: { cluster: CropClust
       <div className="cluster-row-badges">
         <span className="cluster-row-pill"><Layers size={12} /> {t('cluster.label')}</span>
         <Badge tone={tone}>{statusText}</Badge>
+        {cluster.verified_count > 0 && <span className="cluster-verified-fraction"><Check size={11} strokeWidth={3} /> {cluster.verified_count}/{cluster.farmer_count} verified</span>}
       </div>
       <h3>{name}{cluster.variety ? ` · ${cluster.variety}` : ''}</h3>
       <p>{cluster.farmer_count} {t('cluster.farmers')} · {formatKg(cluster.total_quantity)}{isMembership ? ` · ${t('cluster.yourContribution')}: ${formatKg(myQty)}` : ''}{isMembership && isHarvested ? ` · ${t('cluster.payout')}: ₹${Math.round(myPayoutAmt).toLocaleString('en-IN')}` : ''}</p>
@@ -806,6 +807,7 @@ function ClusterCropCard({ cluster, t, onNotify, role, onBuyNow, onSold, sold }:
       <div className="cluster-badge-row">
         <span className="cluster-pill"><Layers size={14} /> {t('cluster.label')}</span>
         <Badge tone={statusTone}>{statusLabel}</Badge>
+        {cluster.verified_count > 0 && <span className="cluster-verified-fraction"><Check size={11} strokeWidth={3} /> {cluster.verified_count}/{cluster.farmer_count} verified</span>}
       </div>
       <div className="cluster-body">
         <span className={`cluster-illustration ${color}`}><Icon size={38} strokeWidth={1.5} /></span>
@@ -887,6 +889,7 @@ function BuyerHarvestedCard({ listing, t, onBuyNow, onSold, sold }: { listing: C
   }
 
   return <Card className="buyer-crop-card">
+    {listing.harvest_timing_verified && listing.harvest_quantity_verified && <span className="verified-badge"><Check size={11} strokeWidth={3} /> Verified</span>}
     <Illustration label={`${name} illustration`} color={cropColorFor(name)} icon={cropIconFor(name)} />
     <div>
       <Badge tone="green">{t('crops.Harvested')}</Badge>
@@ -1003,7 +1006,7 @@ function MarketView({ role, open, notify, t }: { role: Role; open: (view: View) 
           return <BuyerHarvestedCard key={listing.id} listing={listing} t={t} onBuyNow={handleBuyNow} onSold={handleSold} sold={soldIds.has(listing.id)} />;
         }
         const name = cropDisplayName(listing);
-        return <Card className="buyer-crop-card" key={listing.id}><Illustration label={`${name} illustration`} color={cropColorFor(name)} icon={cropIconFor(name)} /><div><Badge tone="blue">{t('crops.Upcoming')}</Badge><h2>{name} · {cropDisplayVariety(listing)}</h2><p>{formatKg(listing.quantity_kg)} · {formatDate(listing.expected_harvest_date)}</p><strong>{formatPrice(listing.indicative_price_per_kg)} · {t('market.samplePrice')}</strong><Button variant="soft" onClick={() => notify(t('market.preBookFlow', { crop: name }))}>{t('market.preBook')}</Button></div></Card>;
+        return <Card className="buyer-crop-card" key={listing.id}>{listing.listing_verified && <span className="verified-badge"><Check size={11} strokeWidth={3} /> Verified</span>}<Illustration label={`${name} illustration`} color={cropColorFor(name)} icon={cropIconFor(name)} /><div><Badge tone="blue">{t('crops.Upcoming')}</Badge><h2>{name} · {cropDisplayVariety(listing)}</h2><p>{formatKg(listing.quantity_kg)} · {formatDate(listing.expected_harvest_date)}</p><strong>{formatPrice(listing.indicative_price_per_kg)} · {t('market.samplePrice')}</strong><Button variant="soft" onClick={() => notify(t('market.preBookFlow', { crop: name }))}>{t('market.preBook')}</Button></div></Card>;
       })}</div>
     </Page>;
   }

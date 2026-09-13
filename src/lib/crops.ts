@@ -262,6 +262,7 @@ export interface CropClusterMember {
 export interface CropClusterWithMembers extends CropCluster {
   member_count: number;
   farmer_count: number;
+  verified_count: number;
 }
 
 export interface ClusterInvite extends CropClusterWithMembers {
@@ -288,17 +289,42 @@ export async function fetchClusters(): Promise<CropClusterWithMembers[]> {
   const clusterIds = clusters.map((c) => c.id);
   const { data: members, error: mErr } = await supabase
     .from('crop_cluster_members')
-    .select('cluster_id, farmer_id')
+    .select('cluster_id, farmer_id, crop_id')
     .in('cluster_id', clusterIds);
   if (mErr) throw mErr;
+
+  const memberCropIds = (members ?? []).map((m) => m.crop_id);
+  const { data: memberListings, error: mlErr } = await supabase
+    .from('crop_listings')
+    .select('id, listing_verified, harvest_timing_verified, harvest_quantity_verified, status')
+    .in('id', memberCropIds);
+  if (mlErr) throw mlErr;
+
+  const listingMap = new Map<string, { listing_verified: boolean; harvest_timing_verified: boolean; harvest_quantity_verified: boolean; status: string }>();
+  for (const l of memberListings ?? []) {
+    listingMap.set(l.id, {
+      listing_verified: !!l.listing_verified,
+      harvest_timing_verified: !!l.harvest_timing_verified,
+      harvest_quantity_verified: !!l.harvest_quantity_verified,
+      status: l.status,
+    });
+  }
 
   return clusters.map((c) => {
     const clusterMembers = (members ?? []).filter((m) => m.cluster_id === c.id);
     const uniqueFarmers = new Set(clusterMembers.map((m) => m.farmer_id));
+    const isHarvested = c.status === 'sold' || c.status === 'closed';
+    const verifiedCount = clusterMembers.filter((m) => {
+      const l = listingMap.get(m.crop_id);
+      if (!l) return false;
+      if (isHarvested) return l.harvest_timing_verified && l.harvest_quantity_verified;
+      return l.listing_verified;
+    }).length;
     return {
       ...c,
       member_count: clusterMembers.length,
       farmer_count: uniqueFarmers.size,
+      verified_count: verifiedCount,
     } as CropClusterWithMembers;
   });
 }
@@ -425,7 +451,7 @@ export async function fetchClusterMemberships(): Promise<ClusterMembership[]> {
 
   const [clustersRes, allMembersRes] = await Promise.all([
     supabase.from('crop_clusters').select('*').in('id', clusterIds),
-    supabase.from('crop_cluster_members').select('cluster_id, farmer_id').in('cluster_id', clusterIds),
+    supabase.from('crop_cluster_members').select('cluster_id, farmer_id, crop_id').in('cluster_id', clusterIds),
   ]);
   if (clustersRes.error) throw clustersRes.error;
   if (allMembersRes.error) throw allMembersRes.error;
@@ -433,14 +459,38 @@ export async function fetchClusterMemberships(): Promise<ClusterMembership[]> {
   const clusters = clustersRes.data;
   const allMembers = allMembersRes.data;
 
+  const memberCropIds = (allMembers ?? []).map((m) => m.crop_id);
+  const { data: memberListings, error: mlErr } = await supabase
+    .from('crop_listings')
+    .select('id, listing_verified, harvest_timing_verified, harvest_quantity_verified')
+    .in('id', memberCropIds);
+  if (mlErr) throw mlErr;
+
+  const listingMap = new Map<string, { listing_verified: boolean; harvest_timing_verified: boolean; harvest_quantity_verified: boolean }>();
+  for (const l of memberListings ?? []) {
+    listingMap.set(l.id, {
+      listing_verified: !!l.listing_verified,
+      harvest_timing_verified: !!l.harvest_timing_verified,
+      harvest_quantity_verified: !!l.harvest_quantity_verified,
+    });
+  }
+
   return (clusters ?? []).map((cluster) => {
     const myMember = myMembers.find((m) => m.cluster_id === cluster.id);
     const clusterMembers = (allMembers ?? []).filter((m) => m.cluster_id === cluster.id);
     const uniqueFarmers = new Set(clusterMembers.map((m) => m.farmer_id));
+    const isHarvested = cluster.status === 'sold' || cluster.status === 'closed';
+    const verifiedCount = clusterMembers.filter((m) => {
+      const l = listingMap.get(m.crop_id);
+      if (!l) return false;
+      if (isHarvested) return l.harvest_timing_verified && l.harvest_quantity_verified;
+      return l.listing_verified;
+    }).length;
     return {
       ...cluster,
       member_count: clusterMembers.length,
       farmer_count: uniqueFarmers.size,
+      verified_count: verifiedCount,
       my_quantity: Number(myMember?.quantity_contributed ?? 0),
       my_payout_share: Number(myMember?.payout_share_percent ?? 0),
     };
