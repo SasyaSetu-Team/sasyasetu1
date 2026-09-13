@@ -431,12 +431,10 @@ function InviteCard({ invite, t, onAccept, onDeny, busy }: { invite: ClusterInvi
         <span className="cluster-row-pill cluster-invite-pill"><Layers size={12} /> {t('cluster.inviteBadge')}</span>
       </div>
       <h3>{name}{invite.variety ? ` · ${invite.variety}` : ''}</h3>
-      <p>{invite.location_area ?? '—'} · {invite.farmer_names.join(', ')}</p>
+      <p>{invite.location_area ?? '—'}</p>
       <p style={{ marginTop: 2 }}>{t('cluster.becomesNIfJoin', { count: invite.farmer_count, next: invite.farmer_count + 1 })}</p>
       <p style={{ marginTop: 4 }}>{t('cluster.contributionPreview', { qty: formatKg(myQty) })}</p>
       <p style={{ marginTop: 2 }}>{t('cluster.payoutPreview', { amount: Math.round(myPayoutAmt).toLocaleString('en-IN'), percent: mySharePct.toFixed(1) })}</p>
-      {invite.transport_cost != null && <p style={{ marginTop: 2 }}>{t('cluster.transportCostPreview', { amount: Math.round((mySharePct / 100) * invite.transport_cost).toLocaleString('en-IN') })}</p>}
-      {invite.storage_cost != null && <p style={{ marginTop: 2 }}>{t('cluster.storageCostPreview', { amount: Math.round((mySharePct / 100) * invite.storage_cost).toLocaleString('en-IN') })}</p>}
       <div className="row" style={{ marginTop: 8 }}>
         <Button icon={Check} onClick={onAccept} disabled={busy} wide>{busy ? '…' : t('cluster.accept')}</Button>
         <Button variant="outline" onClick={onDeny} disabled={busy}>{t('cluster.deny')}</Button>
