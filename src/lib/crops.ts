@@ -144,6 +144,74 @@ export interface BuyNowResult {
   booked_at: string;
 }
 
+export interface OrderRow {
+  id: string;
+  buyer_id: string;
+  listing_id: string;
+  quantity_kg: number;
+  unit_price: number;
+  status: string;
+  payment_type: string | null;
+  amount_paid: number | null;
+  token_percent: number | null;
+  booked_at: string;
+  listing?: CropListing;
+}
+
+export interface BookResult {
+  order_id: string;
+  listing_id: string;
+  quantity_kg: number;
+  unit_price: number;
+  total_amount: number;
+  amount_paid: number;
+  payment_type: string;
+  status: string;
+  booked_at: string;
+}
+
+export async function bookListing(listingId: string, paymentType: 'token' | 'full'): Promise<BookResult> {
+  const { data, error } = await supabase.rpc('book_listing', {
+    p_listing_id: listingId,
+    p_payment_type: paymentType,
+  });
+  if (error) throw error;
+  const order = data as {
+    id: string;
+    listing_id: string;
+    quantity_kg: number;
+    unit_price: number;
+    status: string;
+    payment_type: string | null;
+    amount_paid: number | null;
+    token_percent: number | null;
+    booked_at: string;
+  };
+  const total = round2(Number(order.quantity_kg) * Number(order.unit_price));
+  return {
+    order_id: order.id,
+    listing_id: order.listing_id,
+    quantity_kg: Number(order.quantity_kg),
+    unit_price: Number(order.unit_price),
+    total_amount: total,
+    amount_paid: Number(order.amount_paid ?? 0),
+    payment_type: order.payment_type ?? paymentType,
+    status: order.status,
+    booked_at: order.booked_at,
+  };
+}
+
+export async function fetchMyOrders(): Promise<OrderRow[]> {
+  const userId = await getCachedUserId();
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*, listing:crop_listings(*, crop:crops(id, name, variety, unit, description))')
+    .eq('buyer_id', userId)
+    .order('booked_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as OrderRow[];
+}
+
 export async function buyNow(listingId: string): Promise<BuyNowResult> {
   const { data, error } = await supabase.rpc('buy_now', {
     p_listing_id: listingId,
