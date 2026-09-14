@@ -900,7 +900,7 @@ function BuyerHarvestedCard({ listing, t, onBuyNow, onSold, sold }: { listing: C
       <p>{formatKg(listing.available_quantity_kg)} · {formatDate(listing.harvested_at)}</p>
       <div className="price-clock-widget">
         <div className="price-clock-left">
-          <span className="price-clock-price"><TrendingDown size={15} /> <strong>{formatPrice(currentPrice)}</strong></span>
+          <span className="price-clock-price buyer-price-neutral"><strong>{formatPrice(currentPrice)}</strong></span>
           <span className="price-clock-drop">{dropIn != null && dropIn > 0 && !isAtFloor ? t('market.nextDropIn', { minutes: dropIn }) : ''}</span>
         </div>
         <button className="button primary price-clock-buy" onClick={handleBuy} disabled={purchasing}>{purchasing ? '…' : t('market.buyNow')}</button>
@@ -949,6 +949,7 @@ function MarketView({ role, open, notify, t }: { role: Role; open: (view: View) 
   const [clusters, setClusters] = useState<CropClusterWithMembers[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [soldIds, setSoldIds] = useState<Set<string>>(() => { try { const s = localStorage.getItem('soldIds'); return s ? new Set(JSON.parse(s)) : new Set(); } catch { return new Set(); } });
 
   const tRef = useRef(t);
@@ -983,28 +984,31 @@ function MarketView({ role, open, notify, t }: { role: Role; open: (view: View) 
   };
 
   if (role === 'Buyer') {
-    const filtered = listings.filter((l) => l.status === filter || (l.status === 'Sold' && filter === 'Harvested'));
+    const filtered = listings.filter((l) => l.status === filter);
+    const searchLower = searchQuery.trim().toLowerCase();
+    const searchFiltered = searchLower ? filtered.filter((l) => cropDisplayName(l).toLowerCase().includes(searchLower)) : filtered;
     const clusterCropNames = new Set(clusters.map((c) => c.crop_name.toLowerCase()));
-    const individualListings = filtered.filter((l) => {
+    const clusterSearchFiltered = searchLower ? clusters.filter((c) => c.crop_name.toLowerCase().includes(searchLower)) : clusters;
+    const individualListings = searchFiltered.filter((l) => {
       const name = cropDisplayName(l).toLowerCase();
       return !clusterCropNames.has(name);
     });
     return <Page title={t('market.exploreTitle')} body={t('market.exploreBody')} back={() => open('home')} t={t}>
-      <div className="crop-search"><Search size={18} /><input placeholder={t('market.searchPlaceholder')} /></div>
+      <div className="crop-search"><Search size={18} /><input placeholder={t('market.searchPlaceholder')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
       <div className="filter-row">{(['Upcoming', 'Harvested'] as const).map((item) => <button className={filter === item ? 'selected' : ''} key={item} onClick={() => setFilter(item)}>{t(`crops.${item}`)}</button>)}</div>
       {loading && <p className="calendar-empty">{t('crops.loading')}</p>}
       {error && <p className="calendar-empty">{error}</p>}
-      {!loading && !error && clusters.length > 0 && (
+      {!loading && !error && clusterSearchFiltered.length > 0 && (
         <>
           <h3 className="subhead cluster-section-heading"><Layers size={18} /> {t('cluster.sectionTitle')}</h3>
           <div className="buyer-crop-list">
-            {clusters.map((cluster) => <ClusterCropCard key={cluster.id} cluster={cluster} t={t} onNotify={notify} role={role} onBuyNow={handleBuyNow} onSold={handleSold} sold={soldIds.has(cluster.id)} />)}
+            {clusterSearchFiltered.map((cluster) => <ClusterCropCard key={cluster.id} cluster={cluster} t={t} onNotify={notify} role={role} onBuyNow={handleBuyNow} onSold={handleSold} sold={soldIds.has(cluster.id)} />)}
           </div>
           <h3 className="subhead">{t('cluster.individualListings')}</h3>
         </>
       )}
-      {!loading && !error && filtered.length === 0 && clusters.length === 0 && <Card className="buyer-crop-card demo-buffer-card"><Illustration label="Paddy" color="teal" icon={Sprout} /><div className="buyer-card-text"><Badge tone="orange">{t('crops.demoBuffer')}</Badge><h2>Paddy · Sona Masuri</h2><p>{t('crops.demoBuffer')}</p><p style={{ marginTop: 4 }}>800 kg · 28 Oct 2026 · ₹22/kg · Warangal, TS</p><p style={{ marginTop: 2 }}>3 members joined</p></div></Card>}
-      <div className="buyer-crop-list">{(clusters.length > 0 ? individualListings : filtered).map((listing) => {
+      {!loading && !error && searchFiltered.length === 0 && clusterSearchFiltered.length === 0 && <Card className="buyer-crop-card demo-buffer-card"><Illustration label="Paddy" color="teal" icon={Sprout} /><div className="buyer-card-text"><Badge tone="orange">{t('crops.demoBuffer')}</Badge><h2>Paddy · Sona Masuri</h2><p>{t('crops.demoBuffer')}</p><p style={{ marginTop: 4 }}>800 kg · 28 Oct 2026 · ₹22/kg · Warangal, TS</p><p style={{ marginTop: 2 }}>3 members joined</p></div></Card>}
+      <div className="buyer-crop-list">{(clusterSearchFiltered.length > 0 ? individualListings : searchFiltered).map((listing) => {
         if (filter === 'Harvested') {
           return <BuyerHarvestedCard key={listing.id} listing={listing} t={t} onBuyNow={handleBuyNow} onSold={handleSold} sold={soldIds.has(listing.id)} />;
         }
