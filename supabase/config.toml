@@ -1,0 +1,5 @@
+[functions.voice-intent]
+verify_jwt = false
+
+[functions.sarvam-stt]
+verify_jwt = true
