@@ -728,6 +728,10 @@ function CropDetail({ open, crop, t, role, onEdit, onMarkHarvested }: { open: (v
 }
 function Detail({ label, value }: { label: string; value: string }) { return <div className="detail"><small>{label}</small><strong>{value}</strong></div>; }
 
+const mockFarmerNames = ['Ramesh Kumar', 'Lakshmi Devi', 'Suresh Reddy', 'Anitha Rao', 'Venkat Reddy', 'Padma Devi', 'Narsimha Rao', 'Sarojamma'];
+const mockFarmerRatingFor = (id: string): number => { let h = 0; for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0; return 3 + (Math.abs(h) % 3); };
+const mockFarmerNameFor = (id: string): string => { let h = 0; for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0; return mockFarmerNames[Math.abs(h) % mockFarmerNames.length]; };
+
 function BuyerCropDetail({ crop, open, notify, t }: { crop: CropListing; open: (view: View) => void; notify: (message: string) => void; t: T }) {
   const name = cropDisplayName(crop);
   const variety = cropDisplayVariety(crop);
@@ -742,6 +746,8 @@ function BuyerCropDetail({ crop, open, notify, t }: { crop: CropListing; open: (
   const totalPrice = price != null ? round2(quantity * price) : 0;
   const tokenAmount = round2(totalPrice * 0.1);
   const amountDue = isHarvested ? totalPrice : tokenAmount;
+  const farmerName = mockFarmerNameFor(crop.id);
+  const farmerRating = mockFarmerRatingFor(crop.id);
 
   const handlePay = async () => {
     if (paying || booked) return;
@@ -774,7 +780,7 @@ function BuyerCropDetail({ crop, open, notify, t }: { crop: CropListing; open: (
 
   return <Page title={name} body={t('crops.tapToView')} back={() => open('market')} t={t}>
     <Card className="flashcard">
-      {isVerified && <button type="button" className="verified-badge" onClick={() => open('farmeye-detail')}><Satellite size={11} /> Verified</button>}
+      {isVerified && <span className="verified-badge"><Satellite size={11} /> Verified</span>}
       <Illustration label={`${name} illustration`} color={cropColorFor(name)} icon={cropIconFor(name)} />
       <h2>{name}</h2>
       <small>{t('crops.tapToViewDetails')}</small>
@@ -789,7 +795,6 @@ function BuyerCropDetail({ crop, open, notify, t }: { crop: CropListing; open: (
       <Detail label={t('crops.marketInfo')} value={`${formatPrice(price)} · ${t('crops.sampleMarketPrice')}`} />
       <Detail label={t('cluster.location')} value={crop.location_area ?? '—'} />
     </div>
-    {isVerified && <Button icon={Satellite} onClick={() => open('farmeye-detail')}>View farm verification</Button>}
     <Card className="payment-section">
       <div className="payment-section-header">
         <ShieldCheck size={22} />
