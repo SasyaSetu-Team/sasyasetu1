@@ -10,7 +10,7 @@ import { parseCommand, parseStatus, parseNumber, parseLanguageChange, extractVal
 import { useVoiceSession, type FormField } from '@/lib/useVoiceSession';
 
 type Role = 'Farmer' | 'FPO' | 'Transport Provider' | 'Storage Provider' | 'Buyer';
-type View = 'home' | 'features' | 'crops' | 'crop-detail' | 'buyer-crop-detail' | 'crop-create' | 'crop-edit' | 'farmeye-detail' | 'market' | 'calendar' | 'transport-options' | 'transport-detail' | 'journey' | 'storage' | 'approvals' | 'fpo' | 'tutorials' | 'help' | 'dispute' | 'profile' | 'settings' | 'orders' | 'deals';
+type View = 'home' | 'features' | 'crops' | 'crop-detail' | 'buyer-crop-detail' | 'buyer-payment' | 'crop-create' | 'crop-edit' | 'farmeye-detail' | 'market' | 'calendar' | 'transport-options' | 'transport-detail' | 'journey' | 'storage' | 'approvals' | 'fpo' | 'tutorials' | 'help' | 'dispute' | 'profile' | 'settings' | 'orders' | 'deals';
 type IconType = typeof Sprout;
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;
@@ -732,13 +732,41 @@ const mockFarmerNames = ['Ramesh Kumar', 'Lakshmi Devi', 'Suresh Reddy', 'Anitha
 const mockFarmerRatingFor = (id: string): number => { let h = 0; for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0; return 3 + (Math.abs(h) % 3); };
 const mockFarmerNameFor = (id: string): string => { let h = 0; for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0; return mockFarmerNames[Math.abs(h) % mockFarmerNames.length]; };
 
-function BuyerCropDetail({ crop, open, notify, t }: { crop: CropListing; open: (view: View) => void; notify: (message: string) => void; t: T }) {
+function BuyerCropDetail({ crop, open, t }: { crop: CropListing; open: (view: View) => void; t: T }) {
   const name = cropDisplayName(crop);
   const variety = cropDisplayVariety(crop);
   const isHarvested = crop.status === 'Harvested';
   const currentPrice = computeCurrentPrice(crop);
   const price = isHarvested ? currentPrice : crop.indicative_price_per_kg;
   const isVerified = isHarvested ? (crop.harvest_timing_verified && crop.harvest_quantity_verified) : crop.listing_verified;
+  const farmerName = mockFarmerNameFor(crop.id);
+  const farmerRating = mockFarmerRatingFor(crop.id);
+
+  return <Page title={name} body={t('crops.tapToView')} back={() => open('market')} t={t}>
+    <Card className="flashcard">
+      {isVerified && <span className="verified-badge"><Satellite size={11} /> Verified</span>}
+      <Illustration label={`${name} illustration`} color={cropColorFor(name)} icon={cropIconFor(name)} />
+      <h2>{name}</h2>
+      <small>{t('crops.tapToViewDetails')}</small>
+    </Card>
+    <div className="detail-grid">
+      <Detail label={t('crops.variety')} value={variety} />
+      <Detail label={t('crops.quantity')} value={formatKg(crop.quantity_kg)} />
+      <Detail label={t('crops.remainingQuantity')} value={formatKg(crop.available_quantity_kg)} />
+      <Detail label={isHarvested ? t('crops.harvestedDate') : t('crops.expectedHarvest')} value={isHarvested ? formatDate(crop.harvested_at) : formatDate(crop.expected_harvest_date)} />
+      <Detail label={t('crops.farmerName')} value={farmerName} />
+      <Detail label={t('crops.farmerRating')} value={`${farmerRating} / 5 ★`} />
+      <Detail label={t('crops.marketInfo')} value={`${formatPrice(price)} · ${t('crops.sampleMarketPrice')}`} />
+      <Detail label={t('cluster.location')} value={crop.location_area ?? '—'} />
+    </div>
+  </Page>;
+}
+
+function BuyerPaymentView({ crop, open, notify, t }: { crop: CropListing; open: (view: View) => void; notify: (message: string) => void; t: T }) {
+  const name = cropDisplayName(crop);
+  const isHarvested = crop.status === 'Harvested';
+  const currentPrice = computeCurrentPrice(crop);
+  const price = isHarvested ? currentPrice : crop.indicative_price_per_kg;
   const [paying, setPaying] = useState(false);
   const [booked, setBooked] = useState(false);
   const paymentType: 'token' | 'full' = isHarvested ? 'full' : 'token';
@@ -746,8 +774,6 @@ function BuyerCropDetail({ crop, open, notify, t }: { crop: CropListing; open: (
   const totalPrice = price != null ? round2(quantity * price) : 0;
   const tokenAmount = round2(totalPrice * 0.1);
   const amountDue = isHarvested ? totalPrice : tokenAmount;
-  const farmerName = mockFarmerNameFor(crop.id);
-  const farmerRating = mockFarmerRatingFor(crop.id);
 
   const handlePay = async () => {
     if (paying || booked) return;
@@ -778,23 +804,7 @@ function BuyerCropDetail({ crop, open, notify, t }: { crop: CropListing; open: (
     </Page>;
   }
 
-  return <Page title={name} body={t('crops.tapToView')} back={() => open('market')} t={t}>
-    <Card className="flashcard">
-      {isVerified && <span className="verified-badge"><Satellite size={11} /> Verified</span>}
-      <Illustration label={`${name} illustration`} color={cropColorFor(name)} icon={cropIconFor(name)} />
-      <h2>{name}</h2>
-      <small>{t('crops.tapToViewDetails')}</small>
-    </Card>
-    <div className="detail-grid">
-      <Detail label={t('crops.variety')} value={variety} />
-      <Detail label={t('crops.quantity')} value={formatKg(crop.quantity_kg)} />
-      <Detail label={t('crops.remainingQuantity')} value={formatKg(crop.available_quantity_kg)} />
-      <Detail label={isHarvested ? t('crops.harvestedDate') : t('crops.expectedHarvest')} value={isHarvested ? formatDate(crop.harvested_at) : formatDate(crop.expected_harvest_date)} />
-      <Detail label={t('crops.farmerName')} value={farmerName} />
-      <Detail label={t('crops.farmerRating')} value={`${farmerRating} / 5 ★`} />
-      <Detail label={t('crops.marketInfo')} value={`${formatPrice(price)} · ${t('crops.sampleMarketPrice')}`} />
-      <Detail label={t('cluster.location')} value={crop.location_area ?? '—'} />
-    </div>
+  return <Page title={name} body={t('market.mockPaymentNote')} back={() => open('market')} t={t}>
     <Card className="payment-section">
       <div className="payment-section-header">
         <ShieldCheck size={22} />
