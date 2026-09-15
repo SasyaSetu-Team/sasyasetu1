@@ -582,3 +582,84 @@ export function createRecognition(
     },
   };
 }
+
+export async function recordWithAutoStop(): Promise<Blob> {
+  const SILENCE_DELAY_MS = 1800;
+  const MAX_RECORDING_MS = 7000;
+  const SPEECH_THRESHOLD = 0.02;
+
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  const source = audioContext.createMediaStreamSource(stream);
+  const analyser = audioContext.createAnalyser();
+  analyser.fftSize = 512;
+  source.connect(analyser);
+
+  const bufferLength = analyser.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
+
+  const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+    ? 'audio/webm;codecs=opus'
+    : 'audio/webm';
+  const recorder = new MediaRecorder(stream, { mimeType });
+  const chunks: Blob[] = [];
+  recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+
+  return new Promise<Blob>((resolve, reject) => {
+    let speechDetected = false;
+    let silenceTimer: ReturnType<typeof setTimeout> | null = null;
+    let maxTimer: ReturnType<typeof setTimeout> | null = null;
+    let monitorId: number | null = null;
+    let stopped = false;
+
+    const cleanup = () => {
+      if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+      if (maxTimer) { clearTimeout(maxTimer); maxTimer = null; }
+      if (monitorId !== null) { cancelAnimationFrame(monitorId); monitorId = null; }
+      source.disconnect();
+      analyser.disconnect();
+      if (audioContext.state !== 'closed') audioContext.close().catch(() => {});
+      stream.getTracks().forEach((t) => t.stop());
+    };
+
+    const stopRecording = () => {
+      if (stopped) return;
+      stopped = true;
+      cleanup();
+      if (recorder.state !== 'inactive') {
+        recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+        try { recorder.stop(); } catch { resolve(new Blob(chunks, { type: mimeType })); }
+      } else {
+        resolve(new Blob(chunks, { type: mimeType }));
+      }
+    };
+
+    recorder.onerror = (e) => { cleanup(); reject((e as any).error ?? new Error('MediaRecorder error')); };
+
+    maxTimer = setTimeout(() => stopRecording(), MAX_RECORDING_MS);
+
+    const monitor = () => {
+      if (stopped) return;
+      analyser.getByteTimeDomainData(dataArray);
+      let sum = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        const v = (dataArray[i] - 128) / 128;
+        sum += v * v;
+      }
+      const rms = Math.sqrt(sum / bufferLength);
+
+      if (rms > SPEECH_THRESHOLD) {
+        speechDetected = true;
+        if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+      } else if (speechDetected && !silenceTimer) {
+        silenceTimer = setTimeout(() => stopRecording(), SILENCE_DELAY_MS);
+      }
+
+      monitorId = requestAnimationFrame(monitor);
+    };
+
+    recorder.start();
+    monitorId = requestAnimationFrame(monitor);
+  });
+}
