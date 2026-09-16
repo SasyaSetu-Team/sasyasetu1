@@ -872,7 +872,8 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
       }
 
       const intentResult = translateResponse(turn.intentData, code);
-      const replyText = intentResult.speechReply ?? applyIntentResult(intentResult, turn.transcript);
+      const fallbackReply = applyIntentResult(intentResult, turn.transcript);
+      const replyText = intentResult.speechReply ?? fallbackReply;
       if (!replyText) {
         console.error('[voice] processSarvamVoiceTurn — no reply text from intent or fallback');
         emitDebug('sarvam turn failed', 'no reply text');

@@ -95,7 +95,9 @@ export async function fetchIntent(
     if (!data || typeof data.intent !== 'string') return null;
 
     return translateResponse(data, code);
-  } catch {
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[voice] fetchIntent — caught error:', msg);
     return null;
   }
 }
