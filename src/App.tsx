@@ -184,26 +184,6 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     });
   }, [processSarvamVoiceTurn, setConv, t]);
 
-  const speakAndListen = useCallback((text: string) => {
-    speakingRef.current = true;
-    recognitionRef.current?.stop();
-    setVoiceState('speaking');
-    setConv('SPEAKING');
-    setInterim('');
-    speak(text, languageRef.current, () => {
-      speakingRef.current = false;
-      drainRef.current();
-      if (sessionRef.current) {
-        setConv('WAIT_FOR_SPEECH');
-        setTimeout(() => {
-          if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) {
-            startSarvamTurn();
-          }
-        }, 400);
-      }
-    });
-  }, [startSarvamTurn, setConv]);
-
   const speakSarvamAndListen = useCallback(async (text: string) => {
     speakingRef.current = true;
     recognitionRef.current?.stop();
