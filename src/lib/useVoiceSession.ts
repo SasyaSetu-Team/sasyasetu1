@@ -181,6 +181,33 @@ export async function speakTextViaSarvam(text: string, language: Language): Prom
   return speakWithSarvam(text, sarvamLang as 'en-IN' | 'hi-IN' | 'te-IN');
 }
 
+export function getTabNarration(view: string, tr: (key: string, params?: Record<string, string | number>) => string, _loginStep?: number): string {
+  if (view === 'home') return tr('voice.pageHome');
+  if (view === 'crops') return tr('voice.pageCrops');
+  if (view === 'crop-create') return tr('voice.pageCropCreate');
+  if (view === 'market') return tr('voice.pageMarket');
+  if (view === 'profile') return tr('voice.pageProfile');
+  if (view === 'transport-options') return tr('voice.pageTransport');
+  if (view === 'storage') return tr('voice.pageStorage');
+  if (view === 'tutorials') return tr('voice.pageTutorials');
+  if (view === 'orders') return tr('voice.pageOrders');
+  if (view === 'calendar') return tr('voice.pageCalendar');
+  if (view === 'help') return tr('voice.pageHelp');
+  if (view === 'settings') return tr('voice.pageSettings');
+  if (view === 'fpo') return tr('voice.pageFpo');
+  if (view === 'features') return tr('voice.pageFeatures');
+  if (view === 'login') return tr('voice.pageLogin');
+  if (view === 'login-farmer') return tr('voice.loginAskMobile');
+  if (view === 'login-fpo') return tr('voice.loginAskMobile');
+  if (view === 'login-mobile') return tr('voice.pageLoginMobile');
+  if (view === 'login-otp') return tr('voice.pageLoginOtp');
+  if (view === 'login-category') return tr('voice.pageLoginCategory');
+  if (view === 'login-verify') return tr('voice.pageLoginVerify');
+  const promptKey = `voice.page${view.charAt(0).toUpperCase()}${view.slice(1)}`;
+  const known = tr(promptKey);
+  return known !== promptKey ? known : '';
+}
+
 export interface VoiceSessionResult {
   state: VoiceSessionState;
   dispatch: React.Dispatch<VoiceAction>;
@@ -809,30 +836,12 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
 
   const narrateScreen = useCallback((view: string, loginStep?: number): string => {
     const tr = makeT(cbRef.current.language);
-    if (view === 'home') return tr('voice.pageHome');
-    if (view === 'crops') return tr('voice.pageCrops');
-    if (view === 'crop-create') return tr('voice.pageCropCreate');
-    if (view === 'market') return tr('voice.pageMarket');
-    if (view === 'profile') return tr('voice.pageProfile');
-    if (view === 'transport-options') return tr('voice.pageTransport');
-    if (view === 'storage') return tr('voice.pageStorage');
-    if (view === 'tutorials') return tr('voice.pageTutorials');
-    if (view === 'orders') return tr('voice.pageOrders');
-    if (view === 'calendar') return tr('voice.pageCalendar');
-    if (view === 'help') return tr('voice.pageHelp');
-    if (view === 'settings') return tr('voice.pageSettings');
-    if (view === 'fpo') return tr('voice.pageFpo');
-    if (view === 'features') return tr('voice.pageFeatures');
-    if (view === 'login') return tr('voice.pageLogin');
-    if (view === 'login-farmer') return tr('voice.loginAskMobile');
-    if (view === 'login-fpo') return tr('voice.loginAskMobile');
-    if (view === 'login-mobile') return tr('voice.pageLoginMobile');
-    if (view === 'login-otp') return tr('voice.pageLoginOtp');
-    if (view === 'login-category') return tr('voice.pageLoginCategory');
-    if (view === 'login-verify') return tr('voice.pageLoginVerify');
-    const promptKey = `voice.page${view.charAt(0).toUpperCase()}${view.slice(1)}`;
-    const known = tr(promptKey);
-    return known !== promptKey ? known : tr('voice.followUp');
+    const base = getTabNarration(view, tr, loginStep);
+    if (!base) return '';
+    const promptKey = `voice.tabActionPrompt.${view}`;
+    const prompt = tr(promptKey);
+    if (prompt !== promptKey) return `${base} ${prompt}`;
+    return base;
   }, []);
 
   const processSarvamVoiceTurn = useCallback(async (): Promise<SarvamVoiceResult | null> => {

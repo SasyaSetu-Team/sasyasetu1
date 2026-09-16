@@ -7,8 +7,8 @@ const rameshEmail = farmerDemoEmails.find((f) => f.name === 'Ramesh Kumar')?.ema
 import { fetchCrops, fetchMyListings, fetchPublicListings, fetchListing, createListing, updateListing, markAsHarvested, buyNow, bookListing, fetchMyOrders, computeCurrentPrice, nextDropMinutes, computeClusterCurrentPrice, clusterNextDropMinutes, bookedQuantity, formatKg, formatPrice, formatDate, cropDisplayName, cropDisplayVariety, OTHER_CROP_ID, fetchClusters, formatHarvestWindow, timeLeftUntil, fetchClusterInvites, fetchClusterMemberships, fetchClusterMembers, joinCluster, dismissClusterInvite, type Crop, type CropListing, type CropListingInput, type CropClusterWithMembers, type ClusterInvite, type ClusterMembership, type ClusterMemberDetail, type BuyNowResult, type OrderRow, type BookResult } from '@/lib/crops';
 import { fetchNotifications, markNotificationRead, markAllNotificationsRead, seedDemoNotificationsIfNeeded, type NotificationRow } from '@/lib/notifications';
 import { parseCommand, parseStatus, parseNumber, parseLanguageChange, extractValue, isSpeechRecognitionSupported, isSpeechSynthesisSupported, createRecognition, speak, stopSpeaking, warmupSpeech, langCode, captureScreenText, subscribeDebug, getSynthState, emitDebug, type VoiceRecognition, type DebugEvent } from '@/lib/voice';
-import { useVoiceSession, speakTextViaSarvam, type FormField, type SarvamVoiceResult } from '@/lib/useVoiceSession';
-import { playAudioBlob } from '@/lib/playAudio';
+import { useVoiceSession, speakTextViaSarvam, getTabNarration, type FormField, type SarvamVoiceResult } from '@/lib/useVoiceSession';
+import { playAudioBlob, stopAudio } from '@/lib/playAudio';
 
 type Role = 'Farmer' | 'FPO' | 'Transport Provider' | 'Storage Provider' | 'Buyer';
 type View = 'home' | 'features' | 'crops' | 'crop-detail' | 'buyer-crop-detail' | 'buyer-payment' | 'crop-create' | 'crop-edit' | 'farmeye-detail' | 'market' | 'calendar' | 'transport-options' | 'transport-detail' | 'journey' | 'storage' | 'approvals' | 'fpo' | 'tutorials' | 'help' | 'dispute' | 'profile' | 'settings' | 'orders' | 'deals';
@@ -38,7 +38,7 @@ function SectionHeading({ title, body, icon: Icon }: { title: string; body: stri
 function VoiceButton({ onClick, t }: { onClick: () => void; t: T }) { return <button className="voice-fab" onClick={onClick} aria-label={t('voice.assistant')}><Mic size={28} /><span /></button>; }
 function LanguagePicker({ value, setValue, t }: { value: Language; setValue: (value: Language) => void; t: T }) { return <div className="language-picker"><span>{t('common.language')}</span>{allLanguages.map((language) => <button key={language} className={value === language ? 'selected' : ''} onClick={() => setValue(language)}>{language}</button>)}</div>; }
 
-function VoiceModal({ close, t, language, open, currentView, setFormDraft, formDraft, setLanguage, selectRole, setLoginStep, setLoginField, submitLogin, loginRole }: {
+function VoiceModal({ close, t, language, open, currentView, setFormDraft, formDraft, setLanguage, selectRole, setLoginStep, setLoginField, submitLogin, loginRole, appSpeakingRef, appPendingNarrationRef, speakNarrationOnly, narratedTabsRef }: {
   close: () => void;
   t: T;
   language: Language;
@@ -52,6 +52,10 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
   setLoginField?: (field: 'mobile' | 'otp' | 'buyerCategory', value: string) => void;
   submitLogin?: () => void;
   loginRole?: string | null;
+  appSpeakingRef?: React.MutableRefObject<boolean>;
+  appPendingNarrationRef?: React.MutableRefObject<string | null>;
+  speakNarrationOnly?: (text: string) => void;
+  narratedTabsRef?: React.MutableRefObject<Set<string>>;
 }) {
   const [voiceState, setVoiceState] = useState<'idle' | 'listening' | 'speaking'>('idle');
   const [transcript, setTranscript] = useState('');
@@ -76,6 +80,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
   const speakingRef = useRef(false);
   const languageRef = useRef(language);
   const convStateRef = useRef<'IDLE' | 'SPEAKING' | 'WAIT_FOR_SPEECH' | 'TRANSCRIBING' | 'VALIDATING' | 'CONFIRMING'>('IDLE');
+  const drainRef = useRef<() => void>(() => {});
 
   useEffect(() => { languageRef.current = language; }, [language]);
 
@@ -143,6 +148,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         setConv('SPEAKING');
         speak(t('voice.didNotUnderstand'), languageRef.current, () => {
           speakingRef.current = false;
+          drainRef.current();
           if (sessionRef.current) {
             setConv('WAIT_FOR_SPEECH');
             setTimeout(() => {
@@ -152,6 +158,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         });
       } else {
         speakingRef.current = false;
+        drainRef.current();
       }
       return;
     }
@@ -163,6 +170,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     if (s.awaitingConfirmation) setConv('CONFIRMING'); else setConv('SPEAKING');
     playAudioBlob(result.replyAudio, () => {
       speakingRef.current = false;
+      drainRef.current();
       if (sessionRef.current) {
         setConv('WAIT_FOR_SPEECH');
         setTimeout(() => {
@@ -180,6 +188,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     setInterim('');
     speak(text, languageRef.current, () => {
       speakingRef.current = false;
+      drainRef.current();
       if (sessionRef.current) {
         setConv('WAIT_FOR_SPEECH');
         setTimeout(() => {
@@ -202,6 +211,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       emitDebug('speakSarvam', 'TTS failed — falling back to browser speak');
       speak(text, languageRef.current, () => {
         speakingRef.current = false;
+        drainRef.current();
         if (sessionRef.current) {
           setConv('WAIT_FOR_SPEECH');
           setTimeout(() => {
@@ -213,6 +223,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     }
     playAudioBlob(audio, () => {
       speakingRef.current = false;
+      drainRef.current();
       if (sessionRef.current) {
         setConv('WAIT_FOR_SPEECH');
         setTimeout(() => {
@@ -222,10 +233,34 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     });
   }, [startSarvamTurn, setConv]);
 
+  const drainPendingNarration = useCallback(() => {
+    if (!appPendingNarrationRef || !appSpeakingRef) return;
+    const pending = appPendingNarrationRef.current;
+    if (!pending) return;
+    if (appSpeakingRef.current) return;
+    appPendingNarrationRef.current = null;
+    emitDebug('narration drain', `draining queued narration: "${pending.slice(0, 50)}"`);
+    if (speakNarrationOnly) speakNarrationOnly(pending);
+  }, [appPendingNarrationRef, appSpeakingRef, speakNarrationOnly]);
+
+  useEffect(() => { drainRef.current = drainPendingNarration; }, [drainPendingNarration]);
+
   const lastNarrationViewRef = useRef<string>('');
   useEffect(() => {
-    if (speakingRef.current) { emitDebug('narration effect', 'SKIP: speakingRef is true'); return; }
+    if (currentView !== lastNarrationViewRef.current && lastNarrationViewRef.current !== '') {
+      stopAudio(); stopSpeaking(); speakingRef.current = false;
+      if (appSpeakingRef) { appSpeakingRef.current = false; if (appPendingNarrationRef) appPendingNarrationRef.current = null; }
+      emitDebug('narration effect', `view changed ${lastNarrationViewRef.current} → ${currentView} — cancelled speech`);
+    }
+    if (speakingRef.current) {
+      emitDebug('narration effect', 'QUEUE: speakingRef is true — deferring narration');
+      const narration = narrateScreen(currentView);
+      if (narration && appPendingNarrationRef) appPendingNarrationRef.current = narration;
+      lastNarrationViewRef.current = currentView;
+      return;
+    }
     if (currentView === lastNarrationViewRef.current) { emitDebug('narration effect', `SKIP: same view ${currentView}`); return; }
+    if (narratedTabsRef?.current.has(currentView)) { emitDebug('narration effect', `SKIP: tab already narrated ${currentView}`); return; }
     const isLoginView = currentView.startsWith('login-');
     if (isLoginView && !sessionRef.current) {
       emitDebug('narration effect', `ENTER login init path | view=${currentView} | sessionRef was false`);
@@ -243,13 +278,10 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       }
       lastNarrationViewRef.current = currentView;
       const narration = narrateScreen(currentView);
-      emitDebug('narration effect', `narrateScreen returned: "${narration?.slice(0, 50) ?? 'EMPTY'}" | will speak in 350ms`);
+      emitDebug('narration effect', `narrateScreen returned: "${narration?.slice(0, 50) ?? 'EMPTY'}" | will speak immediately`);
       if (narration) {
-        setTimeout(() => {
-          emitDebug('narration timeout', `firing | sessionRef=${sessionRef.current} speakingRef=${speakingRef.current}`);
-          if (sessionRef.current && !speakingRef.current) speakSarvamAndListen(narration);
-          else emitDebug('narration timeout', `SKIP: sessionRef=${sessionRef.current} speakingRef=${speakingRef.current}`);
-        }, 350);
+        narratedTabsRef?.current.add(currentView);
+        speakSarvamAndListen(narration);
       } else {
         setConv('WAIT_FOR_SPEECH');
         startSarvamTurn();
@@ -266,9 +298,9 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       emitDebug('narration effect', `normal path | view=${currentView}`);
       lastNarrationViewRef.current = currentView;
       const narration = narrateScreen(currentView);
-      if (narration) speakSarvamAndListen(narration);
+      if (narration) { narratedTabsRef?.current.add(currentView); speakSarvamAndListen(narration); }
     }
-  }, [currentView, narrateScreen, speakSarvamAndListen, loginRole, state.step]);
+  }, [currentView, narrateScreen, speakSarvamAndListen, loginRole, state.step, appPendingNarrationRef, narratedTabsRef]);
 
   const handleFinalResult = useCallback(async (text: string) => {
     setTranscript(text);
@@ -286,6 +318,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       speakSarvamAndListen(response);
     } else {
       speakingRef.current = false;
+      drainRef.current();
       if (sessionRef.current) {
         setConv('WAIT_FOR_SPEECH');
         startSarvamTurn();
@@ -359,7 +392,8 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     recognitionRef.current?.stop();
     stopSpeaking();
     speakingRef.current = false;
-  }, [setConv]);
+    if (appPendingNarrationRef) appPendingNarrationRef.current = null;
+  }, [setConv, appPendingNarrationRef]);
 
   useEffect(() => {
     return () => {
@@ -1570,5 +1604,5 @@ function FarmEyeDetailView({ crop, open, t, backView = 'crop-detail' }: { crop: 
   </Page>;
 }
 
-function App() { const { role: authRole, profile, signInWithRole, signOut: authSignOut, updateLanguage, loading, signingIn, authError, clearError } = useAuth(); const [view, setView] = useState<View>('home'); const [loginRole, setLoginRole] = useState<Role | null>(null); const [voice, setVoice] = useState(false); const [notifications, setNotifications] = useState(false); const [language, setLanguageState] = useState<Language>('English'); const [toast, setToast] = useState(''); const [notifItems, setNotifItems] = useState<NotificationRow[]>([]); const [notifLoading, setNotifLoading] = useState(false); const [notifError, setNotifError] = useState<string | null>(null); const [selectedCrop, setSelectedCrop] = useState<CropListing | null>(null); const [formDraft, setFormDraftState] = useState<Record<string, string>>({}); const [loginStep, setLoginStep] = useState(0); const [loginMobile, setLoginMobile] = useState('+91 98765 43210'); const [loginOtp, setLoginOtp] = useState(''); const [loginBuyerCat, setLoginBuyerCat] = useState('Normal Buyer'); const role = (authRole && (allRoles as string[]).includes(authRole)) ? (authRole as Role) : null; const buyerCategory = profile?.buyer_category ?? 'Normal Buyer'; useEffect(() => { if (profile?.language) setLanguageState(languageFromCode(profile.language)); }, [profile?.language]); const setLanguage = (lang: Language) => { setLanguageState(lang); updateLanguage(codeFromLanguage(lang)); }; const t = makeT(language); const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(''), 2300); }; const open = (next: View) => { setView(next); window.scrollTo({ top: 0, behavior: 'smooth' }); }; useEffect(() => { if (loginRole) setVoice(true); }, [loginRole]); const setFormDraft = useCallback((field: string, value: string) => { setFormDraftState((prev) => ({ ...prev, [field]: value })); }, []); const setLoginFieldVoice = useCallback((field: 'mobile' | 'otp' | 'buyerCategory', value: string) => { if (field === 'mobile') { setLoginMobile(value); setLoginStep(1); } else if (field === 'otp') { setLoginOtp(value); setLoginStep(2); } else if (field === 'buyerCategory') setLoginBuyerCat(value); }, []); const submitLoginVoice = useCallback(async () => { if (!loginRole || signingIn) return; try { await signInWithRole(loginRole, loginRole === 'Farmer' ? rameshEmail : demoEmails[loginRole], 'Demo1234!', loginBuyerCat); setLoginRole(null); setLoginStep(0); setLoginMobile('+91 98765 43210'); setLoginOtp(''); setVoice(false); setView('home'); } catch { } }, [loginRole, signingIn, loginBuyerCat]); const loadNotifications = useCallback(async () => { if (!role) return; setNotifLoading(true); setNotifError(null); try { await seedDemoNotificationsIfNeeded(); setNotifItems(await fetchNotifications()); } catch { setNotifError(t('notifications.loadError')); } finally { setNotifLoading(false); } }, [role, t]); useEffect(() => { loadNotifications(); }, [loadNotifications]); const handleMarkRead = async (id: string) => { try { await markNotificationRead(id); setNotifItems((prev) => prev.map((n) => n.id === id ? { ...n, read_at: new Date().toISOString() } : n)); } catch { } }; const handleMarkAllRead = async () => { try { await markAllNotificationsRead(); setNotifItems((prev) => prev.map((n) => ({ ...n, read_at: n.read_at ?? new Date().toISOString() }))); } catch { } }; const unreadCount = notifItems.filter((n) => !n.read_at).length; const signOut = () => { authSignOut(); setView('home'); }; const addAccount = () => { authSignOut(); setView('home'); }; if (loading) return <main className="login-screen"><div className="login-brand" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{ display: 'grid', placeItems: 'center', width: '31px', height: '31px', borderRadius: '9px', color: '#fff', background: '#2c823b' }}><Sprout size={27} /></span><strong>{t('app.name')}</strong></div></main>; if (!role && loginRole) return <><LoginFlow role={loginRole} t={t} step={loginStep} setStep={setLoginStep} mobile={loginMobile} setMobile={setLoginMobile} otp={loginOtp} setOtp={setLoginOtp} buyerCat={loginBuyerCat} setBuyerCat={setLoginBuyerCat} done={async (email, password, buyerCategory) => { if (signingIn) return; try { await signInWithRole(loginRole, email, password, buyerCategory); setLoginRole(null); setLoginStep(0); setVoice(false); setView('home'); } catch { } }} back={() => { clearError(); setLoginRole(null); setVoice(false); }} authError={authError} clearError={clearError} signingIn={signingIn} /><VoiceButton onClick={() => { warmupSpeech(); setVoice(true); }} t={t} />{voice && <VoiceModal close={() => setVoice(false)} t={t} language={language} currentView={loginStep === 0 ? (loginRole === 'Farmer' ? 'login-farmer' : loginRole === 'FPO' ? 'login-fpo' : 'login-mobile') : loginStep === 1 ? 'login-otp' : (loginRole === 'Buyer' ? 'login-category' : 'login-verify')} loginRole={loginRole} selectRole={(r) => setLoginRole(r as Role)} setLoginStep={setLoginStep} setLoginField={setLoginFieldVoice} submitLogin={submitLoginVoice} />}{toast && <div className="toast"><AlertTriangle size={17} />{toast}</div>}</>; if (!role) return <><Login onRole={setLoginRole} voiceOpen={() => { warmupSpeech(); setVoice(true); }} t={t} language={language} />{voice && <VoiceModal close={() => setVoice(false)} t={t} language={language} currentView="home" selectRole={(r) => setLoginRole(r as Role)} setLoginStep={setLoginStep} setLoginField={setLoginFieldVoice} submitLogin={submitLoginVoice} />}</>; return <div className="logged-in">{view === 'home' && <main className="long-scroll"><RoleHome role={role} open={open} profile={() => open('profile')} notifications={() => setNotifications(true)} t={t} profileData={profile} /></main>}{view === 'crops' && <CropView open={open} selectCrop={setSelectedCrop} t={t} role={role} notify={notify} currentUserId={profile?.id} />}{view === 'crop-detail' && selectedCrop && <CropDetail open={open} crop={selectedCrop} t={t} role={role} onEdit={() => open('crop-edit')} onMarkHarvested={async () => { try { await markAsHarvested(selectedCrop.id, new Date().toISOString()); notify(t('crops.markedHarvested')); setSelectedCrop({ ...selectedCrop, status: 'Harvested', harvested_at: new Date().toISOString() }); open('crops'); } catch { notify(t('crops.createError')); } }} />}{view === 'buyer-crop-detail' && selectedCrop && <BuyerCropDetail crop={selectedCrop} open={open} t={t} />}{view === 'buyer-payment' && selectedCrop && <BuyerPaymentView crop={selectedCrop} open={open} notify={notify} t={t} />}{view === 'farmeye-detail' && selectedCrop && <FarmEyeDetailView crop={selectedCrop} open={open} t={t} backView={role === 'Buyer' ? 'buyer-crop-detail' : 'crop-detail'} />}{view === 'crop-create' && <CropFormView open={open} notify={notify} t={t} voiceFill={formDraft} formDraft={formDraft} />}{view === 'crop-edit' && selectedCrop && <CropFormView open={open} notify={notify} t={t} editing={selectedCrop} voiceFill={formDraft} formDraft={formDraft} />}{view === 'market' && <MarketView role={role} open={open} notify={notify} t={t} selectCrop={setSelectedCrop} />}{view === 'calendar' && <CalendarView open={open} t={t} />}{view === 'transport-options' && <TransportOptions role={role} open={open} notify={notify} t={t} />}{view === 'transport-detail' && <TransportDetail open={open} notify={notify} t={t} />}{view === 'journey' && <JourneyView open={open} notify={notify} t={t} />}{view === 'storage' && <StorageView role={role} open={open} notify={notify} t={t} />}{view === 'approvals' && <ApprovalsView open={open} t={t} />}{view === 'fpo' && <FpoView open={open} notify={notify} t={t} />}{view === 'tutorials' && <TutorialsView role={role} open={open} t={t} />}{view === 'help' && <HelpView open={open} notify={notify} t={t} />}{view === 'dispute' && <DisputeView open={open} notify={notify} t={t} />}{view === 'profile' && <ProfileView role={role} open={open} language={language} setLanguage={setLanguage} buyerCategory={buyerCategory} signOut={signOut} addAccount={addAccount} t={t} profileData={profile} />}{view === 'settings' && <SettingsView open={open} language={language} setLanguage={setLanguage} t={t} />}{view === 'orders' && <OrdersView role={role} open={open} notify={notify} t={t} />}{view === 'deals' && <DealsView open={open} notify={notify} t={t} />}{view === 'features' && <FeatureView role={role} open={open} notify={notify} t={t} />}<div className="floating-tools"><button onClick={() => open('profile')} aria-label={t('profile.title')}><UserRound size={24} /></button><button onClick={() => setNotifications(true)} aria-label={t('notifications.title')}><Bell size={24} />{unreadCount > 0 && <i>{unreadCount}</i>}</button></div><VoiceButton onClick={() => { warmupSpeech(); setVoice(true); }} t={t} />{voice && <VoiceModal close={() => setVoice(false)} t={t} language={language} open={open} currentView={view} setFormDraft={setFormDraft} formDraft={formDraft} setLanguage={setLanguage} selectRole={(r) => { authSignOut(); setLoginRole(r as Role); }} />}{notifications && <Notifications close={() => setNotifications(false)} t={t} items={notifItems} loading={notifLoading} error={notifError} onMarkRead={handleMarkRead} onMarkAllRead={handleMarkAllRead} />}{toast && <div className="toast"><Check size={17} />{toast}</div>}</div>; }
+function App() { const { role: authRole, profile, signInWithRole, signOut: authSignOut, updateLanguage, loading, signingIn, authError, clearError } = useAuth(); const [view, setView] = useState<View>('home'); const [loginRole, setLoginRole] = useState<Role | null>(null); const [voice, setVoice] = useState(false); const [notifications, setNotifications] = useState(false); const [language, setLanguageState] = useState<Language>('English'); const [toast, setToast] = useState(''); const [notifItems, setNotifItems] = useState<NotificationRow[]>([]); const [notifLoading, setNotifLoading] = useState(false); const [notifError, setNotifError] = useState<string | null>(null); const [selectedCrop, setSelectedCrop] = useState<CropListing | null>(null); const [formDraft, setFormDraftState] = useState<Record<string, string>>({}); const [loginStep, setLoginStep] = useState(0); const [loginMobile, setLoginMobile] = useState('+91 98765 43210'); const [loginOtp, setLoginOtp] = useState(''); const [loginBuyerCat, setLoginBuyerCat] = useState('Normal Buyer'); const role = (authRole && (allRoles as string[]).includes(authRole)) ? (authRole as Role) : null; const buyerCategory = profile?.buyer_category ?? 'Normal Buyer'; const appSpeakingRef = useRef(false); const pendingNarrationRef = useRef<string | null>(null); const narratedTabsRef = useRef<Set<string>>(new Set()); const speakNarrationOnly = useCallback(async (text: string) => { if (appSpeakingRef.current) { pendingNarrationRef.current = text; return; } appSpeakingRef.current = true; const audio = await speakTextViaSarvam(text, language); if (!audio) { speak(text, language, () => { appSpeakingRef.current = false; const pending = pendingNarrationRef.current; if (pending) { pendingNarrationRef.current = null; speakNarrationOnly(pending); } }); return; } playAudioBlob(audio, () => { appSpeakingRef.current = false; const pending = pendingNarrationRef.current; if (pending) { pendingNarrationRef.current = null; speakNarrationOnly(pending); } }); }, [language]); useEffect(() => { if (!role || voice) return; if (narratedTabsRef.current.has(view)) return; const tr = makeT(language); const narration = getTabNarration(view, tr); if (!narration) return; const promptKey = `voice.tabActionPrompt.${view}`; const prompt = tr(promptKey); const full = prompt !== promptKey ? `${narration} ${prompt}` : narration; narratedTabsRef.current.add(view); if (appSpeakingRef.current) { pendingNarrationRef.current = full; return; } speakNarrationOnly(full); }, [view, role, voice, language, speakNarrationOnly]); useEffect(() => { if (profile?.language) setLanguageState(languageFromCode(profile.language)); }, [profile?.language]); const setLanguage = (lang: Language) => { setLanguageState(lang); updateLanguage(codeFromLanguage(lang)); }; const t = makeT(language); const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(''), 2300); }; const open = (next: View) => { setView(next); window.scrollTo({ top: 0, behavior: 'smooth' }); }; useEffect(() => { if (loginRole) setVoice(true); }, [loginRole]); const setFormDraft = useCallback((field: string, value: string) => { setFormDraftState((prev) => ({ ...prev, [field]: value })); }, []); const setLoginFieldVoice = useCallback((field: 'mobile' | 'otp' | 'buyerCategory', value: string) => { if (field === 'mobile') { setLoginMobile(value); setLoginStep(1); } else if (field === 'otp') { setLoginOtp(value); setLoginStep(2); } else if (field === 'buyerCategory') setLoginBuyerCat(value); }, []); const submitLoginVoice = useCallback(async () => { if (!loginRole || signingIn) return; try { await signInWithRole(loginRole, loginRole === 'Farmer' ? rameshEmail : demoEmails[loginRole], 'Demo1234!', loginBuyerCat); setLoginRole(null); setLoginStep(0); setLoginMobile('+91 98765 43210'); setLoginOtp(''); setVoice(false); setView('home'); } catch { } }, [loginRole, signingIn, loginBuyerCat]); const loadNotifications = useCallback(async () => { if (!role) return; setNotifLoading(true); setNotifError(null); try { await seedDemoNotificationsIfNeeded(); setNotifItems(await fetchNotifications()); } catch { setNotifError(t('notifications.loadError')); } finally { setNotifLoading(false); } }, [role, t]); useEffect(() => { loadNotifications(); }, [loadNotifications]); const handleMarkRead = async (id: string) => { try { await markNotificationRead(id); setNotifItems((prev) => prev.map((n) => n.id === id ? { ...n, read_at: new Date().toISOString() } : n)); } catch { } }; const handleMarkAllRead = async () => { try { await markAllNotificationsRead(); setNotifItems((prev) => prev.map((n) => ({ ...n, read_at: n.read_at ?? new Date().toISOString() }))); } catch { } }; const unreadCount = notifItems.filter((n) => !n.read_at).length; const signOut = () => { authSignOut(); setView('home'); }; const addAccount = () => { authSignOut(); setView('home'); }; if (loading) return <main className="login-screen"><div className="login-brand" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{ display: 'grid', placeItems: 'center', width: '31px', height: '31px', borderRadius: '9px', color: '#fff', background: '#2c823b' }}><Sprout size={27} /></span><strong>{t('app.name')}</strong></div></main>; if (!role && loginRole) return <><LoginFlow role={loginRole} t={t} step={loginStep} setStep={setLoginStep} mobile={loginMobile} setMobile={setLoginMobile} otp={loginOtp} setOtp={setLoginOtp} buyerCat={loginBuyerCat} setBuyerCat={setLoginBuyerCat} done={async (email, password, buyerCategory) => { if (signingIn) return; try { await signInWithRole(loginRole, email, password, buyerCategory); setLoginRole(null); setLoginStep(0); setVoice(false); setView('home'); } catch { } }} back={() => { clearError(); setLoginRole(null); setVoice(false); }} authError={authError} clearError={clearError} signingIn={signingIn} /><VoiceButton onClick={() => { warmupSpeech(); setVoice(true); }} t={t} />{voice && <VoiceModal close={() => setVoice(false)} t={t} language={language} currentView={loginStep === 0 ? (loginRole === 'Farmer' ? 'login-farmer' : loginRole === 'FPO' ? 'login-fpo' : 'login-mobile') : loginStep === 1 ? 'login-otp' : (loginRole === 'Buyer' ? 'login-category' : 'login-verify')} loginRole={loginRole} selectRole={(r) => setLoginRole(r as Role)} setLoginStep={setLoginStep} setLoginField={setLoginFieldVoice} submitLogin={submitLoginVoice} appSpeakingRef={appSpeakingRef} appPendingNarrationRef={pendingNarrationRef} speakNarrationOnly={speakNarrationOnly} narratedTabsRef={narratedTabsRef} />}{toast && <div className="toast"><AlertTriangle size={17} />{toast}</div>}</>; if (!role) return <><Login onRole={setLoginRole} voiceOpen={() => { warmupSpeech(); setVoice(true); }} t={t} language={language} />{voice && <VoiceModal close={() => setVoice(false)} t={t} language={language} currentView="home" selectRole={(r) => setLoginRole(r as Role)} setLoginStep={setLoginStep} setLoginField={setLoginFieldVoice} submitLogin={submitLoginVoice} appSpeakingRef={appSpeakingRef} appPendingNarrationRef={pendingNarrationRef} speakNarrationOnly={speakNarrationOnly} narratedTabsRef={narratedTabsRef} />}</>; return <div className="logged-in">{view === 'home' && <main className="long-scroll"><RoleHome role={role} open={open} profile={() => open('profile')} notifications={() => setNotifications(true)} t={t} profileData={profile} /></main>}{view === 'crops' && <CropView open={open} selectCrop={setSelectedCrop} t={t} role={role} notify={notify} currentUserId={profile?.id} />}{view === 'crop-detail' && selectedCrop && <CropDetail open={open} crop={selectedCrop} t={t} role={role} onEdit={() => open('crop-edit')} onMarkHarvested={async () => { try { await markAsHarvested(selectedCrop.id, new Date().toISOString()); notify(t('crops.markedHarvested')); setSelectedCrop({ ...selectedCrop, status: 'Harvested', harvested_at: new Date().toISOString() }); open('crops'); } catch { notify(t('crops.createError')); } }} />}{view === 'buyer-crop-detail' && selectedCrop && <BuyerCropDetail crop={selectedCrop} open={open} t={t} />}{view === 'buyer-payment' && selectedCrop && <BuyerPaymentView crop={selectedCrop} open={open} notify={notify} t={t} />}{view === 'farmeye-detail' && selectedCrop && <FarmEyeDetailView crop={selectedCrop} open={open} t={t} backView={role === 'Buyer' ? 'buyer-crop-detail' : 'crop-detail'} />}{view === 'crop-create' && <CropFormView open={open} notify={notify} t={t} voiceFill={formDraft} formDraft={formDraft} />}{view === 'crop-edit' && selectedCrop && <CropFormView open={open} notify={notify} t={t} editing={selectedCrop} voiceFill={formDraft} formDraft={formDraft} />}{view === 'market' && <MarketView role={role} open={open} notify={notify} t={t} selectCrop={setSelectedCrop} />}{view === 'calendar' && <CalendarView open={open} t={t} />}{view === 'transport-options' && <TransportOptions role={role} open={open} notify={notify} t={t} />}{view === 'transport-detail' && <TransportDetail open={open} notify={notify} t={t} />}{view === 'journey' && <JourneyView open={open} notify={notify} t={t} />}{view === 'storage' && <StorageView role={role} open={open} notify={notify} t={t} />}{view === 'approvals' && <ApprovalsView open={open} t={t} />}{view === 'fpo' && <FpoView open={open} notify={notify} t={t} />}{view === 'tutorials' && <TutorialsView role={role} open={open} t={t} />}{view === 'help' && <HelpView open={open} notify={notify} t={t} />}{view === 'dispute' && <DisputeView open={open} notify={notify} t={t} />}{view === 'profile' && <ProfileView role={role} open={open} language={language} setLanguage={setLanguage} buyerCategory={buyerCategory} signOut={signOut} addAccount={addAccount} t={t} profileData={profile} />}{view === 'settings' && <SettingsView open={open} language={language} setLanguage={setLanguage} t={t} />}{view === 'orders' && <OrdersView role={role} open={open} notify={notify} t={t} />}{view === 'deals' && <DealsView open={open} notify={notify} t={t} />}{view === 'features' && <FeatureView role={role} open={open} notify={notify} t={t} />}<div className="floating-tools"><button onClick={() => open('profile')} aria-label={t('profile.title')}><UserRound size={24} /></button><button onClick={() => setNotifications(true)} aria-label={t('notifications.title')}><Bell size={24} />{unreadCount > 0 && <i>{unreadCount}</i>}</button></div><VoiceButton onClick={() => { warmupSpeech(); setVoice(true); }} t={t} />{voice && <VoiceModal close={() => setVoice(false)} t={t} language={language} open={open} currentView={view} setFormDraft={setFormDraft} formDraft={formDraft} setLanguage={setLanguage} selectRole={(r) => { authSignOut(); setLoginRole(r as Role); }} appSpeakingRef={appSpeakingRef} appPendingNarrationRef={pendingNarrationRef} speakNarrationOnly={speakNarrationOnly} narratedTabsRef={narratedTabsRef} />}{notifications && <Notifications close={() => setNotifications(false)} t={t} items={notifItems} loading={notifLoading} error={notifError} onMarkRead={handleMarkRead} onMarkAllRead={handleMarkAllRead} />}{toast && <div className="toast"><Check size={17} />{toast}</div>}</div>; }
 export default App;

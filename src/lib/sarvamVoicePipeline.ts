@@ -208,7 +208,15 @@ async function callVoiceIntent(
   return data;
 }
 
+const ttsCache = new Map<string, Blob>();
+
 async function callSarvamTTS(text: string, lang: SarvamLang): Promise<Blob> {
+  const cacheKey = `${lang}:${text}`;
+  const cached = ttsCache.get(cacheKey);
+  if (cached) {
+    console.log('[sarvam] TTS cache hit', { text: text.slice(0, 50), lang });
+    return cached;
+  }
   const t0 = performance.now();
   const res = await fetch(`${SUPABASE_URL}/functions/v1/sarvam-tts`, {
     method: 'POST',
@@ -235,7 +243,9 @@ async function callSarvamTTS(text: string, lang: SarvamLang): Promise<Blob> {
   for (let i = 0; i < byteString.length; i++) {
     bytes[i] = byteString.charCodeAt(i);
   }
-  return new Blob([bytes], { type: 'audio/wav' });
+  const blob = new Blob([bytes], { type: 'audio/wav' });
+  ttsCache.set(cacheKey, blob);
+  return blob;
 }
 
 export async function speakWithSarvam(
