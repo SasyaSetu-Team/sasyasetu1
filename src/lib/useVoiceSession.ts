@@ -19,6 +19,7 @@ import {
   isContinueCropCommand,
   recordWithAutoStop,
   langCode,
+  emitDebug,
   type VoiceCommandMatch,
 } from '@/lib/voice';
 import { fetchIntent, translateResponse, type IntentResult } from '@/lib/intentClient';
@@ -858,15 +859,27 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
         voiceSession: Object.keys(voiceSession).length > 0 ? voiceSession : null,
       });
       if (!turn.ok || !turn.transcript || !turn.intentData || !turn.replyAudio) {
+        const reason = !turn.ok
+          ? `turn.error=${turn.error ?? 'unknown'}`
+          : `missing field: ${!turn.transcript ? 'transcript' : !turn.intentData ? 'intentData' : 'replyAudio'}`;
+        console.error('[voice] processSarvamVoiceTurn — Sarvam turn failed:', reason);
+        emitDebug('sarvam turn failed', reason);
         return null;
       }
 
       const intentResult = translateResponse(turn.intentData, code);
       const replyText = intentResult.speechReply ?? applyIntentResult(intentResult, turn.transcript);
-      if (!replyText) return null;
+      if (!replyText) {
+        console.error('[voice] processSarvamVoiceTurn — no reply text from intent or fallback');
+        emitDebug('sarvam turn failed', 'no reply text');
+        return null;
+      }
 
       return { transcript: turn.transcript, replyText, replyAudio: turn.replyAudio };
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[voice] processSarvamVoiceTurn — caught error:', msg);
+      emitDebug('sarvam turn error', msg);
       return null;
     }
   }, [applyIntentResult]);

@@ -586,7 +586,10 @@ export function createRecognition(
 export async function recordWithAutoStop(): Promise<Blob | null> {
   const SILENCE_DELAY_MS = 5000;
   const MAX_RECORDING_MS = 15000;
-  const SPEECH_THRESHOLD = 0.06;
+  // Tuned to separate real speech from background noise (fans, AC, traffic).
+  // 0.06 was too low — ambient noise routinely exceeded it. May need further
+  // real-world tuning depending on microphone gain and environment.
+  const SPEECH_THRESHOLD = 0.13;
   const MIN_SPEECH_DURATION_MS = 300;
   const TRACK_RELEASE_DELAY_MS = 200;
   const INITIAL_SILENCE_TIMEOUT_MS = 5000;
@@ -621,6 +624,7 @@ export async function recordWithAutoStop(): Promise<Blob | null> {
     let maxRms = 0;
     let speechDurationMs = 0;
     let silenceStartMs: number | null = null;
+    let lastFrameMs = 0;
 
     const cleanupAll = () => {
       if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
@@ -717,11 +721,14 @@ export async function recordWithAutoStop(): Promise<Blob | null> {
       if (rms > maxRms) maxRms = rms;
 
       if (rms > SPEECH_THRESHOLD) {
+        const now = performance.now();
         if (!speechDetected) {
           speechDetected = true;
           console.log('[voice] recordWithAutoStop speech detected', { rms: rms.toFixed(4) });
         }
-        speechDurationMs += 1000 / 60;
+        const delta = lastFrameMs > 0 ? now - lastFrameMs : 1000 / 60;
+        speechDurationMs += delta;
+        lastFrameMs = now;
         if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
         if (initialSilenceTimer) { clearTimeout(initialSilenceTimer); initialSilenceTimer = null; }
         silenceStartMs = null;

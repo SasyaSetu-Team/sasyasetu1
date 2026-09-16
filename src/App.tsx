@@ -137,10 +137,20 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     emitDebug('sarvam turn', 'starting record+stt+intent+tts');
     const result: SarvamVoiceResult | null = await processSarvamVoiceTurn();
     if (!result) {
-      emitDebug('sarvam turn', 'FAILED — falling back to browser Speech API');
+      emitDebug('sarvam turn', 'FAILED — speaking audible fallback via browser TTS');
       if (sessionRef.current) {
-        setConv('WAIT_FOR_SPEECH');
-        startListening();
+        speakingRef.current = true;
+        setVoiceState('speaking');
+        setConv('SPEAKING');
+        speak(t('voice.didNotUnderstand'), languageRef.current, () => {
+          speakingRef.current = false;
+          if (sessionRef.current) {
+            setConv('WAIT_FOR_SPEECH');
+            setTimeout(() => {
+              if (sessionRef.current && !speakingRef.current) startSarvamTurn();
+            }, 400);
+          }
+        });
       }
       return;
     }
@@ -161,7 +171,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         }, 400);
       }
     });
-  }, [processSarvamVoiceTurn, startListening, setConv]);
+  }, [processSarvamVoiceTurn, startListening, setConv, t]);
 
   const speakAndListen = useCallback((text: string) => {
     speakingRef.current = true;
