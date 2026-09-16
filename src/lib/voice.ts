@@ -601,8 +601,18 @@ export async function recordWithAutoStop(): Promise<Blob | null> {
   const INITIAL_SILENCE_TIMEOUT_MS = 5000;
 
   console.log('[voice] recordWithAutoStop START');
+  emitDebug('mic', 'recordWithAutoStop START — requesting getUserMedia');
 
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  let stream: MediaStream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    emitDebug('mic', `getUserMedia OK — ${stream.getTracks().length} track(s), active=${stream.getTracks()[0]?.readyState}`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[voice] recordWithAutoStop getUserMedia FAILED:', msg);
+    emitDebug('mic', `getUserMedia FAILED: ${msg}`);
+    return null;
+  }
 
   const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
   if (audioContext.state === 'suspended') { audioContext.resume().catch(() => {}); }
@@ -660,6 +670,7 @@ export async function recordWithAutoStop(): Promise<Blob | null> {
         maxRms: maxRms.toFixed(4),
         silenceDurationBeforeStop: silenceDurationMs.toFixed(0),
       });
+      emitDebug('mic', `recording done — duration=${totalDurationMs.toFixed(0)}ms speechDetected=${speechDetected} maxRms=${maxRms.toFixed(4)} chunks=${chunks.length}`);
 
       if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
       if (maxTimer) { clearTimeout(maxTimer); maxTimer = null; }
@@ -684,15 +695,18 @@ export async function recordWithAutoStop(): Promise<Blob | null> {
               chunks: chunks.length,
               totalDurationMs: totalDurationMs.toFixed(0),
             });
+            emitDebug('mic', `VAD miss — blobSize=${blob.size} chunks=${chunks.length} maxRms=${maxRms.toFixed(4)}`);
             if (blob.size >= MIN_BLOB_SIZE_BYTES) {
               console.log('[voice] recordWithAutoStop SAVING — blob has data despite VAD miss, sending to STT', {
                 blobSize: blob.size,
                 blobType: blob.type,
               });
+              emitDebug('mic', `SAVING blob despite VAD miss — size=${blob.size} sending to STT`);
               resolve(blob);
               return;
             }
             console.log('[voice] recordWithAutoStop DISCARDED — blob too small, likely true silence');
+            emitDebug('mic', `DISCARDED — blob too small (${blob.size} bytes), likely true silence`);
             resolve(null);
             return;
           }
@@ -703,6 +717,7 @@ export async function recordWithAutoStop(): Promise<Blob | null> {
             durationMs: totalDurationMs.toFixed(0),
             chunks: chunks.length,
           });
+          emitDebug('mic', `CAPTURED — size=${blob.size} type=${blob.type} duration=${totalDurationMs.toFixed(0)}ms`);
           resolve(blob);
         }, TRACK_RELEASE_DELAY_MS);
       };
@@ -772,6 +787,7 @@ export async function recordWithAutoStop(): Promise<Blob | null> {
       SPEECH_THRESHOLD,
       MAX_RECORDING_MS,
     });
+    emitDebug('mic', `listening started — recorder.state=${recorder.state} threshold=${SPEECH_THRESHOLD}`);
     monitorId = requestAnimationFrame(monitor);
   });
 }

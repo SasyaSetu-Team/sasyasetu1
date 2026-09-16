@@ -145,6 +145,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     setVoiceState('speaking');
     setConv('TRANSCRIBING');
     emitDebug('sarvam turn', 'starting record+stt+intent+tts');
+    emitDebug('mic', 'requesting microphone access via getUserMedia');
     const result: SarvamVoiceResult | null = await processSarvamVoiceTurn();
     if (!result) {
       emitDebug('sarvam turn', 'FAILED — speaking audible fallback via browser TTS');
@@ -223,6 +224,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     if (!pending) return;
     if (appSpeakingRef.current) return;
     appPendingNarrationRef.current = null;
+    narrationQueuedRef.current = false;
     emitDebug('narration drain', `draining queued narration: "${pending.slice(0, 50)}"`);
     if (speakNarrationOnly) speakNarrationOnly(pending);
   }, [appPendingNarrationRef, appSpeakingRef, speakNarrationOnly]);
@@ -230,21 +232,26 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
   useEffect(() => { drainRef.current = drainPendingNarration; }, [drainPendingNarration]);
 
   const lastNarrationViewRef = useRef<string>('');
+  const narrationQueuedRef = useRef(false);
   useEffect(() => {
     if (currentView !== lastNarrationViewRef.current && lastNarrationViewRef.current !== '') {
       stopAudio(); stopSpeaking(); speakingRef.current = false;
       if (appSpeakingRef) { appSpeakingRef.current = false; if (appPendingNarrationRef) appPendingNarrationRef.current = null; }
+      narrationQueuedRef.current = false;
       emitDebug('narration effect', `view changed ${lastNarrationViewRef.current} → ${currentView} — cancelled speech`);
     }
     if (speakingRef.current) {
+      if (narrationQueuedRef.current) { emitDebug('narration effect', `SKIP: already queued for ${currentView}`); return; }
       emitDebug('narration effect', 'QUEUE: speakingRef is true — deferring narration');
       const narration = narrateScreen(currentView);
       if (narration && appPendingNarrationRef) appPendingNarrationRef.current = narration;
+      if (narration) narrationQueuedRef.current = true;
       lastNarrationViewRef.current = currentView;
       return;
     }
     if (currentView === lastNarrationViewRef.current) { emitDebug('narration effect', `SKIP: same view ${currentView}`); return; }
     if (narratedTabsRef?.current.has(currentView)) { emitDebug('narration effect', `SKIP: tab already narrated ${currentView}`); return; }
+    narrationQueuedRef.current = false;
     const isLoginView = currentView.startsWith('login-');
     if (isLoginView && !sessionRef.current) {
       emitDebug('narration effect', `ENTER login init path | view=${currentView} | sessionRef was false`);
@@ -265,6 +272,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       emitDebug('narration effect', `narrateScreen returned: "${narration?.slice(0, 50) ?? 'EMPTY'}" | will speak immediately`);
       if (narration) {
         narratedTabsRef?.current.add(currentView);
+        narrationQueuedRef.current = false;
         speakSarvamAndListen(narration);
       } else {
         setConv('WAIT_FOR_SPEECH');
@@ -282,7 +290,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       emitDebug('narration effect', `normal path | view=${currentView}`);
       lastNarrationViewRef.current = currentView;
       const narration = narrateScreen(currentView);
-      if (narration) { narratedTabsRef?.current.add(currentView); speakSarvamAndListen(narration); }
+      if (narration) { narratedTabsRef?.current.add(currentView); narrationQueuedRef.current = false; speakSarvamAndListen(narration); }
     }
   }, [currentView, narrateScreen, speakSarvamAndListen, loginRole, state.step, appPendingNarrationRef, narratedTabsRef]);
 
