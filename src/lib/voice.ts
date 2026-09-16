@@ -584,14 +584,19 @@ export function createRecognition(
 }
 
 export async function recordWithAutoStop(): Promise<Blob | null> {
-  const SILENCE_DELAY_MS = 5000;
+  // After-speech silence: how long to wait after the farmer stops talking
+  // before we stop recording. 5s was far too long — 1.3s allows natural
+  // mid-sentence pauses without a dead 5-second wait.
+  const SILENCE_DELAY_MS = 1300;
   const MAX_RECORDING_MS = 15000;
   // Tuned to separate real speech from background noise (fans, AC, traffic).
   // 0.06 was too low — ambient noise routinely exceeded it. May need further
   // real-world tuning depending on microphone gain and environment.
   const SPEECH_THRESHOLD = 0.13;
   const MIN_SPEECH_DURATION_MS = 300;
-  const TRACK_RELEASE_DELAY_MS = 200;
+  // Small delay to let MediaRecorder flush the final audio chunk.
+  // 200ms was overly conservative — 50ms is enough for the final ondataavailable.
+  const TRACK_RELEASE_DELAY_MS = 50;
   const INITIAL_SILENCE_TIMEOUT_MS = 5000;
 
   console.log('[voice] recordWithAutoStop START');

@@ -848,7 +848,11 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
     if (Object.keys(s.slots).length > 0) voiceSession.slots = s.slots;
 
     try {
+      const recStart = performance.now();
       const audioBlob = await recordWithAutoStop();
+      const recMs = performance.now() - recStart;
+      console.log('[voice] processSarvamVoiceTurn — recording done', { recMs: recMs.toFixed(0), captured: !!audioBlob });
+      emitDebug('recording done', `${recMs.toFixed(0)}ms captured=${!!audioBlob}`);
       if (!audioBlob) {
         console.log('[voice] processSarvamVoiceTurn — discarded noise-only clip, skipping turn');
         return null;

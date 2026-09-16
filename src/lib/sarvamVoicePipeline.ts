@@ -4,6 +4,7 @@ import { emitDebug } from '@/lib/voice';
 type SarvamLang = 'en-IN' | 'hi-IN' | 'te-IN';
 
 async function blobToWav(audioBlob: Blob): Promise<Blob> {
+  const t0 = performance.now();
   const arrayBuffer = await audioBlob.arrayBuffer();
   const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
   const audioContext = new AudioCtx();
@@ -58,6 +59,7 @@ async function blobToWav(audioBlob: Blob): Promise<Blob> {
 
     const wavBlob = new Blob([buffer], { type: 'audio/wav' });
     console.log('[sarvam] blobToWav:', {
+      wavMs: (performance.now() - t0).toFixed(0),
       inputType: audioBlob.type,
       inputSize: audioBlob.size,
       outputType: wavBlob.type,
@@ -140,6 +142,7 @@ function buildReplyText(data: VoiceIntentResponse, lang: SarvamLang): string {
 }
 
 async function callSarvamSTT(audioBlob: Blob, language: SarvamLang): Promise<string> {
+  const t0 = performance.now();
   const wavBlob = await blobToWav(audioBlob);
   const formData = new FormData();
   formData.append('file', wavBlob, 'audio.wav');
@@ -150,6 +153,8 @@ async function callSarvamSTT(audioBlob: Blob, language: SarvamLang): Promise<str
     headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
     body: formData,
   });
+  console.log('[sarvam] STT fetch done', { sttMs: (performance.now() - t0).toFixed(0), status: res.status });
+  emitDebug('sarvam STT done', `${(performance.now() - t0).toFixed(0)}ms status=${res.status}`);
 
   if (!res.ok) {
     const errBody = await res.text();
@@ -169,6 +174,7 @@ async function callVoiceIntent(
   lang: SarvamLang,
   context?: { currentPage?: string; voiceSession?: Record<string, unknown> | null; screenContent?: string | null },
 ): Promise<VoiceIntentResponse> {
+  const t0 = performance.now();
   const body = {
     transcript,
     currentPage: context?.currentPage ?? 'unknown',
@@ -187,6 +193,8 @@ async function callVoiceIntent(
     },
     body: JSON.stringify(body),
   });
+  console.log('[sarvam] intent fetch done', { intentMs: (performance.now() - t0).toFixed(0), status: res.status });
+  emitDebug('sarvam intent done', `${(performance.now() - t0).toFixed(0)}ms status=${res.status}`);
 
   if (!res.ok) {
     const errBody = await res.text();
@@ -201,6 +209,7 @@ async function callVoiceIntent(
 }
 
 async function callSarvamTTS(text: string, lang: SarvamLang): Promise<Blob> {
+  const t0 = performance.now();
   const res = await fetch(`${SUPABASE_URL}/functions/v1/sarvam-tts`, {
     method: 'POST',
     headers: {
@@ -216,6 +225,8 @@ async function callSarvamTTS(text: string, lang: SarvamLang): Promise<Blob> {
   }
 
   const data = await res.json() as { audioBase64?: string; error?: string };
+  console.log('[sarvam] TTS fetch done', { ttsMs: (performance.now() - t0).toFixed(0), status: res.status, hasAudio: !!data.audioBase64 });
+  emitDebug('sarvam TTS done', `${(performance.now() - t0).toFixed(0)}ms hasAudio=${!!data.audioBase64}`);
   if (data.error) throw new Error(`TTS error: ${data.error}`);
   if (!data.audioBase64) throw new Error('TTS returned no audio');
 
@@ -245,11 +256,16 @@ export async function runSarvamVoiceTurn(
   languageCode: SarvamLang,
   context?: { currentPage?: string; voiceSession?: Record<string, unknown> | null; screenContent?: string | null },
 ): Promise<SarvamVoiceTurnResult> {
+  const t0 = performance.now();
   try {
     const transcript = await callSarvamSTT(audioBlob, languageCode);
     const intentData = await callVoiceIntent(transcript, languageCode, context);
     const replyText = buildReplyText(intentData, languageCode);
     const replyAudio = await callSarvamTTS(replyText, languageCode);
+
+    const totalMs = performance.now() - t0;
+    console.log('[sarvam] runSarvamVoiceTurn complete', { totalMs: totalMs.toFixed(0) });
+    emitDebug('sarvam turn total', `${totalMs.toFixed(0)}ms`);
 
     return { ok: true, transcript, intentData, replyText, replyAudio };
   } catch (err) {
