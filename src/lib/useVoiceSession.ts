@@ -167,6 +167,8 @@ export interface VoiceSessionCallbacks {
   setLoginStep?: (step: number) => void;
   setLoginField?: (field: 'mobile' | 'otp' | 'buyerCategory', value: string) => void;
   submitLogin?: () => void;
+  isLoggedIn?: boolean;
+  autoRouteToDestination?: (destinationView: string, role: string) => void;
 }
 
 export interface SarvamVoiceResult {
@@ -219,6 +221,40 @@ export interface VoiceSessionResult {
   narrateScreen: (view: string, loginStep?: number) => string;
 }
 
+const DESTINATION_ROLE_MAP: Record<string, string> = {
+  'crop-create': 'Farmer',
+  'crops': 'Farmer',
+  'calendar': 'Farmer',
+  'market': 'Buyer',
+  'orders': 'Buyer',
+  'transport-options': 'Transport Provider',
+  'storage': 'Storage Provider',
+  'fpo': 'FPO',
+  'profile': 'Farmer',
+  'help': 'Farmer',
+  'tutorials': 'Farmer',
+  'settings': 'Farmer',
+  'features': 'Farmer',
+  'home': 'Farmer',
+};
+
+const DESTINATION_NAMES: Record<string, string> = {
+  'crop-create': 'Add Crop',
+  'crops': 'My Crops',
+  'calendar': 'Harvest Calendar',
+  'market': 'Market',
+  'orders': 'Orders',
+  'transport-options': 'Transport',
+  'storage': 'Storage',
+  'fpo': 'FPO Network',
+  'profile': 'Profile',
+  'help': 'Help',
+  'tutorials': 'Tutorials',
+  'settings': 'Settings',
+  'features': 'Requests',
+  'home': 'Home',
+};
+
 export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionResult {
   const [state, dispatch] = useReducer(reducer, initialState);
   const stateRef = useRef(state);
@@ -229,6 +265,14 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
 
   const t = useCallback((key: string, params?: Record<string, string | number>) => {
     return makeT(cbRef.current.language)(key, params);
+  }, []);
+
+  const tryAutoRoute = useCallback((destinationView: string): boolean => {
+    if (cbRef.current.isLoggedIn) return false;
+    const requiredRole = DESTINATION_ROLE_MAP[destinationView];
+    if (!requiredRole) return false;
+    cbRef.current.autoRouteToDestination?.(destinationView, requiredRole);
+    return true;
   }, []);
 
   const askFieldPrompt = useCallback((field: FormField): string => {
@@ -303,6 +347,18 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
         return t('voice.confirmNo');
       }
       return null;
+    }
+
+    if (!cbRef.current.isLoggedIn && s.activeIntent !== 'add_crop') {
+      const match = parseCommand(text, lang);
+      if (match && !(match as VoiceCommandMatch).unavailable && match.view) {
+        const destView = match.key === 'addCrop' ? (match.view || 'crop-create') : match.view;
+        if (tryAutoRoute(destView)) {
+          const destName = DESTINATION_NAMES[destView] ?? destView;
+          const requiredRole = DESTINATION_ROLE_MAP[destView];
+          return t('voice.autoRouteStarting', { role: requiredRole }) + ' ' + t('voice.autoRouteStep') + ' ' + t('voice.autoRouteComplete', { destination: destName });
+        }
+      }
     }
 
     if (s.activeIntent === 'add_crop') {
@@ -557,7 +613,7 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
     }
 
     return t('voice.didNotUnderstand');
-  }, [t, nextMissingField, nextMissingFieldAfter, summaryOrNext, askFieldPrompt]);
+  }, [t, nextMissingField, nextMissingFieldAfter, summaryOrNext, askFieldPrompt, tryAutoRoute]);
 
   const applyIntentResult = useCallback((result: IntentResult, text: string): string | null => {
     const lang = cbRef.current.language;
@@ -661,6 +717,15 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
         return t('voice.confirmNo');
       }
       return null;
+    }
+
+    if (!cbRef.current.isLoggedIn && s.activeIntent !== 'add_crop' && !result.role) {
+      const destView = result.intent === 'add_crop' ? (result.view || 'crop-create') : result.view;
+      if (destView && tryAutoRoute(destView)) {
+        const destName = DESTINATION_NAMES[destView] ?? destView;
+        const requiredRole = DESTINATION_ROLE_MAP[destView];
+        return t('voice.autoRouteStarting', { role: requiredRole }) + ' ' + t('voice.autoRouteStep') + ' ' + t('voice.autoRouteComplete', { destination: destName });
+      }
     }
 
     if (s.activeIntent === 'add_crop') {
@@ -812,7 +877,7 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
     }
 
     return t('voice.didNotUnderstand');
-  }, [t, nextMissingField, nextMissingFieldAfter, summaryOrNext, askFieldPrompt]);
+  }, [t, nextMissingField, nextMissingFieldAfter, summaryOrNext, askFieldPrompt, tryAutoRoute]);
 
   const processUtteranceAsync = useCallback(async (text: string, screenContext?: string): Promise<string | null> => {
     const lang = cbRef.current.language;
