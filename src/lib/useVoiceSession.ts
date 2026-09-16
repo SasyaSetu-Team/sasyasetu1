@@ -22,7 +22,7 @@ import {
   type VoiceCommandMatch,
 } from '@/lib/voice';
 import { fetchIntent, translateResponse, type IntentResult } from '@/lib/intentClient';
-import { runSarvamVoiceTurn, type SarvamVoiceTurnResult } from '@/lib/sarvamVoicePipeline';
+import { runSarvamVoiceTurn, speakWithSarvam, type SarvamVoiceTurnResult } from '@/lib/sarvamVoicePipeline';
 import { playAudioBlob } from '@/lib/playAudio';
 
 const VALID_ROLES = ['Farmer', 'FPO', 'Buyer', 'Storage Provider', 'Transport Provider'];
@@ -172,6 +172,12 @@ export interface SarvamVoiceResult {
   transcript: string;
   replyText: string;
   replyAudio: Blob;
+}
+
+export async function speakTextViaSarvam(text: string, language: Language): Promise<Blob | null> {
+  const code = langCode(language);
+  const sarvamLang = code === 'te' ? 'te-IN' : code === 'hi' ? 'hi-IN' : 'en-IN';
+  return speakWithSarvam(text, sarvamLang as 'en-IN' | 'hi-IN' | 'te-IN');
 }
 
 export interface VoiceSessionResult {
@@ -832,17 +838,27 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
     const lang = cbRef.current.language;
     const code = langCode(lang);
     const sarvamLang = code === 'te' ? 'te-IN' : code === 'hi' ? 'hi-IN' : 'en-IN';
+    const s = stateRef.current;
+
+    const voiceSession: Record<string, unknown> = {};
+    if (s.activeIntent !== null) voiceSession.activeIntent = s.activeIntent;
+    if (s.step !== null) voiceSession.step = s.step;
+    if (s.awaitingConfirmation) voiceSession.awaitingConfirmation = true;
+    if (Object.keys(s.slots).length > 0) voiceSession.slots = s.slots;
 
     try {
       const audioBlob = await recordWithAutoStop();
 
-      const turn: SarvamVoiceTurnResult = await runSarvamVoiceTurn(audioBlob, sarvamLang as 'en-IN' | 'hi-IN' | 'te-IN');
+      const turn: SarvamVoiceTurnResult = await runSarvamVoiceTurn(audioBlob, sarvamLang as 'en-IN' | 'hi-IN' | 'te-IN', {
+        currentPage: cbRef.current.currentView,
+        voiceSession: Object.keys(voiceSession).length > 0 ? voiceSession : null,
+      });
       if (!turn.ok || !turn.transcript || !turn.intentData || !turn.replyAudio) {
         return null;
       }
 
       const intentResult = translateResponse(turn.intentData, code);
-      const replyText = applyIntentResult(intentResult, turn.transcript);
+      const replyText = intentResult.speechReply ?? applyIntentResult(intentResult, turn.transcript);
       if (!replyText) return null;
 
       return { transcript: turn.transcript, replyText, replyAudio: turn.replyAudio };

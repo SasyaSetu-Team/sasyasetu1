@@ -20,6 +20,7 @@ export interface IntentResult {
   role?: string;
   readScreen?: boolean;
   description?: string;
+  speechReply?: string;
   loginMobile?: string;
   loginOtp?: string;
   loginCategory?: string;
@@ -33,6 +34,7 @@ interface EdgeFunctionResponse {
   confidence: number;
   source?: string;
   description?: string | null;
+  speech_reply?: string | null;
 }
 
 export interface IntentRequest {
@@ -104,6 +106,7 @@ export function translateResponse(data: EdgeFunctionResponse, lang: string): Int
     intent: data.intent,
     confidence: data.confidence,
     slots,
+    speechReply: data.speech_reply ?? undefined,
   };
 
   const sub = data.sub_target;

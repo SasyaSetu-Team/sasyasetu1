@@ -82,6 +82,7 @@ interface VoiceIntentResponse {
   confidence: number;
   source?: string;
   description?: string | null;
+  speech_reply?: string | null;
 }
 
 export interface SarvamVoiceTurnResult {
@@ -99,6 +100,7 @@ function langCodeForSarvam(lang: SarvamLang): string {
 
 function buildReplyText(data: VoiceIntentResponse, lang: SarvamLang): string {
   if (data.description) return data.description;
+  if (data.speech_reply) return data.speech_reply;
 
   const replies: Record<string, Record<string, string>> = {
     'en-IN': {
@@ -162,15 +164,19 @@ async function callSarvamSTT(audioBlob: Blob, language: SarvamLang): Promise<str
   return data.transcript;
 }
 
-async function callVoiceIntent(transcript: string, lang: SarvamLang): Promise<VoiceIntentResponse> {
+async function callVoiceIntent(
+  transcript: string,
+  lang: SarvamLang,
+  context?: { currentPage?: string; voiceSession?: Record<string, unknown> | null; screenContent?: string | null },
+): Promise<VoiceIntentResponse> {
   const body = {
     transcript,
-    currentPage: 'unknown',
+    currentPage: context?.currentPage ?? 'unknown',
     activeTab: null,
     visibleData: null,
-    voiceSession: null,
+    voiceSession: context?.voiceSession ?? null,
     language: langCodeForSarvam(lang),
-    screenContent: null,
+    screenContent: context?.screenContent ?? null,
   };
 
   const res = await fetch(`${SUPABASE_URL}/functions/v1/voice-intent`, {
@@ -221,13 +227,27 @@ async function callSarvamTTS(text: string, lang: SarvamLang): Promise<Blob> {
   return new Blob([bytes], { type: 'audio/wav' });
 }
 
+export async function speakWithSarvam(
+  text: string,
+  languageCode: SarvamLang,
+): Promise<Blob | null> {
+  try {
+    return await callSarvamTTS(text, languageCode);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[sarvam] speakWithSarvam failed:', message);
+    return null;
+  }
+}
+
 export async function runSarvamVoiceTurn(
   audioBlob: Blob,
   languageCode: SarvamLang,
+  context?: { currentPage?: string; voiceSession?: Record<string, unknown> | null; screenContent?: string | null },
 ): Promise<SarvamVoiceTurnResult> {
   try {
     const transcript = await callSarvamSTT(audioBlob, languageCode);
-    const intentData = await callVoiceIntent(transcript, languageCode);
+    const intentData = await callVoiceIntent(transcript, languageCode, context);
     const replyText = buildReplyText(intentData, languageCode);
     const replyAudio = await callSarvamTTS(replyText, languageCode);
 

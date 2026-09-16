@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// v3: speech_reply field added to Gemini prompt + rule-based fallback
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,6 +24,7 @@ interface LlmIntentResult {
   sub_target: string | null;
   slots: Record<string, string>;
   confidence: number;
+  speech_reply: string;
 }
 
 // ── Gemini API call ───────────────────────────────────────────────────────
@@ -37,7 +39,13 @@ function buildSystemPrompt(): string {
     "Given a voice transcript and the current app context, determine the user's intent.",
     "",
     "Return ONLY a JSON object with exactly these fields:",
-    '{ "intent": string, "sub_target": string | null, "slots": object, "confidence": number }',
+    '{ "intent": string, "sub_target": string | null, "slots": object, "confidence": number, "speech_reply": string }',
+    "",
+    "speech_reply: a short, natural, helpful sentence in the user's language (English/Telugu/Hindi)",
+    "  that acknowledges the intent and guides the user on what to do or say next.",
+    "  Be context-aware: if the user is on the Crops tab and says 'add crop', tell them to say the crop name.",
+    "  If navigating, confirm the destination. If confirming, ask for yes/no.",
+    "  Keep it under 2 sentences. Do not repeat the raw transcript.",
     "",
     "Intent values (use the closest match):",
     "  navigate, add_crop, mark_harvested, post_demand, start_journey,",
@@ -176,6 +184,7 @@ async function callGemini(req: IntentRequest): Promise<LlmIntentResult | null> {
       sub_target: parsed.sub_target ?? null,
       slots: parsed.slots ?? {},
       confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.5,
+      speech_reply: typeof parsed.speech_reply === "string" ? parsed.speech_reply : "",
     };
   } catch (err) {
     console.error("Gemini call failed:", err.message || err);
@@ -629,6 +638,44 @@ function parseLanguageTarget(text: string): string | null {
   return null;
 }
 
+function buildFallbackReply(intent: string, subTarget: string | null, lang: string): string {
+  const langName = lang === "te" ? "Telugu" : lang === "hi" ? "Hindi" : "English";
+  const replies: Record<string, Record<string, string>> = {
+    "en": {
+      navigate: `OK, opening ${subTarget ?? "that page"}.`,
+      add_crop: "OK, let's add a new crop. What crop name would you like?",
+      mark_harvested: "OK, marking your crop as harvested.",
+      stop: "Stopping. Goodbye.",
+      back: "Going back.",
+      confirm: "Confirmed.",
+      cancel_confirm: "Cancelled.",
+      unknown: "Sorry, I didn't understand that. Can you rephrase?",
+    },
+    "te": {
+      navigate: `సరే, ${subTarget ?? "ఆ పేజీ"} తెరుస్తున్నాను.`,
+      add_crop: "సరే, ఆ కొత్త పంట జోడించుదాం. పంట పేరు చెప్పండి.",
+      mark_harvested: "సరే, మీ పంట కటాయగా గుర్తిస్తున్నాను.",
+      stop: "ఆపుతున్నాను. వీడ్కోలు.",
+      back: "వెనుకకు వెళ్తున్నాను.",
+      confirm: "నిర్ధారించబడింది.",
+      cancel_confirm: "రద్దు చేయబడింది.",
+      unknown: "క్షమించండి, అర్థం చేసుకోలేదు. మళ్లీ చెప్పగలరా?",
+    },
+    "hi": {
+      navigate: `ठीक है, ${subTarget ?? "वह पेज"} खोल रहा हूँ।`,
+      add_crop: "ठीक है, आइए नई फसल जोड़ें। फसल का नाम बताइए।",
+      mark_harvested: "ठीक है, आपकी फसल कटाई के लिए चिह्नित कर रहा हूँ।",
+      stop: "रुक रहा हूँ। अलविदा।",
+      back: "वापस जा रहा हूँ।",
+      confirm: "पुष्टि हुई।",
+      cancel_confirm: "रद्द किया गया।",
+      unknown: "माफ़ कीजिए, मैं समझा नहीं। कृपया दोहराइए।",
+    },
+  };
+  const langReplies = replies[lang] ?? replies["en"];
+  return langReplies[intent] ?? langReplies.unknown;
+}
+
 function ruleBasedFallback(req: IntentRequest): LlmIntentResult {
   const lang = detectLang(req.transcript);
   const legacyReq: IntentRequestLegacy = {
@@ -664,6 +711,7 @@ function ruleBasedFallback(req: IntentRequest): LlmIntentResult {
     sub_target: subTarget,
     slots,
     confidence: result.confidence,
+    speech_reply: buildFallbackReply(result.intent, subTarget, lang),
   };
 }
 

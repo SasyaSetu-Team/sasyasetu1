@@ -7,7 +7,7 @@ const rameshEmail = farmerDemoEmails.find((f) => f.name === 'Ramesh Kumar')?.ema
 import { fetchCrops, fetchMyListings, fetchPublicListings, fetchListing, createListing, updateListing, markAsHarvested, buyNow, bookListing, fetchMyOrders, computeCurrentPrice, nextDropMinutes, computeClusterCurrentPrice, clusterNextDropMinutes, bookedQuantity, formatKg, formatPrice, formatDate, cropDisplayName, cropDisplayVariety, OTHER_CROP_ID, fetchClusters, formatHarvestWindow, timeLeftUntil, fetchClusterInvites, fetchClusterMemberships, fetchClusterMembers, joinCluster, dismissClusterInvite, type Crop, type CropListing, type CropListingInput, type CropClusterWithMembers, type ClusterInvite, type ClusterMembership, type ClusterMemberDetail, type BuyNowResult, type OrderRow, type BookResult } from '@/lib/crops';
 import { fetchNotifications, markNotificationRead, markAllNotificationsRead, seedDemoNotificationsIfNeeded, type NotificationRow } from '@/lib/notifications';
 import { parseCommand, parseStatus, parseNumber, parseLanguageChange, extractValue, isSpeechRecognitionSupported, isSpeechSynthesisSupported, createRecognition, speak, stopSpeaking, warmupSpeech, langCode, captureScreenText, subscribeDebug, getSynthState, emitDebug, type VoiceRecognition, type DebugEvent } from '@/lib/voice';
-import { useVoiceSession, type FormField, type SarvamVoiceResult } from '@/lib/useVoiceSession';
+import { useVoiceSession, speakTextViaSarvam, type FormField, type SarvamVoiceResult } from '@/lib/useVoiceSession';
 import { playAudioBlob } from '@/lib/playAudio';
 
 type Role = 'Farmer' | 'FPO' | 'Transport Provider' | 'Storage Provider' | 'Buyer';
@@ -181,6 +181,37 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     });
   }, [startSarvamTurn, setConv]);
 
+  const speakSarvamAndListen = useCallback(async (text: string) => {
+    speakingRef.current = true;
+    recognitionRef.current?.stop();
+    setVoiceState('speaking');
+    setConv('SPEAKING');
+    setInterim('');
+    const audio = await speakTextViaSarvam(text, languageRef.current);
+    if (!audio) {
+      emitDebug('speakSarvam', 'TTS failed — falling back to browser speak');
+      speak(text, languageRef.current, () => {
+        speakingRef.current = false;
+        if (sessionRef.current) {
+          setConv('WAIT_FOR_SPEECH');
+          setTimeout(() => {
+            if (sessionRef.current && !speakingRef.current) startSarvamTurn();
+          }, 400);
+        }
+      });
+      return;
+    }
+    playAudioBlob(audio, () => {
+      speakingRef.current = false;
+      if (sessionRef.current) {
+        setConv('WAIT_FOR_SPEECH');
+        setTimeout(() => {
+          if (sessionRef.current && !speakingRef.current) startSarvamTurn();
+        }, 400);
+      }
+    });
+  }, [startSarvamTurn, setConv]);
+
   const lastNarrationViewRef = useRef<string>('');
   useEffect(() => {
     if (speakingRef.current) { emitDebug('narration effect', 'SKIP: speakingRef is true'); return; }
@@ -206,7 +237,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       if (narration) {
         setTimeout(() => {
           emitDebug('narration timeout', `firing | sessionRef=${sessionRef.current} speakingRef=${speakingRef.current}`);
-          if (sessionRef.current && !speakingRef.current) speakAndListen(narration);
+          if (sessionRef.current && !speakingRef.current) speakSarvamAndListen(narration);
           else emitDebug('narration timeout', `SKIP: sessionRef=${sessionRef.current} speakingRef=${speakingRef.current}`);
         }, 350);
       } else {
@@ -225,9 +256,9 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       emitDebug('narration effect', `normal path | view=${currentView}`);
       lastNarrationViewRef.current = currentView;
       const narration = narrateScreen(currentView);
-      if (narration) speakAndListen(narration);
+      if (narration) speakSarvamAndListen(narration);
     }
-  }, [currentView, narrateScreen, speakAndListen, loginRole, state.step]);
+  }, [currentView, narrateScreen, speakSarvamAndListen, loginRole, state.step]);
 
   const handleFinalResult = useCallback(async (text: string) => {
     setTranscript(text);
@@ -241,14 +272,14 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     if (response) {
       setDebugStep(s.step ?? 'none');
       if (s.awaitingConfirmation) setConv('CONFIRMING');
-      speakAndListen(response);
+      speakSarvamAndListen(response);
     } else {
       if (sessionRef.current) {
         setConv('WAIT_FOR_SPEECH');
         startSarvamTurn();
       }
     }
-  }, [processUtteranceAsync, speakAndListen, startSarvamTurn, setConv]);
+  }, [processUtteranceAsync, speakSarvamAndListen, startSarvamTurn, setConv]);
 
   const handleError = useCallback((err: string) => {
     if (err === 'not-allowed' || err === 'service-not-allowed') {
@@ -274,15 +305,15 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       if (currentView === 'crop-create' || currentView === 'crop-edit') {
         dispatch({ type: 'START_INTENT', intent: 'add_crop', view: currentView });
         if (formDraft && Object.keys(formDraft).length > 0) dispatch({ type: 'SEED_SLOTS', slots: formDraft });
-        speakAndListen(t('voice.openedAddCrop'));
+        speakSarvamAndListen(t('voice.openedAddCrop'));
         setTimeout(() => {
           if (sessionRef.current) {
             const next = nextMissingField();
-            if (next) speakAndListen(askFieldPrompt(next));
+            if (next) speakSarvamAndListen(askFieldPrompt(next));
           }
         }, 2500);
       } else {
-        speakAndListen(t('voice.howCanIHelp'));
+        speakSarvamAndListen(t('voice.howCanIHelp'));
         setTimeout(() => {
           if (sessionRef.current && !speakingRef.current) startSarvamTurn();
         }, 2000);
@@ -291,21 +322,21 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       if (currentView === 'crop-create' || currentView === 'crop-edit') {
         dispatch({ type: 'START_INTENT', intent: 'add_crop', view: currentView });
         if (formDraft && Object.keys(formDraft).length > 0) dispatch({ type: 'SEED_SLOTS', slots: formDraft });
-        speakAndListen(t('voice.openedAddCrop'));
+        speakSarvamAndListen(t('voice.openedAddCrop'));
         setTimeout(() => {
           if (sessionRef.current) {
             const next = nextMissingField();
-            if (next) speakAndListen(askFieldPrompt(next));
+            if (next) speakSarvamAndListen(askFieldPrompt(next));
           }
         }, 2500);
       } else {
-        speakAndListen(t('voice.welcomeBack'));
+        speakSarvamAndListen(t('voice.welcomeBack'));
         setTimeout(() => {
           if (sessionRef.current && !speakingRef.current) startSarvamTurn();
         }, 1800);
       }
     }
-  }, [supported, t, speakAndListen, startSarvamTurn, currentView, dispatch, nextMissingField, askFieldPrompt, formDraft]);
+  }, [supported, t, speakSarvamAndListen, startSarvamTurn, currentView, dispatch, nextMissingField, askFieldPrompt, formDraft]);
 
   const stopSession = useCallback(() => {
     sessionRef.current = false;
