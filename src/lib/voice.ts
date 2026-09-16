@@ -583,10 +583,15 @@ export function createRecognition(
   };
 }
 
-export async function recordWithAutoStop(): Promise<Blob> {
-  const SILENCE_DELAY_MS = 1800;
-  const MAX_RECORDING_MS = 7000;
-  const SPEECH_THRESHOLD = 0.02;
+export async function recordWithAutoStop(): Promise<Blob | null> {
+  const SILENCE_DELAY_MS = 5000;
+  const MAX_RECORDING_MS = 15000;
+  const SPEECH_THRESHOLD = 0.06;
+  const MIN_SPEECH_DURATION_MS = 300;
+  const TRACK_RELEASE_DELAY_MS = 200;
+  const INITIAL_SILENCE_TIMEOUT_MS = 5000;
+
+  console.log('[voice] recordWithAutoStop START');
 
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
@@ -606,16 +611,21 @@ export async function recordWithAutoStop(): Promise<Blob> {
   const chunks: Blob[] = [];
   recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
 
-  return new Promise<Blob>((resolve, reject) => {
+  return new Promise<Blob | null>((resolve, reject) => {
     let speechDetected = false;
     let silenceTimer: ReturnType<typeof setTimeout> | null = null;
     let maxTimer: ReturnType<typeof setTimeout> | null = null;
+    let initialSilenceTimer: ReturnType<typeof setTimeout> | null = null;
     let monitorId: number | null = null;
     let stopped = false;
+    let maxRms = 0;
+    let speechDurationMs = 0;
+    let silenceStartMs: number | null = null;
 
-    const cleanup = () => {
+    const cleanupAll = () => {
       if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
       if (maxTimer) { clearTimeout(maxTimer); maxTimer = null; }
+      if (initialSilenceTimer) { clearTimeout(initialSilenceTimer); initialSilenceTimer = null; }
       if (monitorId !== null) { cancelAnimationFrame(monitorId); monitorId = null; }
       source.disconnect();
       analyser.disconnect();
@@ -628,18 +638,51 @@ export async function recordWithAutoStop(): Promise<Blob> {
     const stopRecording = () => {
       if (stopped) return;
       stopped = true;
-      cleanup();
+
+      const totalDurationMs = performance.now() - recordingStart;
+      const silenceDurationMs = silenceStartMs != null ? performance.now() - silenceStartMs : 0;
+
+      console.log('[voice] recordWithAutoStop STOP', {
+        totalDurationMs: totalDurationMs.toFixed(0),
+        speechDetected,
+        speechDurationMs: speechDurationMs.toFixed(0),
+        maxRms: maxRms.toFixed(4),
+        silenceDurationBeforeStop: silenceDurationMs.toFixed(0),
+      });
+
+      if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+      if (maxTimer) { clearTimeout(maxTimer); maxTimer = null; }
+      if (initialSilenceTimer) { clearTimeout(initialSilenceTimer); initialSilenceTimer = null; }
+      if (monitorId !== null) { cancelAnimationFrame(monitorId); monitorId = null; }
+
       const finalize = () => {
-        const blob = new Blob(chunks, { type: mimeType });
-        const durationMs = performance.now() - recordingStart;
-        console.log('[voice] recordWithAutoStop captured:', {
-          mimeType: blob.type,
-          sizeBytes: blob.size,
-          durationMs: durationMs.toFixed(0),
-          chunks: chunks.length,
-        });
-        resolve(blob);
+        stream.getTracks().forEach((t) => t.stop());
+        source.disconnect();
+        analyser.disconnect();
+        if (audioContext.state !== 'closed') audioContext.close().catch(() => {});
+
+        setTimeout(() => {
+          if (!speechDetected || speechDurationMs < MIN_SPEECH_DURATION_MS) {
+            console.log('[voice] recordWithAutoStop DISCARDED — insufficient speech', {
+              speechDetected,
+              speechDurationMs: speechDurationMs.toFixed(0),
+              maxRms: maxRms.toFixed(4),
+            });
+            resolve(null);
+            return;
+          }
+
+          const blob = new Blob(chunks, { type: mimeType });
+          console.log('[voice] recordWithAutoStop CAPTURED', {
+            mimeType: blob.type,
+            sizeBytes: blob.size,
+            durationMs: totalDurationMs.toFixed(0),
+            chunks: chunks.length,
+          });
+          resolve(blob);
+        }, TRACK_RELEASE_DELAY_MS);
       };
+
       if (recorder.state !== 'inactive') {
         recorder.onstop = () => finalize();
         try { recorder.stop(); } catch { finalize(); }
@@ -648,9 +691,18 @@ export async function recordWithAutoStop(): Promise<Blob> {
       }
     };
 
-    recorder.onerror = (e) => { cleanup(); reject((e as any).error ?? new Error('MediaRecorder error')); };
+    recorder.onerror = (e) => {
+      cleanupAll();
+      reject((e as any).error ?? new Error('MediaRecorder error'));
+    };
 
     maxTimer = setTimeout(() => stopRecording(), MAX_RECORDING_MS);
+    initialSilenceTimer = setTimeout(() => {
+      if (!speechDetected) {
+        console.log('[voice] recordWithAutoStop initial silence timeout — no speech in 5s');
+        stopRecording();
+      }
+    }, INITIAL_SILENCE_TIMEOUT_MS);
 
     const monitor = () => {
       if (stopped) return;
@@ -662,17 +714,37 @@ export async function recordWithAutoStop(): Promise<Blob> {
       }
       const rms = Math.sqrt(sum / bufferLength);
 
+      if (rms > maxRms) maxRms = rms;
+
       if (rms > SPEECH_THRESHOLD) {
-        speechDetected = true;
+        if (!speechDetected) {
+          speechDetected = true;
+          console.log('[voice] recordWithAutoStop speech detected', { rms: rms.toFixed(4) });
+        }
+        speechDurationMs += 1000 / 60;
         if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
-      } else if (speechDetected && !silenceTimer) {
-        silenceTimer = setTimeout(() => stopRecording(), SILENCE_DELAY_MS);
+        if (initialSilenceTimer) { clearTimeout(initialSilenceTimer); initialSilenceTimer = null; }
+        silenceStartMs = null;
+      } else if (speechDetected) {
+        if (silenceStartMs === null) silenceStartMs = performance.now();
+        if (!silenceTimer) {
+          silenceTimer = setTimeout(() => {
+            const sd = performance.now() - (silenceStartMs ?? performance.now());
+            console.log('[voice] recordWithAutoStop silence auto-stop', { silenceDurationMs: sd.toFixed(0) });
+            stopRecording();
+          }, SILENCE_DELAY_MS);
+        }
       }
 
       monitorId = requestAnimationFrame(monitor);
     };
 
     recorder.start();
+    console.log('[voice] recordWithAutoStop recording started', {
+      SILENCE_DELAY_MS,
+      SPEECH_THRESHOLD,
+      MAX_RECORDING_MS,
+    });
     monitorId = requestAnimationFrame(monitor);
   });
 }

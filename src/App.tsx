@@ -131,6 +131,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
 
   const startSarvamTurn = useCallback(async () => {
     if (!sessionRef.current || speakingRef.current) return;
+    recognitionRef.current?.stop();
     setVoiceState('listening');
     setConv('TRANSCRIBING');
     emitDebug('sarvam turn', 'starting record+stt+intent+tts');

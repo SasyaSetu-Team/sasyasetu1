@@ -848,6 +848,10 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
 
     try {
       const audioBlob = await recordWithAutoStop();
+      if (!audioBlob) {
+        console.log('[voice] processSarvamVoiceTurn — discarded noise-only clip, skipping turn');
+        return null;
+      }
 
       const turn: SarvamVoiceTurnResult = await runSarvamVoiceTurn(audioBlob, sarvamLang as 'en-IN' | 'hi-IN' | 'te-IN', {
         currentPage: cbRef.current.currentView,
