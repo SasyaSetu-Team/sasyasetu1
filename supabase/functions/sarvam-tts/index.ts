@@ -1,16 +1,17 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-// STT proxy: receives audio from browser, forwards to Sarvam, returns transcript
+// TTS proxy: receives text from browser, forwards to Sarvam, returns audio
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const SARVAM_STT_URL = "https://api.sarvam.ai/speech-to-text";
+const SARVAM_TTS_URL = "https://api.sarvam.ai/text-to-speech";
 const SARVAM_TIMEOUT_MS = 30000;
 
 const VALID_LANGUAGES = new Set(["en-IN", "hi-IN", "te-IN"]);
+const DEFAULT_SPEAKER = "shubh";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -26,25 +27,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const contentType = req.headers.get("Content-Type") ?? "";
-    if (!contentType.includes("multipart/form-data")) {
+    const body = await req.json() as { text?: string; target_language_code?: string; speaker?: string };
+
+    if (!body.text || typeof body.text !== "string" || body.text.trim().length === 0) {
       return new Response(
-        JSON.stringify({ error: "Request must be multipart/form-data with an audio file" }),
+        JSON.stringify({ error: "text is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const formData = await req.formData();
-    const file = formData.get("file");
-    const language = (formData.get("language") as string) ?? "en-IN";
-
-    if (!file || !(file instanceof File)) {
-      return new Response(
-        JSON.stringify({ error: "Audio file is required (field name: 'file')" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
+    const language = body.target_language_code ?? "en-IN";
     if (!VALID_LANGUAGES.has(language)) {
       return new Response(
         JSON.stringify({ error: `Invalid language '${language}'. Supported: en-IN, hi-IN, te-IN` }),
@@ -52,28 +44,32 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Build a fresh multipart body for Sarvam
-    const sarvamForm = new FormData();
-    sarvamForm.append("file", file, file.name || "audio.wav");
-    sarvamForm.append("language", language);
-    sarvamForm.append("model", "saarika:v2.5");
+    const speaker = body.speaker ?? DEFAULT_SPEAKER;
+
+    const sarvamBody = {
+      text: body.text,
+      target_language_code: language,
+      speaker: speaker,
+      model: "bulbul:v3",
+    };
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), SARVAM_TIMEOUT_MS);
 
     try {
-      const sarvamRes = await fetch(SARVAM_STT_URL, {
+      const sarvamRes = await fetch(SARVAM_TTS_URL, {
         method: "POST",
         headers: {
+          "Content-Type": "application/json",
           "api-subscription-key": apiKey,
         },
-        body: sarvamForm,
+        body: JSON.stringify(sarvamBody),
         signal: controller.signal,
       });
 
       if (!sarvamRes.ok) {
         const errBody = await sarvamRes.text();
-        console.error("Sarvam STT error:", sarvamRes.status, errBody);
+        console.error("Sarvam TTS error:", sarvamRes.status, errBody);
         return new Response(
           JSON.stringify({ error: `Sarvam API returned ${sarvamRes.status}`, detail: errBody.slice(0, 500) }),
           { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -81,23 +77,25 @@ Deno.serve(async (req: Request) => {
       }
 
       const data = await sarvamRes.json();
-      const transcript: string | undefined = data?.transcript;
+      const audios: string[] | undefined = data?.audios;
 
-      if (!transcript) {
+      if (!audios || !Array.isArray(audios) || audios.length === 0) {
         return new Response(
-          JSON.stringify({ error: "Sarvam returned no transcript field", raw: JSON.stringify(data).slice(0, 500) }),
+          JSON.stringify({ error: "Sarvam returned no audios array", raw: JSON.stringify(data).slice(0, 500) }),
           { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
+      const audioBase64 = audios.join("");
+
       return new Response(
-        JSON.stringify({ transcript }),
+        JSON.stringify({ audioBase64 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     } catch (err) {
       if (err.name === "AbortError") {
         return new Response(
-          JSON.stringify({ error: "Sarvam STT request timed out" }),
+          JSON.stringify({ error: "Sarvam TTS request timed out" }),
           { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }

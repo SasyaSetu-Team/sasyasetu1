@@ -98,7 +98,7 @@ export async function fetchIntent(
   }
 }
 
-function translateResponse(data: EdgeFunctionResponse, _lang: string): IntentResult {
+export function translateResponse(data: EdgeFunctionResponse, lang: string): IntentResult {
   const slots = data.slots ?? {};
   const result: IntentResult = {
     intent: data.intent,

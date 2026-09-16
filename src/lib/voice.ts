@@ -623,15 +623,28 @@ export async function recordWithAutoStop(): Promise<Blob> {
       stream.getTracks().forEach((t) => t.stop());
     };
 
+    const recordingStart = performance.now();
+
     const stopRecording = () => {
       if (stopped) return;
       stopped = true;
       cleanup();
+      const finalize = () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        const durationMs = performance.now() - recordingStart;
+        console.log('[voice] recordWithAutoStop captured:', {
+          mimeType: blob.type,
+          sizeBytes: blob.size,
+          durationMs: durationMs.toFixed(0),
+          chunks: chunks.length,
+        });
+        resolve(blob);
+      };
       if (recorder.state !== 'inactive') {
-        recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
-        try { recorder.stop(); } catch { resolve(new Blob(chunks, { type: mimeType })); }
+        recorder.onstop = () => finalize();
+        try { recorder.stop(); } catch { finalize(); }
       } else {
-        resolve(new Blob(chunks, { type: mimeType }));
+        finalize();
       }
     };
 

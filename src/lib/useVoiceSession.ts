@@ -17,9 +17,13 @@ import {
   isNoCommand,
   isCancelCropCommand,
   isContinueCropCommand,
+  recordWithAutoStop,
+  langCode,
   type VoiceCommandMatch,
 } from '@/lib/voice';
-import { fetchIntent, type IntentResult } from '@/lib/intentClient';
+import { fetchIntent, translateResponse, type IntentResult } from '@/lib/intentClient';
+import { runSarvamVoiceTurn, type SarvamVoiceTurnResult } from '@/lib/sarvamVoicePipeline';
+import { playAudioBlob } from '@/lib/playAudio';
 
 const VALID_ROLES = ['Farmer', 'FPO', 'Buyer', 'Storage Provider', 'Transport Provider'];
 
@@ -164,11 +168,18 @@ export interface VoiceSessionCallbacks {
   submitLogin?: () => void;
 }
 
+export interface SarvamVoiceResult {
+  transcript: string;
+  replyText: string;
+  replyAudio: Blob;
+}
+
 export interface VoiceSessionResult {
   state: VoiceSessionState;
   dispatch: React.Dispatch<VoiceAction>;
   processUtterance: (text: string) => string | null;
   processUtteranceAsync: (text: string, screenContext?: string) => Promise<string | null>;
+  processSarvamVoiceTurn: () => Promise<SarvamVoiceResult | null>;
   nextMissingField: () => FormField | null;
   askFieldPrompt: (field: FormField) => string;
   narrateScreen: (view: string, loginStep?: number) => string;
@@ -817,5 +828,28 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
     return known !== promptKey ? known : tr('voice.followUp');
   }, []);
 
-  return { state, dispatch, processUtterance, processUtteranceAsync, nextMissingField, askFieldPrompt, narrateScreen };
+  const processSarvamVoiceTurn = useCallback(async (): Promise<SarvamVoiceResult | null> => {
+    const lang = cbRef.current.language;
+    const code = langCode(lang);
+    const sarvamLang = code === 'te' ? 'te-IN' : code === 'hi' ? 'hi-IN' : 'en-IN';
+
+    try {
+      const audioBlob = await recordWithAutoStop();
+
+      const turn: SarvamVoiceTurnResult = await runSarvamVoiceTurn(audioBlob, sarvamLang as 'en-IN' | 'hi-IN' | 'te-IN');
+      if (!turn.ok || !turn.transcript || !turn.intentData || !turn.replyAudio) {
+        return null;
+      }
+
+      const intentResult = translateResponse(turn.intentData, code);
+      const replyText = applyIntentResult(intentResult, turn.transcript);
+      if (!replyText) return null;
+
+      return { transcript: turn.transcript, replyText, replyAudio: turn.replyAudio };
+    } catch {
+      return null;
+    }
+  }, [applyIntentResult]);
+
+  return { state, dispatch, processUtterance, processUtteranceAsync, processSarvamVoiceTurn, nextMissingField, askFieldPrompt, narrateScreen };
 }

@@ -2,4 +2,7 @@
 verify_jwt = false
 
 [functions.sarvam-stt]
-verify_jwt = true
+verify_jwt = false
+
+[functions.sarvam-tts]
+verify_jwt = false

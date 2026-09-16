@@ -7,7 +7,8 @@ const rameshEmail = farmerDemoEmails.find((f) => f.name === 'Ramesh Kumar')?.ema
 import { fetchCrops, fetchMyListings, fetchPublicListings, fetchListing, createListing, updateListing, markAsHarvested, buyNow, bookListing, fetchMyOrders, computeCurrentPrice, nextDropMinutes, computeClusterCurrentPrice, clusterNextDropMinutes, bookedQuantity, formatKg, formatPrice, formatDate, cropDisplayName, cropDisplayVariety, OTHER_CROP_ID, fetchClusters, formatHarvestWindow, timeLeftUntil, fetchClusterInvites, fetchClusterMemberships, fetchClusterMembers, joinCluster, dismissClusterInvite, type Crop, type CropListing, type CropListingInput, type CropClusterWithMembers, type ClusterInvite, type ClusterMembership, type ClusterMemberDetail, type BuyNowResult, type OrderRow, type BookResult } from '@/lib/crops';
 import { fetchNotifications, markNotificationRead, markAllNotificationsRead, seedDemoNotificationsIfNeeded, type NotificationRow } from '@/lib/notifications';
 import { parseCommand, parseStatus, parseNumber, parseLanguageChange, extractValue, isSpeechRecognitionSupported, isSpeechSynthesisSupported, createRecognition, speak, stopSpeaking, warmupSpeech, langCode, captureScreenText, subscribeDebug, getSynthState, emitDebug, type VoiceRecognition, type DebugEvent } from '@/lib/voice';
-import { useVoiceSession, type FormField } from '@/lib/useVoiceSession';
+import { useVoiceSession, type FormField, type SarvamVoiceResult } from '@/lib/useVoiceSession';
+import { playAudioBlob } from '@/lib/playAudio';
 
 type Role = 'Farmer' | 'FPO' | 'Transport Provider' | 'Storage Provider' | 'Buyer';
 type View = 'home' | 'features' | 'crops' | 'crop-detail' | 'buyer-crop-detail' | 'buyer-payment' | 'crop-create' | 'crop-edit' | 'farmeye-detail' | 'market' | 'calendar' | 'transport-options' | 'transport-detail' | 'journey' | 'storage' | 'approvals' | 'fpo' | 'tutorials' | 'help' | 'dispute' | 'profile' | 'settings' | 'orders' | 'deals';
@@ -80,7 +81,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
 
   const supported = isSpeechRecognitionSupported();
 
-  const { state, dispatch, processUtterance, processUtteranceAsync, nextMissingField, askFieldPrompt, narrateScreen } = useVoiceSession({
+  const { state, dispatch, processUtterance, processUtteranceAsync, processSarvamVoiceTurn, nextMissingField, askFieldPrompt, narrateScreen } = useVoiceSession({
     setFormDraft: (field, value) => setFormDraft?.(field, value),
     setLanguage: (lang) => setLanguage?.(lang),
     open: (view) => open?.(view as View),
@@ -98,6 +99,11 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
   useEffect(() => { stateRef.current = state; }, [state]);
 
   const recognitionGenRef = useRef(0);
+
+  const setConv = useCallback((s: 'IDLE' | 'SPEAKING' | 'WAIT_FOR_SPEECH' | 'TRANSCRIBING' | 'VALIDATING' | 'CONFIRMING') => {
+    convStateRef.current = s;
+    setConvState(s);
+  }, []);
 
   const startListening = useCallback(() => {
     if (!sessionRef.current || !supported || speakingRef.current) return;
@@ -123,10 +129,38 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     rec?.start();
   }, [supported]);
 
-  const setConv = useCallback((s: 'IDLE' | 'SPEAKING' | 'WAIT_FOR_SPEECH' | 'TRANSCRIBING' | 'VALIDATING' | 'CONFIRMING') => {
-    convStateRef.current = s;
-    setConvState(s);
-  }, []);
+  const startSarvamTurn = useCallback(async () => {
+    if (!sessionRef.current || speakingRef.current) return;
+    setVoiceState('listening');
+    setConv('TRANSCRIBING');
+    emitDebug('sarvam turn', 'starting record+stt+intent+tts');
+    const result: SarvamVoiceResult | null = await processSarvamVoiceTurn();
+    if (!result) {
+      emitDebug('sarvam turn', 'FAILED — falling back to browser Speech API');
+      if (sessionRef.current) {
+        setConv('WAIT_FOR_SPEECH');
+        startListening();
+      }
+      return;
+    }
+    setTranscript(result.transcript);
+    setInterim('');
+    setConv('VALIDATING');
+    const s = stateRef.current;
+    setDebugStep(s.step ?? 'none');
+    if (s.awaitingConfirmation) setConv('CONFIRMING'); else setConv('SPEAKING');
+    speakingRef.current = true;
+    setVoiceState('speaking');
+    playAudioBlob(result.replyAudio, () => {
+      speakingRef.current = false;
+      if (sessionRef.current) {
+        setConv('WAIT_FOR_SPEECH');
+        setTimeout(() => {
+          if (sessionRef.current && !speakingRef.current) startSarvamTurn();
+        }, 400);
+      }
+    });
+  }, [processSarvamVoiceTurn, startListening, setConv]);
 
   const speakAndListen = useCallback((text: string) => {
     speakingRef.current = true;
@@ -140,12 +174,12 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         setConv('WAIT_FOR_SPEECH');
         setTimeout(() => {
           if (sessionRef.current && !speakingRef.current) {
-            startListening();
+            startSarvamTurn();
           }
         }, 400);
       }
     });
-  }, [startListening, setConv]);
+  }, [startSarvamTurn, setConv]);
 
   const lastNarrationViewRef = useRef<string>('');
   useEffect(() => {
@@ -177,7 +211,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         }, 350);
       } else {
         setConv('WAIT_FOR_SPEECH');
-        startListening();
+        startSarvamTurn();
       }
       return;
     }
@@ -211,10 +245,10 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     } else {
       if (sessionRef.current) {
         setConv('WAIT_FOR_SPEECH');
-        startListening();
+        startSarvamTurn();
       }
     }
-  }, [processUtteranceAsync, speakAndListen, startListening, setConv]);
+  }, [processUtteranceAsync, speakAndListen, startSarvamTurn, setConv]);
 
   const handleError = useCallback((err: string) => {
     if (err === 'not-allowed' || err === 'service-not-allowed') {
@@ -250,7 +284,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       } else {
         speakAndListen(t('voice.howCanIHelp'));
         setTimeout(() => {
-          if (sessionRef.current && !speakingRef.current) startListening();
+          if (sessionRef.current && !speakingRef.current) startSarvamTurn();
         }, 2000);
       }
     } else {
@@ -267,11 +301,11 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       } else {
         speakAndListen(t('voice.welcomeBack'));
         setTimeout(() => {
-          if (sessionRef.current && !speakingRef.current) startListening();
+          if (sessionRef.current && !speakingRef.current) startSarvamTurn();
         }, 1800);
       }
     }
-  }, [supported, t, speakAndListen, startListening, currentView, dispatch, nextMissingField, askFieldPrompt, formDraft]);
+  }, [supported, t, speakAndListen, startSarvamTurn, currentView, dispatch, nextMissingField, askFieldPrompt, formDraft]);
 
   const stopSession = useCallback(() => {
     sessionRef.current = false;
