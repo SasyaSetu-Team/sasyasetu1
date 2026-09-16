@@ -592,8 +592,9 @@ export async function recordWithAutoStop(): Promise<Blob | null> {
   // Tuned to separate real speech from background noise (fans, AC, traffic).
   // 0.06 was too low — ambient noise routinely exceeded it. May need further
   // real-world tuning depending on microphone gain and environment.
-  const SPEECH_THRESHOLD = 0.13;
+  const SPEECH_THRESHOLD = 0.08;
   const MIN_SPEECH_DURATION_MS = 300;
+  const MIN_BLOB_SIZE_BYTES = 1000;
   // Small delay to let MediaRecorder flush the final audio chunk.
   // 200ms was overly conservative — 50ms is enough for the final ondataavailable.
   const TRACK_RELEASE_DELAY_MS = 50;
@@ -604,6 +605,7 @@ export async function recordWithAutoStop(): Promise<Blob | null> {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
   const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  if (audioContext.state === 'suspended') { audioContext.resume().catch(() => {}); }
   const source = audioContext.createMediaStreamSource(stream);
   const analyser = audioContext.createAnalyser();
   analyser.fftSize = 512;
@@ -671,17 +673,30 @@ export async function recordWithAutoStop(): Promise<Blob | null> {
         if (audioContext.state !== 'closed') audioContext.close().catch(() => {});
 
         setTimeout(() => {
+          const blob = new Blob(chunks, { type: mimeType });
+
           if (!speechDetected || speechDurationMs < MIN_SPEECH_DURATION_MS) {
-            console.log('[voice] recordWithAutoStop DISCARDED — insufficient speech', {
+            console.log('[voice] recordWithAutoStop VAD says insufficient speech', {
               speechDetected,
               speechDurationMs: speechDurationMs.toFixed(0),
               maxRms: maxRms.toFixed(4),
+              blobSize: blob.size,
+              chunks: chunks.length,
+              totalDurationMs: totalDurationMs.toFixed(0),
             });
+            if (blob.size >= MIN_BLOB_SIZE_BYTES) {
+              console.log('[voice] recordWithAutoStop SAVING — blob has data despite VAD miss, sending to STT', {
+                blobSize: blob.size,
+                blobType: blob.type,
+              });
+              resolve(blob);
+              return;
+            }
+            console.log('[voice] recordWithAutoStop DISCARDED — blob too small, likely true silence');
             resolve(null);
             return;
           }
 
-          const blob = new Blob(chunks, { type: mimeType });
           console.log('[voice] recordWithAutoStop CAPTURED', {
             mimeType: blob.type,
             sizeBytes: blob.size,

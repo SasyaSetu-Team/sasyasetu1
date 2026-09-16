@@ -925,10 +925,11 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
       const recStart = performance.now();
       const audioBlob = await recordWithAutoStop();
       const recMs = performance.now() - recStart;
-      console.log('[voice] processSarvamVoiceTurn — recording done', { recMs: recMs.toFixed(0), captured: !!audioBlob });
-      emitDebug('recording done', `${recMs.toFixed(0)}ms captured=${!!audioBlob}`);
+      console.log('[voice] processSarvamVoiceTurn — recording done', { recMs: recMs.toFixed(0), captured: !!audioBlob, blobSize: audioBlob?.size, blobType: audioBlob?.type });
+      emitDebug('recording done', `${recMs.toFixed(0)}ms captured=${!!audioBlob} size=${audioBlob?.size ?? 0}`);
       if (!audioBlob) {
-        console.log('[voice] processSarvamVoiceTurn — discarded noise-only clip, skipping turn');
+        console.log('[voice] processSarvamVoiceTurn — no audio captured, skipping turn');
+        emitDebug('recording failed', 'no audio blob returned');
         return null;
       }
 
