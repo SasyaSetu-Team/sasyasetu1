@@ -115,7 +115,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
   }, []);
 
   const startListening = useCallback(() => {
-    if (!sessionRef.current || !supported || speakingRef.current) return;
+    if (!sessionRef.current || !supported || speakingRef.current || appSpeakingRef?.current) return;
     recognitionRef.current?.stop();
     const gen = ++recognitionGenRef.current;
     setVoiceState('listening');
@@ -125,9 +125,9 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       (text) => setInterim(text),
       (err) => handleError(err),
       () => {
-        if (sessionRef.current && !speakingRef.current && gen === recognitionGenRef.current) {
+        if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current && gen === recognitionGenRef.current) {
           setTimeout(() => {
-            if (sessionRef.current && !speakingRef.current && gen === recognitionGenRef.current) {
+            if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current && gen === recognitionGenRef.current) {
               startListening();
             }
           }, 300);
@@ -139,7 +139,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
   }, [supported]);
 
   const startSarvamTurn = useCallback(async () => {
-    if (!sessionRef.current || speakingRef.current) return;
+    if (!sessionRef.current || speakingRef.current || appSpeakingRef?.current) return;
     recognitionRef.current?.stop();
     speakingRef.current = true;
     setVoiceState('speaking');
@@ -156,7 +156,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
           if (sessionRef.current) {
             setConv('WAIT_FOR_SPEECH');
             setTimeout(() => {
-              if (sessionRef.current && !speakingRef.current) startSarvamTurn();
+              if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
             }, 400);
           }
         });
@@ -178,7 +178,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       if (sessionRef.current) {
         setConv('WAIT_FOR_SPEECH');
         setTimeout(() => {
-          if (sessionRef.current && !speakingRef.current) startSarvamTurn();
+          if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
         }, 400);
       }
     });
@@ -196,7 +196,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       if (sessionRef.current) {
         setConv('WAIT_FOR_SPEECH');
         setTimeout(() => {
-          if (sessionRef.current && !speakingRef.current) {
+          if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) {
             startSarvamTurn();
           }
         }, 400);
@@ -219,7 +219,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         if (sessionRef.current) {
           setConv('WAIT_FOR_SPEECH');
           setTimeout(() => {
-            if (sessionRef.current && !speakingRef.current) startSarvamTurn();
+            if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
           }, 400);
         }
       });
@@ -231,7 +231,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       if (sessionRef.current) {
         setConv('WAIT_FOR_SPEECH');
         setTimeout(() => {
-          if (sessionRef.current && !speakingRef.current) startSarvamTurn();
+          if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
         }, 400);
       }
     });
@@ -288,7 +288,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         speakSarvamAndListen(narration);
       } else {
         setConv('WAIT_FOR_SPEECH');
-        startSarvamTurn();
+        if (!appSpeakingRef?.current) startSarvamTurn();
       }
       return;
     }
@@ -325,7 +325,9 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       drainRef.current();
       if (sessionRef.current) {
         setConv('WAIT_FOR_SPEECH');
-        startSarvamTurn();
+        setTimeout(() => {
+          if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
+        }, 400);
       }
     }
   }, [processUtteranceAsync, speakSarvamAndListen, startSarvamTurn, setConv]);
@@ -364,7 +366,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       } else {
         speakSarvamAndListen(t('voice.howCanIHelp'));
         setTimeout(() => {
-          if (sessionRef.current && !speakingRef.current) startSarvamTurn();
+          if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
         }, 2000);
       }
     } else {
@@ -381,7 +383,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       } else {
         speakSarvamAndListen(t('voice.welcomeBack'));
         setTimeout(() => {
-          if (sessionRef.current && !speakingRef.current) startSarvamTurn();
+          if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
         }, 1800);
       }
     }
@@ -396,8 +398,9 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     recognitionRef.current?.stop();
     stopSpeaking();
     speakingRef.current = false;
+    if (appSpeakingRef) appSpeakingRef.current = false;
     if (appPendingNarrationRef) appPendingNarrationRef.current = null;
-  }, [setConv, appPendingNarrationRef]);
+  }, [setConv, appPendingNarrationRef, appSpeakingRef]);
 
   useEffect(() => {
     return () => {
