@@ -132,15 +132,14 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
   const startSarvamTurn = useCallback(async () => {
     if (!sessionRef.current || speakingRef.current) return;
     recognitionRef.current?.stop();
-    setVoiceState('listening');
+    speakingRef.current = true;
+    setVoiceState('speaking');
     setConv('TRANSCRIBING');
     emitDebug('sarvam turn', 'starting record+stt+intent+tts');
     const result: SarvamVoiceResult | null = await processSarvamVoiceTurn();
     if (!result) {
       emitDebug('sarvam turn', 'FAILED — speaking audible fallback via browser TTS');
       if (sessionRef.current) {
-        speakingRef.current = true;
-        setVoiceState('speaking');
         setConv('SPEAKING');
         speak(t('voice.didNotUnderstand'), languageRef.current, () => {
           speakingRef.current = false;
@@ -151,6 +150,8 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
             }, 400);
           }
         });
+      } else {
+        speakingRef.current = false;
       }
       return;
     }
@@ -160,8 +161,6 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     const s = stateRef.current;
     setDebugStep(s.step ?? 'none');
     if (s.awaitingConfirmation) setConv('CONFIRMING'); else setConv('SPEAKING');
-    speakingRef.current = true;
-    setVoiceState('speaking');
     playAudioBlob(result.replyAudio, () => {
       speakingRef.current = false;
       if (sessionRef.current) {
@@ -171,7 +170,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         }, 400);
       }
     });
-  }, [processSarvamVoiceTurn, startListening, setConv, t]);
+  }, [processSarvamVoiceTurn, setConv, t]);
 
   const speakAndListen = useCallback((text: string) => {
     speakingRef.current = true;
@@ -278,6 +277,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     setConv('TRANSCRIBING');
     const screenContext = captureScreenText();
     setConv('VALIDATING');
+    speakingRef.current = true;
     const response = await processUtteranceAsync(text, screenContext);
     const s = stateRef.current;
     if (response) {
@@ -285,6 +285,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       if (s.awaitingConfirmation) setConv('CONFIRMING');
       speakSarvamAndListen(response);
     } else {
+      speakingRef.current = false;
       if (sessionRef.current) {
         setConv('WAIT_FOR_SPEECH');
         startSarvamTurn();
