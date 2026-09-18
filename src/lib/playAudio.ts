@@ -9,9 +9,10 @@ export function playAudioBlob(blob: Blob, onEnded?: () => void): void {
   const finish = () => {
     if (ended) return;
     ended = true;
-    if (currentAudio === audio) currentAudio = null;
+    const isCurrent = currentAudio === audio;
+    if (isCurrent) currentAudio = null;
     URL.revokeObjectURL(url);
-    onEnded?.();
+    if (isCurrent) onEnded?.();
   };
   audio.onended = finish;
   audio.onerror = finish;

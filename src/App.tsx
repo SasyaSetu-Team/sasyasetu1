@@ -339,7 +339,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         speakSarvamAndListen(narration);
       } else {
         setConv('WAIT_FOR_SPEECH');
-        if (!appSpeakingRef?.current) startSarvamTurn();
+        if (!speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
       }
       return;
     }
