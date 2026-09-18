@@ -248,6 +248,20 @@ async function callSarvamTTS(text: string, lang: SarvamLang): Promise<Blob> {
   return blob;
 }
 
+export async function transcribeViaSarvam(
+  audioBlob: Blob,
+  languageCode: SarvamLang,
+): Promise<string | null> {
+  try {
+    return await callSarvamSTT(audioBlob, languageCode);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[sarvam] transcribeViaSarvam failed:', message);
+    emitDebug('sarvam transcribe failed', message);
+    return null;
+  }
+}
+
 export async function speakWithSarvam(
   text: string,
   languageCode: SarvamLang,

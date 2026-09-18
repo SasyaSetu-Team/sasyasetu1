@@ -23,7 +23,7 @@ import {
   type VoiceCommandMatch,
 } from '@/lib/voice';
 import { fetchIntent, translateResponse, type IntentResult } from '@/lib/intentClient';
-import { runSarvamVoiceTurn, speakWithSarvam, type SarvamVoiceTurnResult } from '@/lib/sarvamVoicePipeline';
+import { runSarvamVoiceTurn, speakWithSarvam, transcribeViaSarvam, type SarvamVoiceTurnResult } from '@/lib/sarvamVoicePipeline';
 import { playAudioBlob } from '@/lib/playAudio';
 
 const VALID_ROLES = ['Farmer', 'FPO', 'Buyer', 'Storage Provider', 'Transport Provider'];
@@ -216,6 +216,7 @@ export interface VoiceSessionResult {
   processUtterance: (text: string) => string | null;
   processUtteranceAsync: (text: string, screenContext?: string) => Promise<string | null>;
   processSarvamVoiceTurn: () => Promise<SarvamVoiceResult | null>;
+  transcribeOnly: () => Promise<string | null>;
   nextMissingField: () => FormField | null;
   askFieldPrompt: (field: FormField) => string;
   narrateScreen: (view: string, loginStep?: number) => string;
@@ -964,5 +965,26 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
     }
   }, [applyIntentResult]);
 
-  return { state, dispatch, processUtterance, processUtteranceAsync, processSarvamVoiceTurn, nextMissingField, askFieldPrompt, narrateScreen };
+  const transcribeOnly = useCallback(async (): Promise<string | null> => {
+    const lang = cbRef.current.language;
+    const code = langCode(lang);
+    const sarvamLang = code === 'te' ? 'te-IN' : code === 'hi' ? 'hi-IN' : 'en-IN';
+    try {
+      const recStart = performance.now();
+      const audioBlob = await recordWithAutoStop();
+      const recMs = performance.now() - recStart;
+      emitDebug('consent transcribe', `recording done ${recMs.toFixed(0)}ms captured=${!!audioBlob}`);
+      if (!audioBlob) return null;
+      const transcript = await transcribeViaSarvam(audioBlob, sarvamLang as 'en-IN' | 'hi-IN' | 'te-IN');
+      emitDebug('consent transcribe', `transcript="${transcript?.slice(0, 60) ?? 'null'}"`);
+      return transcript;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[voice] transcribeOnly — caught error:', msg);
+      emitDebug('consent transcribe error', msg);
+      return null;
+    }
+  }, []);
+
+  return { state, dispatch, processUtterance, processUtteranceAsync, processSarvamVoiceTurn, transcribeOnly, nextMissingField, askFieldPrompt, narrateScreen };
 }

@@ -88,10 +88,12 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
   const consentAskedRef = useRef(false);
 
   useEffect(() => { languageRef.current = language; }, [language]);
+  const currentViewRef = useRef(currentView);
+  useEffect(() => { currentViewRef.current = currentView; }, [currentView]);
 
   const supported = isSpeechRecognitionSupported();
 
-  const { state, dispatch, processUtterance, processUtteranceAsync, processSarvamVoiceTurn, nextMissingField, askFieldPrompt, narrateScreen } = useVoiceSession({
+  const { state, dispatch, processUtterance, processUtteranceAsync, processSarvamVoiceTurn, transcribeOnly, nextMissingField, askFieldPrompt, narrateScreen } = useVoiceSession({
     setFormDraft: (field, value) => setFormDraft?.(field, value),
     setLanguage: (lang) => setLanguage?.(lang),
     open: (view) => open?.(view as View),
@@ -149,10 +151,10 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     setConv('TRANSCRIBING');
     emitDebug('sarvam turn', 'starting record+stt+intent+tts');
     emitDebug('mic', 'requesting microphone access via getUserMedia');
-    const result: SarvamVoiceResult | null = await processSarvamVoiceTurn();
     if (consentModeRef.current) {
+      const transcript = await transcribeOnly();
       consentModeRef.current = false;
-      if (!result || !isYesCommand(result.transcript, languageRef.current)) {
+      if (!transcript || !isYesCommand(transcript, languageRef.current)) {
         emitDebug('consent', 'declined (no or timeout)');
         if (autoVoiceConsentRef) autoVoiceConsentRef.current = 'declined';
         setConv('SPEAKING');
@@ -169,8 +171,12 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         if (autoVoiceConsentRef) autoVoiceConsentRef.current = 'granted';
         setConv('SPEAKING');
         const audio = await speakTextViaSarvam(t('voice.consentGranted'), languageRef.current);
-        if (audio) {
-          playAudioBlob(audio, () => {
+        const narrateAfterConsent = () => {
+          const narration = narrateScreen(currentViewRef.current);
+          if (narration) {
+            narratedTabsRef?.current.add(currentViewRef.current);
+            speakSarvamAndListenRef.current(narration);
+          } else {
             speakingRef.current = false;
             drainRef.current();
             if (sessionRef.current) {
@@ -179,22 +185,21 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
                 if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
               }, 400);
             }
+          }
+        };
+        if (audio) {
+          playAudioBlob(audio, () => {
+            narrateAfterConsent();
           });
         } else {
           speak(t('voice.consentGranted'), languageRef.current, () => {
-            speakingRef.current = false;
-            drainRef.current();
-            if (sessionRef.current) {
-              setConv('WAIT_FOR_SPEECH');
-              setTimeout(() => {
-                if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
-              }, 400);
-            }
+            narrateAfterConsent();
           });
         }
       }
       return;
     }
+    const result: SarvamVoiceResult | null = await processSarvamVoiceTurn();
     if (!result) {
       emitDebug('sarvam turn', 'FAILED — speaking audible fallback via browser TTS');
       if (sessionRef.current) {
@@ -231,9 +236,10 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         }, 400);
       }
     });
-  }, [processSarvamVoiceTurn, setConv, t]);
+  }, [processSarvamVoiceTurn, transcribeOnly, narrateScreen, setConv, t]);
 
-  const speakSarvamAndListen = useCallback(async (text: string) => {
+  const speakSarvamAndListenRef = useRef(async (_text: string, _postDelay = 400) => {});
+  const speakSarvamAndListen = useCallback(async (text: string, postDelay = 400) => {
     speakingRef.current = true;
     recognitionRef.current?.stop();
     setVoiceState('speaking');
@@ -249,7 +255,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
           setConv('WAIT_FOR_SPEECH');
           setTimeout(() => {
             if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
-          }, 400);
+          }, postDelay);
         }
       });
       return;
@@ -261,10 +267,11 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         setConv('WAIT_FOR_SPEECH');
         setTimeout(() => {
           if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
-        }, 400);
+        }, postDelay);
       }
     });
   }, [startSarvamTurn, setConv]);
+  useEffect(() => { speakSarvamAndListenRef.current = speakSarvamAndListen; }, [speakSarvamAndListen]);
 
   const drainPendingNarration = useCallback(() => {
     if (!appPendingNarrationRef || !appSpeakingRef) return;
@@ -302,15 +309,15 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     if (narratedTabsRef?.current.has(currentView)) { emitDebug('narration effect', `SKIP: tab already narrated ${currentView}`); return; }
     narrationQueuedRef.current = false;
     const isLoginView = currentView.startsWith('login-');
-    if (isLoginView && !sessionRef.current) {
-      emitDebug('narration effect', `ENTER login init path | view=${currentView} | sessionRef was false`);
+    if (!sessionRef.current) {
+      emitDebug('narration effect', `ENTER init path | view=${currentView} | sessionRef was false`);
       sessionRef.current = true;
       setSessionActive(true);
       setErrorMsg('');
       setTranscript('');
       setInterim('');
       dispatch({ type: 'GREET' });
-      if (loginRole) {
+      if (isLoginView && loginRole) {
         dispatch({ type: 'SET_LOGIN_ROLE', role: loginRole });
         dispatch({ type: 'START_INTENT', intent: 'voice_login' });
         dispatch({ type: 'SET_STEP', step: 'awaiting_mobile' });
@@ -323,10 +330,10 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         consentAskedRef.current = true;
         consentModeRef.current = true;
         const consentText = narration ? `${narration} ${t('voice.consentQuestion')}` : t('voice.consentQuestion');
-        emitDebug('narration effect', 'CONSENT: asking consent question');
+        emitDebug('narration effect', 'CONSENT: asking consent question with 1s pause');
         narratedTabsRef?.current.add(currentView);
         narrationQueuedRef.current = false;
-        speakSarvamAndListen(consentText);
+        speakSarvamAndListen(consentText, 1000);
         return;
       }
       if (autoVoiceConsentRef?.current !== 'granted') {
@@ -349,7 +356,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       setDebugStep(state.step ?? 'none');
       return;
     }
-    if (sessionRef.current && autoVoiceConsentRef?.current === 'granted') {
+    if (autoVoiceConsentRef?.current === 'granted') {
       emitDebug('narration effect', `normal path | view=${currentView}`);
       lastNarrationViewRef.current = currentView;
       const narration = narrateScreen(currentView);
