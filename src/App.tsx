@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { AlertTriangle, ArrowLeft, ArrowRight, Bell, BookOpen, CalendarDays, Check, CircleHelp, Clock3, Eye, EyeOff, FileCheck2, Headphones, Leaf, Layers, Map, MapPin, Mic, Package, Phone, Plus, Satellite, Search, Settings, ShieldCheck, ShoppingBag, Sprout, Truck, UserRound, Users, Warehouse, X, Zap, TrendingDown } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Bell, BookOpen, CalendarDays, Check, CircleHelp, Clock3, Eye, EyeOff, FileCheck2, Headphones, Leaf, Layers, Map, MapPin, Mic, Minus, Package, Phone, Plus, Satellite, Search, Settings, ShieldCheck, ShoppingBag, Sprout, Truck, UserRound, Users, Warehouse, X, Zap, TrendingDown } from 'lucide-react';
 import { allLanguages, makeT, codeFromLanguage, languageFromCode, type Language, type T } from '@/translations';
 import { demoEmails, farmerDemoEmails, useAuth, type Profile } from '@/lib/auth';
 const rameshEmail = farmerDemoEmails.find((f) => f.name === 'Ramesh Kumar')?.email ?? farmerDemoEmails[0].email;
@@ -1287,6 +1287,11 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
   const [searchQuery, setSearchQuery] = useState('');
   const [soldIds, setSoldIds] = useState<Set<string>>(() => { try { const s = localStorage.getItem('soldIds'); return s ? new Set(JSON.parse(s)) : new Set(); } catch { return new Set(); } });
   const [interestCounts, setInterestCounts] = useState<Record<string, number>>(() => { try { const s = localStorage.getItem('clusterInterest'); return s ? JSON.parse(s) : {}; } catch { return {}; } });
+  const [calcCrop, setCalcCrop] = useState('');
+  const [calcQty, setCalcQty] = useState(100);
+  const [calcMarketA, setCalcMarketA] = useState('Warangal');
+  const [calcMarketB, setCalcMarketB] = useState('Bengaluru');
+  const [calcResult, setCalcResult] = useState<{ marketATotal: number; marketBTotal: number; difference: number; worthIt: boolean } | null>(null);
 
   const handleInterested = (clusterId: string) => {
     setInterestCounts((prev) => {
@@ -1412,7 +1417,32 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
           </Card>;
         })}
       </Card>
-      <Card className="market-calc-placeholder"><h3 className="subhead">{t('market.comingSoon')}</h3></Card>
+      <Card className="market-calc">
+        <h3 className="subhead">{t('market.calcTitle')}</h3>
+        <div className="calc-step">
+          <small className="calc-step-label">{t('market.calcPickCrop')}</small>
+          <div className="calc-crop-grid">{todayPrices.map((c) => { const Icon = cropIconFor(c.name); const color = cropColorFor(c.name); return <button type="button" key={c.name} className={`calc-crop-btn ${calcCrop === c.name ? 'selected' : ''}`} onClick={() => { setCalcCrop(c.name); setCalcResult(null); }}><span className={`calc-crop-icon ${color}`}><Icon size={28} strokeWidth={1.5} /></span><strong>{c.name}</strong></button>; })}</div>
+        </div>
+        <div className="calc-step">
+          <small className="calc-step-label">{t('market.calcQuantity')}</small>
+          <div className="calc-stepper"><button type="button" onClick={() => { setCalcQty(Math.max(10, calcQty - 10)); setCalcResult(null); }}><Minus size={20} /></button><strong>{calcQty} kg</strong><button type="button" onClick={() => { setCalcQty(calcQty + 10); setCalcResult(null); }}><Plus size={20} /></button></div>
+        </div>
+        <div className="calc-step">
+          <small className="calc-step-label">{t('market.calcMarketA')}</small>
+          <input className="calc-input" value={calcMarketA} onChange={(e) => { setCalcMarketA(e.target.value); setCalcResult(null); }} />
+        </div>
+        <div className="calc-step">
+          <small className="calc-step-label">{t('market.calcMarketB')}</small>
+          <select className="calc-select" value={calcMarketB} onChange={(e) => { setCalcMarketB(e.target.value); setCalcResult(null); }}>{distantMarkets.map((m) => <option key={m} value={m}>{m}</option>)}</select>
+        </div>
+        <Button onClick={() => { if (!calcCrop) return; const cropData = todayPrices.find((c) => c.name === calcCrop); const basePrice = cropData?.price ?? 20; const h = hashStr(calcCrop); const marketBPrice = round2(basePrice + 3 + (h % 6)); const distance = 30 + (h % 40); const truckCost = distance * 5; const marketATotal = round2(calcQty * basePrice); const marketBTotal = round2(calcQty * marketBPrice - truckCost); const difference = round2(marketBTotal - marketATotal); setCalcResult({ marketATotal, marketBTotal, difference, worthIt: difference > 0 }); }}>{t('market.calcShowAnswer')}</Button>
+        {calcResult && <div className="calc-result">
+          <div className="calc-result-row"><span>{t('market.calcResultA', { market: calcMarketA })}</span><strong>{formatRupee(calcResult.marketATotal)}</strong></div>
+          <div className="calc-result-row"><span>{t('market.calcResultB', { market: calcMarketB })}</span><strong>{formatRupee(calcResult.marketBTotal)}</strong></div>
+          <p className={`market-compare-summary ${calcResult.worthIt ? 'positive' : 'negative'}`}>{calcResult.worthIt ? t('market.worthTrip', { amount: formatRupee(calcResult.difference) }) : t('market.notWorthTrip', { amount: formatRupee(Math.abs(calcResult.difference)) })}</p>
+        </div>}
+        {!calcCrop && !calcResult && <p className="calc-hint">{t('market.calcPickCropFirst')}</p>}
+      </Card>
     </div>
     <Card className="market-price-ref">
       <div className="market-price-ref-head"><h3>{t('market.todayInMarket')}</h3><Demo>{t('market.sampleMarketData')}</Demo></div>
