@@ -85,7 +85,7 @@ export function CalendarDayCell({ data }: { data: CalendarDayData }) {
   const primary = events[0];
   const hasUpcoming = events.some((e) => e.upcoming);
   const allStages = events.flatMap((e) => e.stages);
-  const uniqueStages = [...new Set(allStages)].slice(0, 3);
+  const uniqueStages = [...new Set(allStages)].slice(0, 2);
 
   return (
     <span
@@ -125,40 +125,67 @@ export function CalendarDayCell({ data }: { data: CalendarDayData }) {
 }
 
 export const mockMonthEvents: Record<number, Record<number, CalendarDayEvent[]>> = {
+  0: {
+    8: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified'] }],
+    15: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['harvested'] }],
+    22: [{ crop: 'Onion', emoji: '🧅', color: 'onion', stages: ['verified'] }],
+  },
   1: {
-    12: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified', 'harvested'] }],
-    20: [{ crop: 'Onion', emoji: '🧅', color: 'onion', stages: ['verified'] }],
+    5: [{ crop: 'Paddy', emoji: '🌾', color: 'paddy', stages: ['verified'] }],
+    12: [{ crop: 'Paddy', emoji: '🌾', color: 'paddy', stages: ['harvested'] }],
+    18: [{ crop: 'Chilli', emoji: '🌶️', color: 'tomato', stages: ['verified'] }],
   },
   2: {
-    8: [{ crop: 'Paddy', emoji: '🌾', color: 'paddy', stages: ['verified', 'harvested', 'transport'] }],
-    15: [{ crop: 'Chilli', emoji: '🌶️', color: 'tomato', stages: ['verified'] }],
+    10: [{ crop: 'Banana', emoji: '🍌', color: 'amber', stages: ['verified'] }],
+    18: [{ crop: 'Banana', emoji: '🍌', color: 'amber', stages: ['harvested'] }],
+    25: [{ crop: 'Groundnut', emoji: '🥜', color: 'amber', stages: ['verified'] }],
+  },
+  3: {
+    8: [{ crop: 'Onion', emoji: '🧅', color: 'onion', stages: ['verified'] }],
+    16: [{ crop: 'Onion', emoji: '🧅', color: 'onion', stages: ['harvested'] }],
+    24: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified'] }],
   },
   4: {
-    10: [{ crop: 'Banana', emoji: '🍌', color: 'amber', stages: ['verified', 'harvested', 'sold'] }],
-    22: [{ crop: 'Groundnut', emoji: '🥜', color: 'amber', stages: ['verified', 'harvested'] }],
+    6: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['harvested'] }],
+    14: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['transport'] }],
+    20: [{ crop: 'Paddy', emoji: '🌾', color: 'paddy', stages: ['verified'] }],
+  },
+  5: {
+    10: [{ crop: 'Paddy', emoji: '🌾', color: 'paddy', stages: ['harvested'] }],
+    18: [{ crop: 'Chilli', emoji: '🌶️', color: 'tomato', stages: ['verified'] }],
+    26: [{ crop: 'Chilli', emoji: '🌶️', color: 'tomato', stages: ['harvested'] }],
   },
   6: {
-    5: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified', 'harvested', 'transport', 'sold', 'paid'] }],
-    18: [{ crop: 'Onion', emoji: '🧅', color: 'onion', stages: ['verified', 'harvested'] }],
+    8: [{ crop: 'Banana', emoji: '🍌', color: 'amber', stages: ['verified'] }],
+    16: [{ crop: 'Banana', emoji: '🍌', color: 'amber', stages: ['harvested'] }],
+    24: [{ crop: 'Banana', emoji: '🍌', color: 'amber', stages: ['sold'] }],
+  },
+  7: {
+    10: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified'] }],
+    17: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['harvested'] }],
+    25: [{ crop: 'Onion', emoji: '🧅', color: 'onion', stages: ['verified'] }],
   },
   8: {
-    14: [{ crop: 'Paddy', emoji: '🌾', color: 'paddy', stages: ['verified', 'harvested'] }],
-    25: [{ crop: 'Chilli', emoji: '🌶️', color: 'tomato', stages: ['verified', 'harvested', 'transport'] }],
-    28: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified'], upcoming: true }],
+    7: [{ crop: 'Onion', emoji: '🧅', color: 'onion', stages: ['harvested'] }],
+    14: [{ crop: 'Onion', emoji: '🧅', color: 'onion', stages: ['transport'] }],
+    20: [{ crop: 'Groundnut', emoji: '🥜', color: 'amber', stages: ['verified'] }],
+    28: [{ crop: 'Groundnut', emoji: '🥜', color: 'amber', stages: ['harvested'] }],
   },
   9: {
     5: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified'] }],
-    8: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified', 'harvested'] }],
-    12: [{ crop: 'Banana', emoji: '🍌', color: 'amber', stages: ['verified', 'harvested', 'sold'] }],
-    15: [{ crop: 'Onion', emoji: '🧅', color: 'onion', stages: ['verified', 'harvested', 'transport'] }],
-    18: [{ crop: 'Paddy', emoji: '🌾', color: 'paddy', stages: ['verified', 'harvested', 'transport', 'sold'] }],
-    22: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified', 'harvested', 'transport', 'sold', 'paid'] }],
-    25: [{ crop: 'Groundnut', emoji: '🥜', color: 'amber', stages: ['verified'] }],
-    28: [{ crop: 'Chilli', emoji: '🌶️', color: 'tomato', stages: ['verified', 'harvested'], upcoming: true }],
+    12: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['harvested'] }],
+    19: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['transport'] }],
+    26: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['sold'] }],
+  },
+  10: {
+    8: [{ crop: 'Paddy', emoji: '🌾', color: 'paddy', stages: ['verified'] }],
+    15: [{ crop: 'Paddy', emoji: '🌾', color: 'paddy', stages: ['harvested'] }],
+    22: [{ crop: 'Paddy', emoji: '🌾', color: 'paddy', stages: ['transport'] }],
+    29: [{ crop: 'Chilli', emoji: '🌶️', color: 'tomato', stages: ['verified'], upcoming: true }],
   },
   11: {
-    10: [{ crop: 'Onion', emoji: '🧅', color: 'onion', stages: ['verified', 'harvested', 'transport', 'sold', 'paid'] }],
-    20: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified', 'harvested'] }],
+    10: [{ crop: 'Banana', emoji: '🍌', color: 'amber', stages: ['verified'] }],
+    18: [{ crop: 'Banana', emoji: '🍌', color: 'amber', stages: ['harvested'] }],
   },
 };
 
