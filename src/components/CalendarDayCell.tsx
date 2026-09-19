@@ -118,25 +118,62 @@ export function CalendarDayCell({ data }: { data: CalendarDayData }) {
   );
 }
 
-const mockDayData: Record<number, CalendarDayEvent[]> = {
-  5: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified'] }],
-  8: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified', 'harvested'] }],
-  12: [{ crop: 'Banana', emoji: '🍌', color: 'amber', stages: ['verified', 'harvested', 'sold'] }],
-  15: [{ crop: 'Onion', emoji: '🧅', color: 'onion', stages: ['verified', 'harvested', 'transport'] }],
-  18: [{ crop: 'Paddy', emoji: '🌾', color: 'paddy', stages: ['verified', 'harvested', 'transport', 'sold'] }],
-  22: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified', 'harvested', 'transport', 'sold', 'paid'] }],
-  25: [{ crop: 'Groundnut', emoji: '🥜', color: 'amber', stages: ['verified'] }],
-  28: [{ crop: 'Chilli', emoji: '🌶️', color: 'tomato', stages: ['verified', 'harvested'], upcoming: true }],
+export const mockMonthEvents: Record<number, Record<number, CalendarDayEvent[]>> = {
+  1: {
+    12: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified', 'harvested'] }],
+    20: [{ crop: 'Onion', emoji: '🧅', color: 'onion', stages: ['verified'] }],
+  },
+  2: {
+    8: [{ crop: 'Paddy', emoji: '🌾', color: 'paddy', stages: ['verified', 'harvested', 'transport'] }],
+    15: [{ crop: 'Chilli', emoji: '🌶️', color: 'tomato', stages: ['verified'] }],
+  },
+  4: {
+    10: [{ crop: 'Banana', emoji: '🍌', color: 'amber', stages: ['verified', 'harvested', 'sold'] }],
+    22: [{ crop: 'Groundnut', emoji: '🥜', color: 'amber', stages: ['verified', 'harvested'] }],
+  },
+  6: {
+    5: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified', 'harvested', 'transport', 'sold', 'paid'] }],
+    18: [{ crop: 'Onion', emoji: '🧅', color: 'onion', stages: ['verified', 'harvested'] }],
+  },
+  8: {
+    14: [{ crop: 'Paddy', emoji: '🌾', color: 'paddy', stages: ['verified', 'harvested'] }],
+    25: [{ crop: 'Chilli', emoji: '🌶️', color: 'tomato', stages: ['verified', 'harvested', 'transport'] }],
+    28: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified'], upcoming: true }],
+  },
+  9: {
+    5: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified'] }],
+    8: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified', 'harvested'] }],
+    12: [{ crop: 'Banana', emoji: '🍌', color: 'amber', stages: ['verified', 'harvested', 'sold'] }],
+    15: [{ crop: 'Onion', emoji: '🧅', color: 'onion', stages: ['verified', 'harvested', 'transport'] }],
+    18: [{ crop: 'Paddy', emoji: '🌾', color: 'paddy', stages: ['verified', 'harvested', 'transport', 'sold'] }],
+    22: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified', 'harvested', 'transport', 'sold', 'paid'] }],
+    25: [{ crop: 'Groundnut', emoji: '🥜', color: 'amber', stages: ['verified'] }],
+    28: [{ crop: 'Chilli', emoji: '🌶️', color: 'tomato', stages: ['verified', 'harvested'], upcoming: true }],
+  },
+  11: {
+    10: [{ crop: 'Onion', emoji: '🧅', color: 'onion', stages: ['verified', 'harvested', 'transport', 'sold', 'paid'] }],
+    20: [{ crop: 'Tomato', emoji: '🍅', color: 'tomato', stages: ['verified', 'harvested'] }],
+  },
 };
 
-export function getMockCalendarDays(startOffset: number, daysInMonth: number): CalendarDayData[] {
+const monthStartOffsets2026 = [4, 0, 0, 3, 5, 1, 3, 6, 2, 4, 0, 2];
+const monthDaysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+export function monthHasMockEvents(monthIndex: number): boolean {
+  return !!mockMonthEvents[monthIndex];
+}
+
+export function getMockMonthDays(monthIndex: number): CalendarDayData[] {
+  const startOffset = monthStartOffsets2026[monthIndex] ?? 0;
+  const daysInMonth = monthDaysInMonth[monthIndex] ?? 31;
+  const events = mockMonthEvents[monthIndex] ?? {};
   const cells: CalendarDayData[] = [];
   for (let i = 0; i < 35; i++) {
     const day = i - startOffset + 1;
     if (day < 1 || day > daysInMonth) {
       cells.push({ day: 0, events: [] });
     } else {
-      cells.push({ day, events: mockDayData[day] ?? [] });
+      cells.push({ day, events: events[day] ?? [] });
     }
   }
   return cells;
