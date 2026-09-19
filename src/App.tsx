@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { AlertTriangle, ArrowLeft, ArrowRight, Bell, BookOpen, CalendarDays, Check, CircleHelp, Clock3, Eye, EyeOff, FileCheck2, Headphones, Leaf, Layers, Map, MapPin, Mic, Minus, Package, Phone, Plus, Satellite, Search, Settings, ShieldCheck, ShoppingBag, Sprout, Truck, UserRound, Users, Warehouse, X, Zap, TrendingDown } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Bell, BookOpen, CalendarDays, Check, CheckCircle2, CircleHelp, Clock3, Eye, EyeOff, FileCheck2, Headphones, Leaf, Layers, Map, MapPin, Mic, Minus, Package, Phone, Plus, Satellite, Search, Settings, ShieldCheck, ShoppingBag, Sprout, Star, Truck, UserRound, Users, Warehouse, X, Zap, TrendingDown } from 'lucide-react';
 import { allLanguages, makeT, codeFromLanguage, languageFromCode, type Language, type T } from '@/translations';
 import { demoEmails, farmerDemoEmails, useAuth, type Profile } from '@/lib/auth';
 const rameshEmail = farmerDemoEmails.find((f) => f.name === 'Ramesh Kumar')?.email ?? farmerDemoEmails[0].email;
@@ -1478,6 +1478,8 @@ function TransportOptions({ role, open, notify, t, profileData }: { role: Role; 
   const [toSuggestionsOpen, setToSuggestionsOpen] = useState(false);
   const [searched, setSearched] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
+  const [booked, setBooked] = useState(false);
+  const [statusStep, setStatusStep] = useState(0);
   const transportMarkets = ['Bengaluru', 'Hyderabad', 'Chennai', 'Warangal', 'Karimnagar', 'Kurnool', 'Anantapur'];
   const filteredMarkets = toLocation.trim() === '' ? transportMarkets : transportMarkets.filter((m) => m.toLowerCase().includes(toLocation.trim().toLowerCase()));
 
@@ -1504,6 +1506,96 @@ function TransportOptions({ role, open, notify, t, profileData }: { role: Role; 
     setSearched(false);
     setSelectedVehicle(null);
   };
+
+  const handleBookNow = () => {
+    setBooked(true);
+    setStatusStep(0);
+    notify(t('transport.results.bookToast', { vehicle: vehicles.find((v) => v.id === selectedVehicle)?.name ?? '' }));
+  };
+
+  const handleAdvanceStep = () => {
+    if (statusStep < 5) {
+      setStatusStep(statusStep + 1);
+      notify(t('transport.confirm.stepAdvanced', { step: t(`transport.confirm.step${statusStep + 1}`) }));
+    }
+  };
+
+  const handleCancelBooking = () => {
+    setBooked(false);
+    setStatusStep(0);
+    setSelectedVehicle(null);
+    setSearched(false);
+    notify(t('transport.confirm.cancelled'));
+  };
+
+  if (booked && selectedVehicle) {
+    const vehicle = vehicles.find((v) => v.id === selectedVehicle)!;
+    const price = round2(vehicle.baseFare + vehicle.perKm * sampleDistanceKm);
+    const timeHrs = sampleDistanceKm / vehicle.avgSpeed;
+    const timeMin = Math.round(timeHrs * 60);
+    const timeLabel = timeMin >= 60 ? `${Math.floor(timeMin / 60)}h ${timeMin % 60}m` : `${timeMin}m`;
+    const VIcon = vehicle.icon;
+    const statusSteps = [
+      { label: t('transport.confirm.step0'), icon: CheckCircle2 },
+      { label: t('transport.confirm.step1'), icon: UserRound },
+      { label: t('transport.confirm.step2'), icon: Truck },
+      { label: t('transport.confirm.step3'), icon: Map },
+      { label: t('transport.confirm.step4'), icon: Package },
+      { label: t('transport.confirm.step5'), icon: CheckCircle2 },
+    ];
+    return <div className="transport-confirm">
+      <button className="journey-back" onClick={handleCancelBooking}><ArrowLeft size={20} /> {t('common.back')}</button>
+      <div className="transport-confirm-map">
+        <Map size={64} strokeWidth={1.2} />
+        <span className="route route-one" /><span className="route route-two" />
+        <div className="map-marker pickup"><MapPin size={20} /><small>{fromLocation}</small></div>
+        <div className="map-marker destination"><MapPin size={20} /><small>{toLocation}</small></div>
+        <div className="map-marker vehicle"><VIcon size={20} /></div>
+        <Demo>{t('transport.search.mockData')}</Demo>
+      </div>
+      <div className="transport-confirm-sheet">
+        <Badge tone="green"><CheckCircle2 size={14} /> {t('transport.confirm.booked')}</Badge>
+        <h1>{vehicle.name}</h1>
+        <p>{fromLocation} → {toLocation} · {sampleDistanceKm} km · {timeLabel}</p>
+        <Card className="transport-confirm-provider">
+          <div className="transport-confirm-provider-head">
+            <span className="transport-confirm-provider-icon"><VIcon size={26} strokeWidth={1.5} /></span>
+            <div className="transport-confirm-provider-info">
+              <h3>{t('transport.confirm.providerName')}</h3>
+              <p>{vehicle.capacity}</p>
+            </div>
+            <div className="transport-confirm-provider-rating"><Star size={16} fill="currentColor" /> <span>4.8</span></div>
+          </div>
+          <div className="transport-confirm-price">
+            <span>{t('transport.results.estPrice')}</span>
+            <strong>{formatRupee(price)}</strong>
+            <small>{t('market.samplePrice')}</small>
+          </div>
+        </Card>
+        <div className="transport-confirm-timeline">
+          {statusSteps.map((s, i) => {
+            const SIcon = s.icon;
+            const state = i < statusStep ? 'done' : i === statusStep ? 'active' : '';
+            return <div key={i} className={`transport-confirm-step ${state}`}>
+              <span className="transport-confirm-step-dot">{i < statusStep ? <Check size={14} /> : <SIcon size={14} />}</span>
+              <div className="transport-confirm-step-body">
+                <strong>{s.label}</strong>
+                {i === statusStep && <small>{t('transport.confirm.inProgress')}</small>}
+                {i < statusStep && <small>{t('transport.confirm.completed')}</small>}
+              </div>
+            </div>;
+          })}
+        </div>
+        <div className="transport-confirm-actions">
+          {statusStep < 5
+            ? <Button icon={ArrowRight} wide onClick={handleAdvanceStep}>{t('transport.confirm.advance')}</Button>
+            : <Button icon={CheckCircle2} wide onClick={() => { notify(t('transport.confirm.delivered')); open('home'); }}>{t('transport.confirm.finish')}</Button>}
+          <Button variant="outline" onClick={handleCancelBooking}>{t('transport.confirm.cancel')}</Button>
+        </div>
+        <Demo>{t('transport.confirm.prototypeNote')}</Demo>
+      </div>
+    </div>;
+  }
 
   if (searched) {
     return <Page title={t('transport.results.title')} body={t('transport.results.body')} back={handleSearchAgain} t={t}>
@@ -1536,7 +1628,7 @@ function TransportOptions({ role, open, notify, t, profileData }: { role: Role; 
         })}
       </div>
       <Demo>{t('transport.search.mockData')}</Demo>
-      {selectedVehicle && <div className="transport-book-bar"><Button icon={Truck} wide onClick={() => notify(t('transport.results.bookToast', { vehicle: vehicles.find((v) => v.id === selectedVehicle)?.name ?? '' }))}>{t('transport.results.bookNow')}</Button></div>}
+      {selectedVehicle && <div className="transport-book-bar"><Button icon={Truck} wide onClick={handleBookNow}>{t('transport.results.bookNow')}</Button></div>}
       {role === 'FPO' && <Card className="provider-card"><Illustration label={t('transport.transportProvider')} color="teal" icon={Truck} /><div><Badge tone="green">{t('transport.available')}</Badge><h3>{t('transport.warangalFpoTransport')}</h3><p>{t('transport.capacityPrice')}</p><Button onClick={() => notify(t('transport.availabilityUpdated'))}>{t('transport.updateAvailability')}</Button></div></Card>}
     </Page>;
   }
