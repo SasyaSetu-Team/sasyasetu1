@@ -1292,6 +1292,7 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
   const [calcMarketA, setCalcMarketA] = useState('Warangal');
   const [calcMarketB, setCalcMarketB] = useState('Bengaluru');
   const [calcResult, setCalcResult] = useState<{ marketATotal: number; marketBTotal: number; difference: number; worthIt: boolean } | null>(null);
+  const [comparePage, setComparePage] = useState(0);
 
   const handleInterested = (clusterId: string) => {
     setInterestCounts((prev) => {
@@ -1369,6 +1370,9 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
   const distantMarkets = ['Bengaluru', 'Hyderabad', 'Chennai'];
   const searchLower = searchQuery.trim().toLowerCase();
   const filteredMyListings = searchLower ? myListings.filter((l) => cropDisplayName(l).toLowerCase().includes(searchLower)) : myListings;
+  const harvestCutoff = Date.now() + 14 * 24 * 60 * 60 * 1000;
+  const qualifyingListings = filteredMyListings.filter((l) => { if (l.status === 'Sold') return false; if (l.status === 'Harvested') return true; if (!l.expected_harvest_date) return false; return new Date(l.expected_harvest_date).getTime() <= harvestCutoff; });
+  const safeComparePage = Math.min(comparePage, Math.max(0, qualifyingListings.length - 1));
   const todayPrices = [{ name: 'Tomato', price: 30, change: 2 }, { name: 'Onion', price: 28, change: 1 }, { name: 'Paddy', price: 22, change: 0 }, { name: 'Chilli', price: 45, change: -3 }, { name: 'Banana', price: 18, change: 1 }];
   return <Page title={t('market.title')} body={t('market.body')} back={() => open('home')} t={t}>
     <div className="crop-search"><Search size={18} /><input placeholder={t('market.searchCropMarket')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
@@ -1377,8 +1381,9 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
         <h3 className="subhead">{t('market.forYourCrops')}</h3>
         {loading && <p className="calendar-empty">{t('crops.loading')}</p>}
         {error && <p className="calendar-empty">{error}</p>}
-        {!loading && !error && filteredMyListings.length === 0 && <p className="calendar-empty">{t('market.noListings')}</p>}
-        {!loading && !error && filteredMyListings.map((listing) => {
+        {!loading && !error && qualifyingListings.length === 0 && <p className="calendar-empty">{t('market.noQualifying')}</p>}
+        {!loading && !error && qualifyingListings.length > 0 && (() => {
+          const listing = qualifyingListings[safeComparePage];
           const name = cropDisplayName(listing);
           const Icon = cropIconFor(name);
           const color = cropColorFor(name);
@@ -1393,29 +1398,38 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
           const distantInHand = round2(qty * distantPrice - truckCost);
           const difference = round2(distantInHand - localTotal);
           const worthIt = difference > 0;
-          return <Card className={`market-compare-card ${color}`} key={listing.id}>
-            <div className="market-compare-header">
-              <span className={`market-compare-icon ${color}`}><Icon size={28} strokeWidth={1.5} /></span>
-              <h3>{t('market.yourListing', { qty: formatKg(qty), crop: name })}</h3>
+          return <div className="market-compare-pager">
+            <div className="market-compare-card-wrap">
+              <Card className={`market-compare-card ${color}`} key={listing.id}>
+                <div className="market-compare-header">
+                  <span className={`market-compare-icon ${color}`}><Icon size={28} strokeWidth={1.5} /></span>
+                  <h3>{t('market.yourListing', { qty: formatKg(qty), crop: name })}</h3>
+                </div>
+                <div className="market-compare-rows">
+                  <div className="market-compare-row local">
+                    <div className="market-compare-label">{t('market.localMarket')}</div>
+                    <div className="market-compare-price">{formatPrice(localPrice)}</div>
+                    <small>{t('market.noTransportNeeded')}</small>
+                  </div>
+                  <div className="market-compare-row distant">
+                    <div className="market-compare-label">{t('market.distantMarket', { market: marketName })}</div>
+                    <div className="market-compare-price">{formatPrice(distantPrice)}</div>
+                    <small>{t('market.kmAway', { km: distance })}</small>
+                    <div className="market-compare-truck">{t('market.truckTo', { market: marketName })}: −{formatRupee(truckCost)}</div>
+                    <div className="market-compare-inhand">{t('market.inHand', { market: marketName })}: {formatRupee(distantInHand)}</div>
+                  </div>
+                </div>
+                <p className={`market-compare-summary ${worthIt ? 'positive' : 'negative'}`}>{worthIt ? t('market.worthTrip', { amount: formatRupee(difference) }) : t('market.notWorthTrip', { amount: formatRupee(Math.abs(difference)) })}</p>
+                <Button icon={Truck} variant="soft" onClick={() => notify(t('market.truckRequested', { market: marketName }))}>{t('market.requestTruck', { market: marketName })} →</Button>
+              </Card>
             </div>
-            <div className="market-compare-rows">
-              <div className="market-compare-row local">
-                <div className="market-compare-label">{t('market.localMarket')}</div>
-                <div className="market-compare-price">{formatPrice(localPrice)}</div>
-                <small>{t('market.noTransportNeeded')}</small>
-              </div>
-              <div className="market-compare-row distant">
-                <div className="market-compare-label">{t('market.distantMarket', { market: marketName })}</div>
-                <div className="market-compare-price">{formatPrice(distantPrice)}</div>
-                <small>{t('market.kmAway', { km: distance })}</small>
-                <div className="market-compare-truck">{t('market.truckTo', { market: marketName })}: −{formatRupee(truckCost)}</div>
-                <div className="market-compare-inhand">{t('market.inHand', { market: marketName })}: {formatRupee(distantInHand)}</div>
-              </div>
-            </div>
-            <p className={`market-compare-summary ${worthIt ? 'positive' : 'negative'}`}>{worthIt ? t('market.worthTrip', { amount: formatRupee(difference) }) : t('market.notWorthTrip', { amount: formatRupee(Math.abs(difference)) })}</p>
-            <Button icon={Truck} variant="soft" onClick={() => notify(t('market.truckRequested', { market: marketName }))}>{t('market.requestTruck', { market: marketName })} →</Button>
-          </Card>;
-        })}
+            {qualifyingListings.length > 1 && <div className="market-compare-nav">
+              <button type="button" className="market-compare-nav-btn" disabled={safeComparePage === 0} onClick={() => setComparePage(Math.max(0, safeComparePage - 1))}><ArrowLeft size={16} /> {t('market.prev')}</button>
+              <span className="market-compare-page">{safeComparePage + 1} / {qualifyingListings.length}</span>
+              <button type="button" className="market-compare-nav-btn" disabled={safeComparePage === qualifyingListings.length - 1} onClick={() => setComparePage(Math.min(qualifyingListings.length - 1, safeComparePage + 1))}>{t('market.next')} <ArrowRight size={16} /></button>
+            </div>}
+          </div>;
+        })()}
       </Card>
       <Card className="market-calc">
         <h3 className="subhead">{t('market.calcTitle')}</h3>
