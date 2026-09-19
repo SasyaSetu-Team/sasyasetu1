@@ -946,8 +946,12 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
         const reason = !turn.ok
           ? `turn.error=${turn.error ?? 'unknown'}`
           : `missing field: ${!turn.transcript ? 'transcript' : !turn.intentData ? 'intentData' : 'replyAudio'}`;
-        console.error('[voice] processSarvamVoiceTurn — Sarvam turn failed:', reason);
-        emitDebug('sarvam turn failed', reason);
+        if (turn.error === 'no_speech_detected') {
+          emitDebug('sarvam turn', 'no speech detected — audio captured but STT returned empty transcript');
+        } else {
+          console.error('[voice] processSarvamVoiceTurn — Sarvam turn failed:', reason);
+          emitDebug('sarvam turn failed', reason);
+        }
         return null;
       }
 

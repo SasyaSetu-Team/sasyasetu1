@@ -163,9 +163,12 @@ async function callSarvamSTT(audioBlob: Blob, language: SarvamLang): Promise<str
 
   const data = await res.json() as { transcript?: string; error?: string };
   console.log('[sarvam] raw STT response:', JSON.stringify(data));
-  emitDebug('sarvam STT raw', JSON.stringify(data).slice(0, 300));
+  emitDebug('sarvam STT raw', `transcript="${(data.transcript ?? '').slice(0, 80)}" error=${data.error ?? 'none'}`);
   if (data.error) throw new Error(`STT error: ${data.error}`);
-  if (!data.transcript) throw new Error('STT returned empty transcript');
+  if (!data.transcript || !data.transcript.trim()) {
+    emitDebug('sarvam STT', 'empty transcript — no speech detected in audio');
+    return '';
+  }
   return data.transcript;
 }
 
@@ -283,6 +286,10 @@ export async function runSarvamVoiceTurn(
   const t0 = performance.now();
   try {
     const transcript = await callSarvamSTT(audioBlob, languageCode);
+    if (!transcript || !transcript.trim()) {
+      emitDebug('sarvam turn', 'STT returned empty transcript — no speech detected, skipping intent');
+      return { ok: false, error: 'no_speech_detected' };
+    }
     const intentData = await callVoiceIntent(transcript, languageCode, context);
     const replyText = buildReplyText(intentData, languageCode);
     const replyAudio = await callSarvamTTS(replyText, languageCode);

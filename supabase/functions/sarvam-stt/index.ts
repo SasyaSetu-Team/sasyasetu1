@@ -83,7 +83,7 @@ Deno.serve(async (req: Request) => {
       const data = await sarvamRes.json();
       const transcript: string | undefined = data?.transcript;
 
-      if (!transcript) {
+      if (transcript === undefined) {
         return new Response(
           JSON.stringify({ error: "Sarvam returned no transcript field", raw: JSON.stringify(data).slice(0, 500) }),
           { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -91,7 +91,7 @@ Deno.serve(async (req: Request) => {
       }
 
       return new Response(
-        JSON.stringify({ transcript }),
+        JSON.stringify({ transcript: transcript || "" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     } catch (err) {
