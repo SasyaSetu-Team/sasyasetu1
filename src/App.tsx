@@ -1476,19 +1476,70 @@ function TransportOptions({ role, open, notify, t, profileData }: { role: Role; 
   const [fromLocation, setFromLocation] = useState(farmerLocation);
   const [toLocation, setToLocation] = useState('');
   const [toSuggestionsOpen, setToSuggestionsOpen] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
   const transportMarkets = ['Bengaluru', 'Hyderabad', 'Chennai', 'Warangal', 'Karimnagar', 'Kurnool', 'Anantapur'];
   const filteredMarkets = toLocation.trim() === '' ? transportMarkets : transportMarkets.filter((m) => m.toLowerCase().includes(toLocation.trim().toLowerCase()));
+
+  const sampleDistanceKm = 150;
+  const vehicles = [
+    { id: 'tempo', name: t('transport.results.tempo'), capacity: t('transport.results.tempoCapacity'), baseFare: 50, perKm: 10, icon: Package, avgSpeed: 35 },
+    { id: 'mini-truck', name: t('transport.results.miniTruck'), capacity: t('transport.results.miniTruckCapacity'), baseFare: 100, perKm: 15, icon: Truck, avgSpeed: 40 },
+    { id: 'truck', name: t('transport.results.truck'), capacity: t('transport.results.truckCapacity'), baseFare: 200, perKm: 25, icon: Truck, avgSpeed: 45 },
+  ];
 
   const handleFindTransport = (e: FormEvent) => {
     e.preventDefault();
     if (!toLocation.trim()) { notify(t('transport.search.selectDestination')); return; }
-    notify(t('transport.search.searching', { from: fromLocation, to: toLocation }));
+    setSearched(true);
+    setSelectedVehicle(null);
   };
 
   const selectDestination = (market: string) => {
     setToLocation(market);
     setToSuggestionsOpen(false);
   };
+
+  const handleSearchAgain = () => {
+    setSearched(false);
+    setSelectedVehicle(null);
+  };
+
+  if (searched) {
+    return <Page title={t('transport.results.title')} body={t('transport.results.body')} back={handleSearchAgain} t={t}>
+      <Card className="transport-route-summary">
+        <div className="transport-route-from"><MapPin size={16} /> <span>{fromLocation}</span></div>
+        <div className="transport-route-line" />
+        <div className="transport-route-to"><MapPin size={16} /> <span>{toLocation}</span></div>
+        <div className="transport-route-meta"><Clock3 size={14} /> {t('transport.results.sampleDistance', { km: sampleDistanceKm })}</div>
+      </Card>
+      <div className="transport-vehicle-list">
+        {vehicles.map((v) => {
+          const price = round2(v.baseFare + v.perKm * sampleDistanceKm);
+          const timeHrs = sampleDistanceKm / v.avgSpeed;
+          const timeMin = Math.round(timeHrs * 60);
+          const timeLabel = timeMin >= 60 ? `${Math.floor(timeMin / 60)}h ${timeMin % 60}m` : `${timeMin}m`;
+          const Icon = v.icon;
+          const isSelected = selectedVehicle === v.id;
+          return <Card key={v.id} className={`transport-vehicle-card ${isSelected ? 'selected' : ''}`} onClick={() => setSelectedVehicle(v.id)}>
+            <div className="transport-vehicle-icon"><Icon size={28} strokeWidth={1.5} /></div>
+            <div className="transport-vehicle-info">
+              <h3>{v.name}</h3>
+              <p>{v.capacity}</p>
+              <div className="transport-vehicle-stats">
+                <span><strong>{formatRupee(price)}</strong> <small>{t('transport.results.estPrice')} · {t('market.samplePrice')}</small></span>
+                <span><strong>{timeLabel}</strong> <small>{t('transport.results.estTime')}</small></span>
+              </div>
+            </div>
+            <div className="transport-vehicle-check">{isSelected && <Check size={22} />}</div>
+          </Card>;
+        })}
+      </div>
+      <Demo>{t('transport.search.mockData')}</Demo>
+      {selectedVehicle && <div className="transport-book-bar"><Button icon={Truck} wide onClick={() => notify(t('transport.results.bookToast', { vehicle: vehicles.find((v) => v.id === selectedVehicle)?.name ?? '' }))}>{t('transport.results.bookNow')}</Button></div>}
+      {role === 'FPO' && <Card className="provider-card"><Illustration label={t('transport.transportProvider')} color="teal" icon={Truck} /><div><Badge tone="green">{t('transport.available')}</Badge><h3>{t('transport.warangalFpoTransport')}</h3><p>{t('transport.capacityPrice')}</p><Button onClick={() => notify(t('transport.availabilityUpdated'))}>{t('transport.updateAvailability')}</Button></div></Card>}
+    </Page>;
+  }
 
   return <Page title={t('transport.search.title')} body={t('transport.search.body')} back={() => open('home')} t={t}>
     <Card className="transport-search-card">
