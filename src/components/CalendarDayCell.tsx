@@ -41,6 +41,12 @@ export function CalendarDayBadgeIcon({ stage }: { stage: CalendarStage }) {
   return <Icon size={8} strokeWidth={2.5} />;
 }
 
+export function CalendarLegendIcon({ item }: { item: CalendarLegendItem }) {
+  if (item.icon === 'upcoming') return <Clock3 size={12} strokeWidth={2.5} />;
+  if (item.stage) { const Icon = stageIcon[item.stage]; return <Icon size={12} strokeWidth={2.5} />; }
+  return null;
+}
+
 function cropBg(color: string): string {
   const tints: Record<string, string> = {
     tomato: '#fce4e0',
@@ -179,10 +185,17 @@ export function getMockMonthDays(monthIndex: number): CalendarDayData[] {
   return cells;
 }
 
-export const mockCalendarLegend: { stage: CalendarStage; label: string }[] = [
-  { stage: 'verified', label: 'Verified' },
-  { stage: 'harvested', label: 'Harvested' },
-  { stage: 'transport', label: 'Transport' },
-  { stage: 'sold', label: 'Sold' },
-  { stage: 'paid', label: 'Paid' },
+export interface CalendarLegendItem {
+  icon: 'stage' | 'upcoming';
+  stage?: CalendarStage;
+  label: string;
+}
+
+export const mockCalendarLegend: CalendarLegendItem[] = [
+  { icon: 'stage', stage: 'verified', label: 'Verified' },
+  { icon: 'stage', stage: 'harvested', label: 'Harvested' },
+  { icon: 'stage', stage: 'transport', label: 'Transport' },
+  { icon: 'stage', stage: 'sold', label: 'Sold' },
+  { icon: 'stage', stage: 'paid', label: 'Paid' },
+  { icon: 'upcoming', label: 'Upcoming' },
 ];
