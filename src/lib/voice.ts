@@ -224,6 +224,20 @@ export function isNoCommand(transcript: string, lang: Language): boolean {
   return NO_PATTERNS[code].some((p) => lower.includes(p.toLowerCase()));
 }
 
+export function isYesCommandAnyLang(transcript: string): boolean {
+  const lower = transcript.toLowerCase().trim();
+  return (['en', 'te', 'hi'] as LanguageCode[]).some((code) =>
+    YES_PATTERNS[code].some((p) => lower.includes(p.toLowerCase()))
+  );
+}
+
+export function isNoCommandAnyLang(transcript: string): boolean {
+  const lower = transcript.toLowerCase().trim();
+  return (['en', 'te', 'hi'] as LanguageCode[]).some((code) =>
+    NO_PATTERNS[code].some((p) => lower.includes(p.toLowerCase()))
+  );
+}
+
 export function isStopCommand(transcript: string, lang: Language): boolean {
   const code = langCode(lang);
   const lower = transcript.toLowerCase().trim();
@@ -367,6 +381,22 @@ export function parseDigitSequence(transcript: string): string {
   const digits: string[] = [];
   for (const w of words) {
     if (w in DIGIT_WORDS) digits.push(DIGIT_WORDS[w]);
+  }
+  return digits.join('');
+}
+
+export function extractDigitsFromSentence(transcript: string): string {
+  const direct = transcript.replace(/[^0-9]/g, '').trim();
+  if (direct) return direct;
+  const lower = transcript.toLowerCase().trim();
+  const words = lower.split(/[\s,.]+/);
+  const digits: string[] = [];
+  for (const w of words) {
+    if (w in DIGIT_WORDS) {
+      digits.push(DIGIT_WORDS[w]);
+    } else if (/^[0-9]$/.test(w)) {
+      digits.push(w);
+    }
   }
   return digits.join('');
 }

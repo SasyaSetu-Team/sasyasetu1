@@ -6,7 +6,7 @@ import { demoEmails, farmerDemoEmails, useAuth, type Profile } from '@/lib/auth'
 const rameshEmail = farmerDemoEmails.find((f) => f.name === 'Ramesh Kumar')?.email ?? farmerDemoEmails[0].email;
 import { fetchCrops, fetchMyListings, fetchPublicListings, fetchListing, createListing, updateListing, markAsHarvested, buyNow, bookListing, fetchMyOrders, computeCurrentPrice, nextDropMinutes, computeClusterCurrentPrice, clusterNextDropMinutes, bookedQuantity, formatKg, formatPrice, formatDate, cropDisplayName, cropDisplayVariety, OTHER_CROP_ID, fetchClusters, formatHarvestWindow, timeLeftUntil, fetchClusterInvites, fetchClusterMemberships, fetchClusterMembers, joinCluster, dismissClusterInvite, type Crop, type CropListing, type CropListingInput, type CropClusterWithMembers, type ClusterInvite, type ClusterMembership, type ClusterMemberDetail, type BuyNowResult, type OrderRow, type BookResult } from '@/lib/crops';
 import { fetchNotifications, markNotificationRead, markAllNotificationsRead, seedDemoNotificationsIfNeeded, type NotificationRow } from '@/lib/notifications';
-import { parseCommand, parseStatus, parseNumber, parseLanguageChange, extractValue, isSpeechRecognitionSupported, isSpeechSynthesisSupported, createRecognition, speak, stopSpeaking, warmupSpeech, langCode, captureScreenText, subscribeDebug, getSynthState, emitDebug, isYesCommand, isNoCommand, type VoiceRecognition, type DebugEvent } from '@/lib/voice';
+import { parseCommand, parseStatus, parseNumber, parseLanguageChange, extractValue, isSpeechRecognitionSupported, isSpeechSynthesisSupported, createRecognition, speak, stopSpeaking, warmupSpeech, langCode, captureScreenText, subscribeDebug, getSynthState, emitDebug, isYesCommand, isNoCommand, isYesCommandAnyLang, isNoCommandAnyLang, type VoiceRecognition, type DebugEvent } from '@/lib/voice';
 import { useVoiceSession, speakTextViaSarvam, getTabNarration, type FormField, type SarvamVoiceResult } from '@/lib/useVoiceSession';
 import { playAudioBlob, stopAudio } from '@/lib/playAudio';
 
@@ -156,9 +156,9 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       consentModeRef.current = false;
       const lang = languageRef.current;
       const heard = transcript && transcript.trim() ? transcript.trim() : '';
-      emitDebug('consent', `heard: "${heard.slice(0, 80)}" | isYes=${isYesCommand(heard, lang)} | isNo=${isNoCommand(heard, lang)}`);
+      emitDebug('consent', `heard: "${heard.slice(0, 80)}" | isYesAny=${isYesCommandAnyLang(heard)} | isNoAny=${isNoCommandAnyLang(heard)}`);
 
-      if (heard && isYesCommand(heard, lang) && !isNoCommand(heard, lang)) {
+      if (heard && isYesCommandAnyLang(heard) && !isNoCommandAnyLang(heard)) {
         emitDebug('consent', 'granted');
         if (autoVoiceConsentRef) autoVoiceConsentRef.current = 'granted';
         setConv('SPEAKING');
@@ -184,7 +184,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         } else {
           speak(t('voice.consentGranted'), lang, () => { narrateAfterConsent(); });
         }
-      } else if (heard && isNoCommand(heard, lang)) {
+      } else if (heard && isNoCommandAnyLang(heard)) {
         emitDebug('consent', 'declined (explicit no)');
         if (autoVoiceConsentRef) autoVoiceConsentRef.current = 'declined';
         setConv('SPEAKING');
