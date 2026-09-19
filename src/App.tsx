@@ -226,10 +226,27 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     const s = stateRef.current;
     setDebugStep(s.step ?? 'none');
     if (s.awaitingConfirmation) setConv('CONFIRMING'); else setConv('SPEAKING');
+    const stepBeforePlay = s.step;
     playAudioBlob(result.replyAudio, () => {
       speakingRef.current = false;
       drainRef.current();
       if (sessionRef.current) {
+        const stepAfterPlay = stateRef.current.step;
+        const isLoginView = currentViewRef.current.startsWith('login-');
+        if (isLoginView && stepAfterPlay && stepAfterPlay !== stepBeforePlay) {
+          emitDebug('sarvam turn', `step advanced ${stepBeforePlay} → ${stepAfterPlay}, narrating new step`);
+          if (appPendingNarrationRef) appPendingNarrationRef.current = null;
+          narrationQueuedRef.current = false;
+          const narration = narrateScreen(currentViewRef.current, stepAfterPlay);
+          if (narration) {
+            const nKey = `${currentViewRef.current}:${stepAfterPlay}`;
+            narratedTabsRef?.current.add(nKey);
+            lastNarrationKeyRef.current = nKey;
+            lastNarrationViewRef.current = currentViewRef.current;
+            speakSarvamAndListenRef.current(narration);
+            return;
+          }
+        }
         setConv('WAIT_FOR_SPEECH');
         setTimeout(() => {
           if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
@@ -245,6 +262,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     setVoiceState('speaking');
     setConv('SPEAKING');
     setInterim('');
+    const stepBeforeSpeak = stateRef.current.step;
     const audio = await speakTextViaSarvam(text, languageRef.current);
     if (!audio) {
       emitDebug('speakSarvam', 'TTS failed — falling back to browser speak');
@@ -252,6 +270,22 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         speakingRef.current = false;
         drainRef.current();
         if (sessionRef.current) {
+          const isLoginV = currentViewRef.current.startsWith('login-');
+          const stepAfter = stateRef.current.step;
+          if (isLoginV && stepAfter && stepAfter !== stepBeforeSpeak) {
+            emitDebug('speakSarvam', `step advanced ${stepBeforeSpeak} → ${stepAfter}, narrating new step`);
+            if (appPendingNarrationRef) appPendingNarrationRef.current = null;
+            narrationQueuedRef.current = false;
+            const narration = narrateScreen(currentViewRef.current, stepAfter);
+            if (narration) {
+              const nKey = `${currentViewRef.current}:${stepAfter}`;
+              narratedTabsRef?.current.add(nKey);
+              lastNarrationKeyRef.current = nKey;
+              lastNarrationViewRef.current = currentViewRef.current;
+              speakSarvamAndListenRef.current(narration);
+              return;
+            }
+          }
           setConv('WAIT_FOR_SPEECH');
           setTimeout(() => {
             if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
@@ -264,13 +298,29 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       speakingRef.current = false;
       drainRef.current();
       if (sessionRef.current) {
+        const isLoginV = currentViewRef.current.startsWith('login-');
+        const stepAfter = stateRef.current.step;
+        if (isLoginV && stepAfter && stepAfter !== stepBeforeSpeak) {
+          emitDebug('speakSarvam', `step advanced ${stepBeforeSpeak} → ${stepAfter}, narrating new step`);
+          if (appPendingNarrationRef) appPendingNarrationRef.current = null;
+          narrationQueuedRef.current = false;
+          const narration = narrateScreen(currentViewRef.current, stepAfter);
+          if (narration) {
+            const nKey = `${currentViewRef.current}:${stepAfter}`;
+            narratedTabsRef?.current.add(nKey);
+            lastNarrationKeyRef.current = nKey;
+            lastNarrationViewRef.current = currentViewRef.current;
+            speakSarvamAndListenRef.current(narration);
+            return;
+          }
+        }
         setConv('WAIT_FOR_SPEECH');
         setTimeout(() => {
           if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
         }, postDelay);
       }
     });
-  }, [startSarvamTurn, setConv]);
+  }, [startSarvamTurn, narrateScreen, setConv]);
   useEffect(() => { speakSarvamAndListenRef.current = speakSarvamAndListen; }, [speakSarvamAndListen]);
 
   const drainPendingNarration = useCallback(() => {
@@ -287,28 +337,36 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
   useEffect(() => { drainRef.current = drainPendingNarration; }, [drainPendingNarration]);
 
   const lastNarrationViewRef = useRef<string>('');
+  const lastNarrationKeyRef = useRef<string>('');
   const narrationQueuedRef = useRef(false);
   useEffect(() => {
     if (currentView !== lastNarrationViewRef.current && lastNarrationViewRef.current !== '') {
-      stopAudio(); stopSpeaking(); speakingRef.current = false;
-      if (appSpeakingRef) { appSpeakingRef.current = false; if (appPendingNarrationRef) appPendingNarrationRef.current = null; }
-      narrationQueuedRef.current = false;
-      emitDebug('narration effect', `view changed ${lastNarrationViewRef.current} → ${currentView} — cancelled speech`);
+      if (speakingRef.current) {
+        emitDebug('narration effect', `view changed ${lastNarrationViewRef.current} → ${currentView} — speaking, will not cancel`);
+      } else {
+        stopAudio(); stopSpeaking(); speakingRef.current = false;
+        if (appSpeakingRef) { appSpeakingRef.current = false; if (appPendingNarrationRef) appPendingNarrationRef.current = null; }
+        narrationQueuedRef.current = false;
+        emitDebug('narration effect', `view changed ${lastNarrationViewRef.current} → ${currentView} — cancelled speech`);
+      }
     }
     if (autoVoiceConsentRef?.current === 'declined') { emitDebug('narration effect', 'SKIP: auto voice consent declined'); return; }
     if (speakingRef.current) {
       if (narrationQueuedRef.current) { emitDebug('narration effect', `SKIP: already queued for ${currentView}`); return; }
       emitDebug('narration effect', 'QUEUE: speakingRef is true — deferring narration');
-      const narration = narrateScreen(currentView);
+      const isLoginViewQ = currentView.startsWith('login-');
+      const narration = narrateScreen(currentView, isLoginViewQ ? (state.step ?? undefined) : undefined);
       if (narration && appPendingNarrationRef) appPendingNarrationRef.current = narration;
       if (narration) narrationQueuedRef.current = true;
       lastNarrationViewRef.current = currentView;
+      lastNarrationKeyRef.current = isLoginViewQ ? `${currentView}:${state.step ?? 'none'}` : currentView;
       return;
     }
-    if (currentView === lastNarrationViewRef.current) { emitDebug('narration effect', `SKIP: same view ${currentView}`); return; }
-    if (narratedTabsRef?.current.has(currentView)) { emitDebug('narration effect', `SKIP: tab already narrated ${currentView}`); return; }
-    narrationQueuedRef.current = false;
     const isLoginView = currentView.startsWith('login-');
+    const narrationKey = isLoginView ? `${currentView}:${state.step ?? 'none'}` : currentView;
+    if (currentView === lastNarrationViewRef.current && narrationKey === lastNarrationKeyRef.current) { emitDebug('narration effect', `SKIP: same view+step ${narrationKey}`); return; }
+    if (narratedTabsRef?.current.has(narrationKey)) { emitDebug('narration effect', `SKIP: already narrated ${narrationKey}`); return; }
+    narrationQueuedRef.current = false;
     if (!sessionRef.current) {
       emitDebug('narration effect', `ENTER init path | view=${currentView} | sessionRef was false`);
       sessionRef.current = true;
@@ -324,14 +382,15 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         setDebugStep('awaiting_mobile');
       }
       lastNarrationViewRef.current = currentView;
-      const narration = narrateScreen(currentView);
+      lastNarrationKeyRef.current = narrationKey;
+      const narration = narrateScreen(currentView, isLoginView ? (state.step ?? undefined) : undefined);
       emitDebug('narration effect', `narrateScreen returned: "${narration?.slice(0, 50) ?? 'EMPTY'}" | will speak immediately`);
       if (autoVoiceConsentRef?.current === 'pending' && !consentAskedRef.current) {
         consentAskedRef.current = true;
         consentModeRef.current = true;
         const consentText = narration ? `${narration} ${t('voice.consentQuestion')}` : t('voice.consentQuestion');
         emitDebug('narration effect', 'CONSENT: asking consent question with 1s pause');
-        narratedTabsRef?.current.add(currentView);
+        narratedTabsRef?.current.add(narrationKey);
         narrationQueuedRef.current = false;
         speakSarvamAndListen(consentText, 1000);
         return;
@@ -341,7 +400,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         return;
       }
       if (narration) {
-        narratedTabsRef?.current.add(currentView);
+        narratedTabsRef?.current.add(narrationKey);
         narrationQueuedRef.current = false;
         speakSarvamAndListen(narration);
       } else {
@@ -350,17 +409,12 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       }
       return;
     }
-    if (isLoginView) {
-      emitDebug('narration effect', `login re-enter | view=${currentView} | sessionRef=${sessionRef.current}`);
-      lastNarrationViewRef.current = currentView;
-      setDebugStep(state.step ?? 'none');
-      return;
-    }
     if (autoVoiceConsentRef?.current === 'granted') {
-      emitDebug('narration effect', `normal path | view=${currentView}`);
+      emitDebug('narration effect', `normal path | view=${currentView} step=${state.step ?? 'none'}`);
       lastNarrationViewRef.current = currentView;
-      const narration = narrateScreen(currentView);
-      if (narration) { narratedTabsRef?.current.add(currentView); narrationQueuedRef.current = false; speakSarvamAndListen(narration); }
+      lastNarrationKeyRef.current = narrationKey;
+      const narration = narrateScreen(currentView, isLoginView ? (state.step ?? undefined) : undefined);
+      if (narration) { narratedTabsRef?.current.add(narrationKey); narrationQueuedRef.current = false; speakSarvamAndListen(narration); }
     }
   }, [currentView, narrateScreen, speakSarvamAndListen, loginRole, state.step, appPendingNarrationRef, narratedTabsRef, autoVoiceConsentRef, t]);
 

@@ -183,7 +183,7 @@ export async function speakTextViaSarvam(text: string, language: Language): Prom
   return speakWithSarvam(text, sarvamLang as 'en-IN' | 'hi-IN' | 'te-IN');
 }
 
-export function getTabNarration(view: string, tr: (key: string, params?: Record<string, string | number>) => string, _loginStep?: number): string {
+export function getTabNarration(view: string, tr: (key: string, params?: Record<string, string | number>) => string, loginStep?: string): string {
   if (view === 'home') return tr('voice.pageHome');
   if (view === 'crops') return tr('voice.pageCrops');
   if (view === 'crop-create') return tr('voice.pageCropCreate');
@@ -199,8 +199,12 @@ export function getTabNarration(view: string, tr: (key: string, params?: Record<
   if (view === 'fpo') return tr('voice.pageFpo');
   if (view === 'features') return tr('voice.pageFeatures');
   if (view === 'login') return tr('voice.pageLogin');
-  if (view === 'login-farmer') return tr('voice.loginAskMobile');
-  if (view === 'login-fpo') return tr('voice.loginAskMobile');
+  if (view === 'login-farmer' || view === 'login-fpo' || view === 'login-buyer' || view === 'login-storage' || view === 'login-transport') {
+    if (loginStep === 'awaiting_otp') return tr('voice.pageLoginOtp');
+    if (loginStep === 'awaiting_category') return tr('voice.pageLoginCategory');
+    if (loginStep === 'awaiting_verify') return tr('voice.pageLoginVerify');
+    return tr('voice.pageLoginMobile');
+  }
   if (view === 'login-mobile') return tr('voice.pageLoginMobile');
   if (view === 'login-otp') return tr('voice.pageLoginOtp');
   if (view === 'login-category') return tr('voice.pageLoginCategory');
@@ -219,7 +223,7 @@ export interface VoiceSessionResult {
   transcribeOnly: () => Promise<string | null>;
   nextMissingField: () => FormField | null;
   askFieldPrompt: (field: FormField) => string;
-  narrateScreen: (view: string, loginStep?: number) => string;
+  narrateScreen: (view: string, loginStep?: string) => string;
 }
 
 const DESTINATION_ROLE_MAP: Record<string, string> = {
@@ -900,7 +904,7 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
     return applyIntentResult(result, text);
   }, [processUtterance, applyIntentResult]);
 
-  const narrateScreen = useCallback((view: string, loginStep?: number): string => {
+  const narrateScreen = useCallback((view: string, loginStep?: string): string => {
     const tr = makeT(cbRef.current.language);
     const base = getTabNarration(view, tr, loginStep);
     if (!base) return '';
@@ -949,14 +953,21 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
 
       const intentResult = translateResponse(turn.intentData, code);
       const fallbackReply = applyIntentResult(intentResult, turn.transcript);
-      const replyText = intentResult.speechReply ?? fallbackReply;
+      const replyText = fallbackReply ?? intentResult.speechReply ?? turn.replyText;
       if (!replyText) {
         console.error('[voice] processSarvamVoiceTurn — no reply text from intent or fallback');
         emitDebug('sarvam turn failed', 'no reply text');
         return null;
       }
 
-      return { transcript: turn.transcript, replyText, replyAudio: turn.replyAudio };
+      let replyAudio = turn.replyAudio;
+      if (replyText !== turn.replyText) {
+        emitDebug('sarvam turn', 're-synthesizing TTS for contextual reply');
+        const reSynth = await speakWithSarvam(replyText, sarvamLang as 'en-IN' | 'hi-IN' | 'te-IN');
+        if (reSynth) replyAudio = reSynth;
+      }
+
+      return { transcript: turn.transcript, replyText, replyAudio };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error('[voice] processSarvamVoiceTurn — caught error:', msg);
