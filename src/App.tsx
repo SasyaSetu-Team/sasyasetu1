@@ -1280,6 +1280,7 @@ function PriceClockCard({ listing, t, onFarmEye }: { listing: CropListing; t: T;
 function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (view: View) => void; notify: (message: string) => void; t: T; selectCrop: (crop: CropListing) => void }) {
   const [filter, setFilter] = useState<'Upcoming' | 'Harvested'>('Upcoming');
   const [listings, setListings] = useState<CropListing[]>([]);
+  const [myListings, setMyListings] = useState<CropListing[]>([]);
   const [clusters, setClusters] = useState<CropClusterWithMembers[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1303,8 +1304,8 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
     setLoading(true); setError(null);
     (async () => {
       try {
-        const [listingData, clusterData] = await Promise.all([fetchPublicListings(), fetchClusters()]);
-        if (!cancelled) { setListings(listingData); setClusters(clusterData); }
+        const [listingData, clusterData, myListingsData] = await Promise.all([fetchPublicListings(), fetchClusters(), fetchMyListings()]);
+        if (!cancelled) { setListings(listingData); setClusters(clusterData); setMyListings(myListingsData); }
       }
       catch { if (!cancelled) setError(tRef.current('crops.loadError')); }
       finally { if (!cancelled) setLoading(false); }
@@ -1360,7 +1361,64 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
       })}</div>
     </Page>;
   }
-  return <Page title={t('market.title')} body={t('market.body')} back={() => open('home')} t={t}><div className="market-layout"><Card className="market-spot"><Badge tone="orange">{t('market.sampleData')}</Badge><h2>{t('market.strongDemand')}</h2><strong>Bengaluru</strong><p>{t('market.tomatoDemand')}</p><Demo>{t('market.guidanceOnly')}</Demo></Card><Card className="price-list">{[['Tomato', '₹30/kg', '+8%'], ['Onion', '₹28/kg', '+4%'], ['Paddy', '₹22/kg', t('market.steady')]].map(([name, price, move]) => <div className="price-row" key={name}><span>{name}</span><strong>{price} <small>{move}</small></strong></div>)}</Card></div></Page>;
+  const distantMarkets = ['Bengaluru', 'Hyderabad', 'Chennai'];
+  const searchLower = searchQuery.trim().toLowerCase();
+  const filteredMyListings = searchLower ? myListings.filter((l) => cropDisplayName(l).toLowerCase().includes(searchLower)) : myListings;
+  const todayPrices = [{ name: 'Tomato', price: 30, change: 2 }, { name: 'Onion', price: 28, change: 1 }, { name: 'Paddy', price: 22, change: 0 }, { name: 'Chilli', price: 45, change: -3 }, { name: 'Banana', price: 18, change: 1 }];
+  return <Page title={t('market.title')} body={t('market.body')} back={() => open('home')} t={t}>
+    <div className="crop-search"><Search size={18} /><input placeholder={t('market.searchCropMarket')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+    <div className="market-layout">
+      <Card className="market-compare-section">
+        <h3 className="subhead">{t('market.forYourCrops')}</h3>
+        {loading && <p className="calendar-empty">{t('crops.loading')}</p>}
+        {error && <p className="calendar-empty">{error}</p>}
+        {!loading && !error && filteredMyListings.length === 0 && <p className="calendar-empty">{t('market.noListings')}</p>}
+        {!loading && !error && filteredMyListings.map((listing) => {
+          const name = cropDisplayName(listing);
+          const Icon = cropIconFor(name);
+          const color = cropColorFor(name);
+          const h = hashStr(listing.id);
+          const marketName = distantMarkets[h % distantMarkets.length];
+          const distance = 30 + (h % 40);
+          const localPrice = computeCurrentPrice(listing) ?? listing.indicative_price_per_kg ?? 20;
+          const distantPrice = round2(localPrice + 3 + (h % 6));
+          const truckCost = distance * 5;
+          const qty = listing.quantity_kg;
+          const localTotal = round2(qty * localPrice);
+          const distantInHand = round2(qty * distantPrice - truckCost);
+          const difference = round2(distantInHand - localTotal);
+          const worthIt = difference > 0;
+          return <Card className={`market-compare-card ${color}`} key={listing.id}>
+            <div className="market-compare-header">
+              <span className={`market-compare-icon ${color}`}><Icon size={28} strokeWidth={1.5} /></span>
+              <h3>{t('market.yourListing', { qty: formatKg(qty), crop: name })}</h3>
+            </div>
+            <div className="market-compare-rows">
+              <div className="market-compare-row local">
+                <div className="market-compare-label">{t('market.localMarket')}</div>
+                <div className="market-compare-price">{formatPrice(localPrice)}</div>
+                <small>{t('market.noTransportNeeded')}</small>
+              </div>
+              <div className="market-compare-row distant">
+                <div className="market-compare-label">{t('market.distantMarket', { market: marketName })}</div>
+                <div className="market-compare-price">{formatPrice(distantPrice)}</div>
+                <small>{t('market.kmAway', { km: distance })}</small>
+                <div className="market-compare-truck">{t('market.truckTo', { market: marketName })}: −{formatRupee(truckCost)}</div>
+                <div className="market-compare-inhand">{t('market.inHand', { market: marketName })}: {formatRupee(distantInHand)}</div>
+              </div>
+            </div>
+            <p className={`market-compare-summary ${worthIt ? 'positive' : 'negative'}`}>{worthIt ? t('market.worthTrip', { amount: formatRupee(difference) }) : t('market.notWorthTrip', { amount: formatRupee(Math.abs(difference)) })}</p>
+            <Button icon={Truck} variant="soft" onClick={() => notify(t('market.truckRequested', { market: marketName }))}>{t('market.requestTruck', { market: marketName })} →</Button>
+          </Card>;
+        })}
+      </Card>
+      <Card className="market-calc-placeholder"><h3 className="subhead">{t('market.comingSoon')}</h3></Card>
+    </div>
+    <Card className="market-price-ref">
+      <div className="market-price-ref-head"><h3>{t('market.todayInMarket')}</h3><Demo>{t('market.sampleMarketData')}</Demo></div>
+      <div className="price-list-rows">{todayPrices.map((p) => { const Icon = cropIconFor(p.name); return <div className="price-ref-row" key={p.name}><span className="price-ref-icon"><Icon size={18} /></span><span className="price-ref-name">{p.name}</span><strong className="price-ref-price">₹{p.price}/kg</strong><small className={`price-ref-change ${p.change > 0 ? 'up' : p.change < 0 ? 'down' : 'flat'}`}>{p.change > 0 ? t('market.vsLastWeek', { amount: String(p.change) }) : p.change < 0 ? t('market.vsLastWeekDown', { amount: String(Math.abs(p.change)) }) : t('market.vsLastWeekFlat')}</small></div>; })}</div>
+    </Card>
+  </Page>;
 }
 
 function CalendarView({ open, t }: { open: (view: View) => void; t: T }) {
