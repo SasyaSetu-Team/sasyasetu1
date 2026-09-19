@@ -6,6 +6,7 @@ import {
   parseStatus,
   parseNumber,
   parseDigitSequence,
+  extractDigitsFromSentence,
   parseLanguageChange,
   parseRoleCommand,
   parseFieldChange,
@@ -15,6 +16,8 @@ import {
   isUndoCommand,
   isYesCommand,
   isNoCommand,
+  isYesCommandAnyLang,
+  isNoCommandAnyLang,
   isCancelCropCommand,
   isContinueCropCommand,
   recordWithAutoStop,
@@ -439,7 +442,7 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
       }
 
       if (s.awaitingConfirmation) {
-        if (isYesCommand(text, lang)) {
+        if (isYesCommandAnyLang(text)) {
           const pending = s.pendingAction;
           dispatch({ type: 'CONFIRM' });
           if (pending?.type === 'confirm_mobile' && pending.payload?.mobile) {
@@ -468,7 +471,7 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
           }
           return t('voice.confirmYes');
         }
-        if (isNoCommand(text, lang)) {
+        if (isNoCommandAnyLang(text)) {
           const pending = s.pendingAction;
           dispatch({ type: 'CANCEL' });
           if (pending?.type === 'confirm_mobile') {
@@ -492,7 +495,7 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
         return null;
       }
 
-      const digits = parseDigitSequence(text);
+      const digits = extractDigitsFromSentence(text);
       if (s.step === 'awaiting_mobile') {
         if (digits.length >= 10) {
           const mobile = digits.slice(0, 10);
@@ -510,7 +513,7 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
         return t('voice.loginAskOtp');
       }
       if (s.step === 'awaiting_verify') {
-        if (isYesCommand(text, lang)) {
+        if (isYesCommandAnyLang(text)) {
           dispatch({ type: 'ASK_CONFIRMATION', action: { type: 'confirm_verify' } });
           return t('voice.loginVerifyConfirm');
         }
@@ -800,7 +803,7 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
       if (result.loginMobile) {
         let mobile = result.loginMobile.replace(/[^0-9]/g, '');
         if (mobile.length < 10) {
-          const digits = parseDigitSequence(text);
+          const digits = extractDigitsFromSentence(text);
           if (digits.length >= 10) mobile = digits.slice(0, 10);
         }
         if (mobile.length < 10) {
@@ -812,7 +815,7 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
       if (result.loginOtp) {
         let otp = result.loginOtp.replace(/[^0-9]/g, '');
         if (otp.length < 4) {
-          const digits = parseDigitSequence(text);
+          const digits = extractDigitsFromSentence(text);
           if (digits.length >= 4) otp = digits.slice(0, 6);
         }
         if (otp.length < 4) {
@@ -826,7 +829,7 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
         return t('voice.loginCategoryHeard', { category: result.loginCategory });
       }
       if (s.step === 'awaiting_mobile' || s.step === 'awaiting_otp') {
-        const digits = parseDigitSequence(text);
+        const digits = extractDigitsFromSentence(text);
         if (s.step === 'awaiting_mobile' && digits.length >= 10) {
           dispatch({ type: 'ASK_CONFIRMATION', action: { type: 'confirm_mobile', payload: { mobile: digits.slice(0, 10) } } });
           return t('voice.loginMobileHeard', { mobile: digits.slice(0, 10) });
@@ -836,9 +839,11 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
           return t('voice.loginOtpHeard', { otp: digits.slice(0, 6) });
         }
       }
-      if (s.step === 'awaiting_verify' && result.confirmYes) {
-        dispatch({ type: 'ASK_CONFIRMATION', action: { type: 'confirm_verify' } });
-        return t('voice.loginVerifyConfirm');
+      if (s.step === 'awaiting_verify') {
+        if (result.confirmYes || isYesCommandAnyLang(text)) {
+          dispatch({ type: 'ASK_CONFIRMATION', action: { type: 'confirm_verify' } });
+          return t('voice.loginVerifyConfirm');
+        }
       }
       return t('voice.didNotUnderstand');
     }

@@ -53,10 +53,13 @@ Deno.serve(async (req: Request) => {
     }
 
     // Build a fresh multipart body for Sarvam
+    // Using saaras:v4 with mode=transcribe and explicit language_code
+    // to prevent auto-detect landing on the wrong language (e.g. Bengali).
     const sarvamForm = new FormData();
     sarvamForm.append("file", file, file.name || "audio.wav");
-    sarvamForm.append("language", language);
-    sarvamForm.append("model", "saarika:v2.5");
+    sarvamForm.append("model", "saaras:v4");
+    sarvamForm.append("mode", "transcribe");
+    sarvamForm.append("language_code", language);
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), SARVAM_TIMEOUT_MS);
