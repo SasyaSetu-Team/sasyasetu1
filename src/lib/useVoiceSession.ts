@@ -956,7 +956,11 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
       }
 
       const intentResult = translateResponse(turn.intentData, code);
-      const fallbackReply = applyIntentResult(intentResult, turn.transcript);
+      let fallbackReply = applyIntentResult(intentResult, turn.transcript);
+      if (!fallbackReply) {
+        emitDebug('sarvam turn', 'applyIntentResult returned null — falling back to local parsing');
+        fallbackReply = processUtterance(turn.transcript);
+      }
       const replyText = fallbackReply ?? intentResult.speechReply ?? turn.replyText;
       if (!replyText) {
         console.error('[voice] processSarvamVoiceTurn — no reply text from intent or fallback');
@@ -978,7 +982,7 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
       emitDebug('sarvam turn error', msg);
       return null;
     }
-  }, [applyIntentResult]);
+  }, [applyIntentResult, processUtterance]);
 
   const transcribeOnly = useCallback(async (): Promise<string | null> => {
     const lang = cbRef.current.language;

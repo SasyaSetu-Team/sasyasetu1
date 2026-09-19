@@ -6,7 +6,7 @@ import { demoEmails, farmerDemoEmails, useAuth, type Profile } from '@/lib/auth'
 const rameshEmail = farmerDemoEmails.find((f) => f.name === 'Ramesh Kumar')?.email ?? farmerDemoEmails[0].email;
 import { fetchCrops, fetchMyListings, fetchPublicListings, fetchListing, createListing, updateListing, markAsHarvested, buyNow, bookListing, fetchMyOrders, computeCurrentPrice, nextDropMinutes, computeClusterCurrentPrice, clusterNextDropMinutes, bookedQuantity, formatKg, formatPrice, formatDate, cropDisplayName, cropDisplayVariety, OTHER_CROP_ID, fetchClusters, formatHarvestWindow, timeLeftUntil, fetchClusterInvites, fetchClusterMemberships, fetchClusterMembers, joinCluster, dismissClusterInvite, type Crop, type CropListing, type CropListingInput, type CropClusterWithMembers, type ClusterInvite, type ClusterMembership, type ClusterMemberDetail, type BuyNowResult, type OrderRow, type BookResult } from '@/lib/crops';
 import { fetchNotifications, markNotificationRead, markAllNotificationsRead, seedDemoNotificationsIfNeeded, type NotificationRow } from '@/lib/notifications';
-import { parseCommand, parseStatus, parseNumber, parseLanguageChange, extractValue, isSpeechRecognitionSupported, isSpeechSynthesisSupported, createRecognition, speak, stopSpeaking, warmupSpeech, langCode, captureScreenText, subscribeDebug, getSynthState, emitDebug, isYesCommand, type VoiceRecognition, type DebugEvent } from '@/lib/voice';
+import { parseCommand, parseStatus, parseNumber, parseLanguageChange, extractValue, isSpeechRecognitionSupported, isSpeechSynthesisSupported, createRecognition, speak, stopSpeaking, warmupSpeech, langCode, captureScreenText, subscribeDebug, getSynthState, emitDebug, isYesCommand, isNoCommand, type VoiceRecognition, type DebugEvent } from '@/lib/voice';
 import { useVoiceSession, speakTextViaSarvam, getTabNarration, type FormField, type SarvamVoiceResult } from '@/lib/useVoiceSession';
 import { playAudioBlob, stopAudio } from '@/lib/playAudio';
 
@@ -154,23 +154,15 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     if (consentModeRef.current) {
       const transcript = await transcribeOnly();
       consentModeRef.current = false;
-      if (!transcript || !isYesCommand(transcript, languageRef.current)) {
-        emitDebug('consent', 'declined (no or timeout)');
-        if (autoVoiceConsentRef) autoVoiceConsentRef.current = 'declined';
-        setConv('SPEAKING');
-        speak(t('voice.consentDeclined'), languageRef.current, () => {
-          speakingRef.current = false;
-          sessionRef.current = false;
-          setSessionActive(false);
-          setVoiceState('idle');
-          setConv('IDLE');
-          setDebugStep('none');
-        });
-      } else {
+      const lang = languageRef.current;
+      const heard = transcript && transcript.trim() ? transcript.trim() : '';
+      emitDebug('consent', `heard: "${heard.slice(0, 80)}" | isYes=${isYesCommand(heard, lang)} | isNo=${isNoCommand(heard, lang)}`);
+
+      if (heard && isYesCommand(heard, lang) && !isNoCommand(heard, lang)) {
         emitDebug('consent', 'granted');
         if (autoVoiceConsentRef) autoVoiceConsentRef.current = 'granted';
         setConv('SPEAKING');
-        const audio = await speakTextViaSarvam(t('voice.consentGranted'), languageRef.current);
+        const audio = await speakTextViaSarvam(t('voice.consentGranted'), lang);
         const narrateAfterConsent = () => {
           const narration = narrateScreen(currentViewRef.current);
           if (narration) {
@@ -188,14 +180,35 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
           }
         };
         if (audio) {
-          playAudioBlob(audio, () => {
-            narrateAfterConsent();
-          });
+          playAudioBlob(audio, () => { narrateAfterConsent(); });
         } else {
-          speak(t('voice.consentGranted'), languageRef.current, () => {
-            narrateAfterConsent();
-          });
+          speak(t('voice.consentGranted'), lang, () => { narrateAfterConsent(); });
         }
+      } else if (heard && isNoCommand(heard, lang)) {
+        emitDebug('consent', 'declined (explicit no)');
+        if (autoVoiceConsentRef) autoVoiceConsentRef.current = 'declined';
+        setConv('SPEAKING');
+        speak(t('voice.consentDeclined'), lang, () => {
+          speakingRef.current = false;
+          sessionRef.current = false;
+          setSessionActive(false);
+          setVoiceState('idle');
+          setConv('IDLE');
+          setDebugStep('none');
+        });
+      } else {
+        emitDebug('consent', `unclear ("${heard.slice(0, 40)}") — retrying once`);
+        consentModeRef.current = true;
+        setConv('SPEAKING');
+        speak(t('voice.consentQuestion'), lang, () => {
+          speakingRef.current = false;
+          if (sessionRef.current) {
+            setConv('WAIT_FOR_SPEECH');
+            setTimeout(() => {
+              if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
+            }, 400);
+          }
+        });
       }
       return;
     }
@@ -388,11 +401,10 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
       if (autoVoiceConsentRef?.current === 'pending' && !consentAskedRef.current) {
         consentAskedRef.current = true;
         consentModeRef.current = true;
-        const consentText = narration ? `${narration} ${t('voice.consentQuestion')}` : t('voice.consentQuestion');
-        emitDebug('narration effect', 'CONSENT: asking consent question with 1s pause');
+        emitDebug('narration effect', 'CONSENT: asking standalone consent question with 1s pause');
         narratedTabsRef?.current.add(narrationKey);
         narrationQueuedRef.current = false;
-        speakSarvamAndListen(consentText, 1000);
+        speakSarvamAndListen(t('voice.consentQuestion'), 1000);
         return;
       }
       if (autoVoiceConsentRef?.current !== 'granted') {
