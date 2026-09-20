@@ -1866,7 +1866,10 @@ function CalendarView({ open, t, profileData }: { open: (view: View) => void; t:
   const stagesForListing = (listing: CropListing): CalendarStage[] => {
     const stages: CalendarStage[] = [];
     if (listing.listing_verified) stages.push('verified');
-    if (listing.status === 'Harvested' || listing.status === 'Sold' || listing.harvested_at) stages.push('harvested');
+    const dateStr = listing.expected_harvest_date ?? listing.harvested_at;
+    const d = dateStr ? new Date(dateStr) : null;
+    const isPast = d ? (d.getFullYear() < 2026 || (d.getFullYear() === 2026 && d.getMonth() <= 8)) : false;
+    if (isPast) stages.push('harvested');
     if (listing.status === 'Sold') stages.push('sold');
     return stages;
   };
@@ -1885,14 +1888,14 @@ function CalendarView({ open, t, profileData }: { open: (view: View) => void; t:
     const color = cropColorFor(name);
     const emoji = cropEmojiFor(name);
     const photo = cropPhotoFor(name);
-    const stages = stagesForListing(listing);
-    const upcoming = listing.status === 'Upcoming';
     const dateStr = listing.expected_harvest_date ?? listing.harvested_at;
     if (!dateStr) continue;
     const d = new Date(dateStr);
     if (d.getFullYear() !== 2026) continue;
     const monthIdx = d.getMonth();
     const day = d.getDate();
+    const stages = stagesForListing(listing);
+    const upcoming = monthIdx > 8;
     if (!realEvents[monthIdx]) realEvents[monthIdx] = {};
     if (!realEvents[monthIdx][day]) realEvents[monthIdx][day] = [];
     realEvents[monthIdx][day].push({ crop: name, emoji, color, stages, upcoming, photo, listing });
