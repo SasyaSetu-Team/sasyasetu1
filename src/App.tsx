@@ -1842,6 +1842,8 @@ function CalendarView({ open, t, profileData }: { open: (view: View) => void; t:
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<{ day: number; monthIndex: number; event: CalendarDayEvent } | null>(null);
+  const [localToast, setLocalToast] = useState('');
+  const notify = useCallback((msg: string) => { setLocalToast(msg); window.setTimeout(() => setLocalToast(''), 2500); }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1989,7 +1991,8 @@ function CalendarView({ open, t, profileData }: { open: (view: View) => void; t:
         </Card>;
       })}
     </div>
-    {selectedEvent && <HarvestDetailModal event={selectedEvent.event} day={selectedEvent.day} monthName={months[selectedEvent.monthIndex]} onClose={() => setSelectedEvent(null)} t={t} notify={(msg: string) => { setToast(msg); window.setTimeout(() => setToast(''), 2500); }} />}
+    {selectedEvent && <HarvestDetailModal event={selectedEvent.event} day={selectedEvent.day} monthName={months[selectedEvent.monthIndex]} onClose={() => setSelectedEvent(null)} t={t} notify={notify} />}
+    {localToast && <div className="toast">{localToast}</div>}
   </Page>;
 }
 
