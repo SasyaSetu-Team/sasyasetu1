@@ -5,8 +5,8 @@ import { cropDisplayName, cropDisplayVariety, formatKg, formatPrice, formatDate,
 import type { T } from '@/translations';
 
 const cropPhotos: Record<string, string> = {
-  tomato: 'https://images.pexels.com/photos/33872280/pexels-photo-33872280.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-  onion: 'https://images.pexels.com/photos/9117894/pexels-photo-9117894.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  tomato: 'https://images.pexels.com/photos/533280/pexels-photo-533280.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  onion: 'https://images.pexels.com/photos/13061059/pexels-photo-13061059.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
   paddy: 'https://images.pexels.com/photos/36517201/pexels-photo-36517201.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
   rice: 'https://images.pexels.com/photos/36517201/pexels-photo-36517201.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
   chilli: 'https://images.pexels.com/photos/33973273/pexels-photo-33973273.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
@@ -25,7 +25,7 @@ const cropPhotos: Record<string, string> = {
   mango: 'https://images.pexels.com/photos/4418671/pexels-photo-4418671.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
 };
 
-const defaultPhoto = 'https://images.pexels.com/photos/440731/pexels-photo-440731.jpeg?auto=compress&cs=tinysrgb&h=650&w=940';
+const defaultPhoto = 'https://images.pexels.com/photos/13061059/pexels-photo-13061059.jpeg?auto=compress&cs=tinysrgb&h=650&w=940';
 
 export function cropPhotoFor(name: string): string {
   const n = name.toLowerCase();

@@ -10,7 +10,7 @@ import { parseCommand, parseStatus, parseNumber, parseLanguageChange, extractVal
 import { useVoiceSession, speakTextViaSarvam, getTabNarration, type FormField, type SarvamVoiceResult } from '@/lib/useVoiceSession';
 import { playAudioBlob, stopAudio } from '@/lib/playAudio';
 import { CalendarDayCell, getMockMonthDays, monthHasMockEvents, mockMonthEvents, mockCalendarLegend, stageLegendColor, CalendarLegendIcon } from '@/components/CalendarDayCell';
-import { CropFlipCard } from '@/components/CropFlipCard';
+import { CropFlipCard, cropPhotoFor } from '@/components/CropFlipCard';
 
 type Role = 'Farmer' | 'FPO' | 'Transport Provider' | 'Storage Provider' | 'Buyer';
 type View = 'home' | 'features' | 'crops' | 'crop-detail' | 'buyer-crop-detail' | 'buyer-payment' | 'crop-create' | 'crop-edit' | 'farmeye-detail' | 'market' | 'calendar' | 'transport-options' | 'transport-detail' | 'journey' | 'storage' | 'approvals' | 'fpo' | 'tutorials' | 'help' | 'dispute' | 'profile' | 'settings' | 'orders' | 'deals';
@@ -605,7 +605,15 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
   );
 }
 
-function Login({ onRole, voiceOpen, t, language }: { onRole: (role: Role) => void; voiceOpen: () => void; t: T; language: Language }) { const handleRole = (role: Role) => { warmupSpeech(); onRole(role); }; return <main className="login-screen"><div className="login-brand"><span><Sprout size={27} /></span><strong>{t('app.name')}</strong></div><VoiceButton onClick={voiceOpen} t={t} /><div className="role-cards">{visibleRoles.map((role) => <button className="role-card" key={role} onClick={() => handleRole(role)}><Illustration label={roleMeta[role].illustration} color={roleMeta[role].color} icon={role === 'Farmer' ? Sprout : role === 'FPO' ? Users : role === 'Buyer' ? ShoppingBag : role === 'Storage Provider' ? Warehouse : Truck} /><h2>{t(`role.${role}`)}</h2><ArrowRight size={21} /></button>)}</div><button className="sasya-button" onClick={voiceOpen}><Sprout size={18} /> {t('app.name')}</button></main>; }
+const roleCardPhotos: Record<Role, string> = {
+  Farmer: 'https://images.pexels.com/photos/11070641/pexels-photo-11070641.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  'Transport Provider': 'https://images.pexels.com/photos/20922619/pexels-photo-20922619.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  'Storage Provider': 'https://images.pexels.com/photos/27786504/pexels-photo-27786504.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  Buyer: 'https://images.pexels.com/photos/17160893/pexels-photo-17160893.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  FPO: 'https://images.pexels.com/photos/20356942/pexels-photo-20356942.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+};
+
+function Login({ onRole, voiceOpen, t, language }: { onRole: (role: Role) => void; voiceOpen: () => void; t: T; language: Language }) { const handleRole = (role: Role) => { warmupSpeech(); onRole(role); }; return <main className="login-screen"><div className="login-brand"><span><Sprout size={27} /></span><strong>{t('app.name')}</strong></div><VoiceButton onClick={voiceOpen} t={t} /><div className="role-cards">{visibleRoles.map((role) => <button className="role-card" key={role} onClick={() => handleRole(role)}><div className="role-card-photo"><img src={roleCardPhotos[role]} alt={t(`role.${role}`)} loading="lazy" /></div><h2>{t(`role.${role}`)}</h2><ArrowRight size={21} /></button>)}</div><button className="sasya-button" onClick={voiceOpen}><Sprout size={18} /> {t('app.name')}</button></main>; }
 
 function LoginFlow({ role, done, back, t, authError, clearError, signingIn, step, setStep, mobile, setMobile, otp, setOtp, buyerCat, setBuyerCat }: { role: Role; done: (email: string, password: string, buyerCategory?: string) => Promise<void>; back: () => void; t: T; authError: string | null; clearError: () => void; signingIn: boolean; step: number; setStep: (step: number) => void; mobile: string; setMobile: (value: string) => void; otp: string; setOtp: (value: string) => void; buyerCat: string; setBuyerCat: (value: string) => void }) {
   const totalSteps = 3;
@@ -626,8 +634,35 @@ function LoginFlow({ role, done, back, t, authError, clearError, signingIn, step
 
   return <main className="login-flow"><button className="back-button" onClick={back}><ArrowLeft size={18} /> {t('common.back')}</button><div className="flow-grid"><div><Illustration label={roleMeta[role].illustration} color={roleColor} icon={roleIcon} /><h1>{t(`role.${role}`)} {t('login.continue').toLowerCase()}</h1><p>{t('login.useSampleDetails', { role: t(`role.${role}`) })}</p><Demo>{t('login.demoAccount')}</Demo></div><Card className="login-form"><div className="step-indicator">{Array.from({ length: totalSteps }).map((_, i) => <span key={i} className={`step-dot ${i === step ? 'active' : ''} ${i < step ? 'done' : ''}`} />)}</div>{renderStep()}</Card></div></main>;
 }
-function FeatureCard({ title, body, icon: Icon, color, onClick }: { title: string; body: string; icon: IconType; color: string; onClick: () => void }) { return <button className="feature-card" onClick={onClick}><span className={`feature-icon ${color}`}><Icon size={27} /></span><span><strong>{title}</strong><small>{body}</small></span><ArrowRight size={19} /></button>; }
-function RoleHome({ role, open, profile, notifications, t, profileData }: { role: Role; open: (view: View) => void; profile: () => void; notifications: () => void; t: T; profileData?: Profile | null }) { const feature = (titleKey: string, bodyKey: string, icon: IconType, color: string, view: View) => <FeatureCard title={t(titleKey)} body={t(bodyKey)} icon={icon} color={color} onClick={() => open(view)} />; const homeLocation = (role === 'Farmer' && profileData?.home_location) ? profileData.home_location : roleMeta[role].location; return <><section className={`welcome ${roleMeta[role].color}`}><div><Badge tone="green">{t('home.workspace', { role: t(`role.${role}`) })}</Badge><h1>{t(`home.greeting.${role}`)}</h1><p>{homeLocation}</p><div className="welcome-actions"><button onClick={profile}><UserRound size={18} /> {t('home.profile')}</button><button onClick={notifications}><Bell size={18} /> {t('home.notifications')}</button></div></div><Illustration label={roleMeta[role].illustration} color={roleMeta[role].color} /></section><div className="feature-grid">{role === 'Farmer' && <>{feature('feature.My Crops', 'feature.My Crops.body', Leaf, 'green', 'crops')}{feature('feature.Market', 'feature.Market.body', ShoppingBag, 'blue', 'market')}{feature('feature.Harvest Calendar', 'feature.Harvest Calendar.body', CalendarDays, 'orange', 'calendar')}{feature('feature.Transport', 'feature.Transport.body', Truck, 'teal', 'transport-options')}{feature('feature.Storage', 'feature.Storage.body', Warehouse, 'amber', 'storage')}{feature('feature.FPO Network', 'feature.FPO Network.body', Users, 'green', 'fpo')}{feature('feature.Tutorials', 'feature.Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.Help & Dispute.body', CircleHelp, 'orange', 'help')}</>}{role === 'Buyer' && <>{feature('feature.Explore Crops', 'feature.Explore Crops.body', Search, 'green', 'market')}{feature('feature.My Orders', 'feature.My Orders.body', Package, 'blue', 'orders')}{feature('feature.Deals', 'feature.Deals.body', ShieldCheck, 'teal', 'deals')}{feature('feature.Tutorials', 'feature.Buyer Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.Help & Dispute.body', CircleHelp, 'orange', 'help')}</>}{role === 'FPO' && <>{feature('feature.Member Crops', 'feature.Member Crops.body', Leaf, 'green', 'crops')}{feature('feature.Market', 'feature.Market FPO.body', ShoppingBag, 'blue', 'market')}{feature('feature.Harvest Calendar', 'feature.Member Calendar.body', CalendarDays, 'orange', 'calendar')}{feature('feature.Transport Provider', 'feature.Transport Provider.body', Truck, 'teal', 'transport-options')}{feature('feature.Storage', 'feature.Storage FPO.body', Warehouse, 'amber', 'storage')}{feature('feature.Tutorials', 'feature.FPO Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.FPO Help.body', CircleHelp, 'orange', 'help')}</>}{role === 'Storage Provider' && <>{feature('feature.Main Summary', 'feature.Main Summary.body', Zap, 'green', 'features')}{feature('feature.Storage Requests', 'feature.Storage Requests.body', Bell, 'blue', 'storage')}{feature('feature.My Approvals', 'feature.My Approvals.body', FileCheck2, 'teal', 'approvals')}{feature('feature.Tutorials', 'feature.Storage Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.Provider Help.body', CircleHelp, 'orange', 'help')}</>}{role === 'Transport Provider' && <>{feature('feature.Cold Storage Requests', 'feature.Cold Storage Requests.body', Warehouse, 'amber', 'features')}{feature('feature.Farmer Requests', 'feature.Farmer Requests.body', Sprout, 'green', 'features')}{feature('feature.My Orders', 'feature.My Orders.body', Package, 'teal', 'orders')}{feature('feature.Live Journey', 'feature.Live Journey.body', Map, 'orange', 'journey')}{feature('feature.Tutorials', 'feature.Transport Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.Provider Help.body', CircleHelp, 'orange', 'help')}</>}</div><p className="scroll-hint">{t('home.scrollHint')}</p></>; }
+const featureCardPhotos: Record<string, string> = {
+  'My Crops': 'https://images.pexels.com/photos/13061059/pexels-photo-13061059.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+  'Market': 'https://images.pexels.com/photos/17161106/pexels-photo-17161106.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+  'Harvest Calendar': 'https://images.pexels.com/photos/20458076/pexels-photo-20458076.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+  'Transport': 'https://images.pexels.com/photos/29057949/pexels-photo-29057949.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+  'Storage': 'https://images.pexels.com/photos/27786504/pexels-photo-27786504.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+  'FPO Network': 'https://images.pexels.com/photos/20356942/pexels-photo-20356942.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+  'Tutorials': 'https://images.pexels.com/photos/20356942/pexels-photo-20356942.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+  'Help & Dispute': 'https://images.pexels.com/photos/7709303/pexels-photo-7709303.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+  'Explore Crops': 'https://images.pexels.com/photos/10133324/pexels-photo-10133324.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+  'My Orders': 'https://images.pexels.com/photos/36569208/pexels-photo-36569208.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+  'Deals': 'https://images.pexels.com/photos/17870116/pexels-photo-17870116.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+  'Member Crops': 'https://images.pexels.com/photos/28220703/pexels-photo-28220703.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+  'Transport Provider': 'https://images.pexels.com/photos/29057947/pexels-photo-29057947.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+  'Main Summary': 'https://images.pexels.com/photos/27786504/pexels-photo-27786504.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+  'Storage Requests': 'https://images.pexels.com/photos/31199532/pexels-photo-31199532.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+  'My Approvals': 'https://images.pexels.com/photos/7709303/pexels-photo-7709303.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+  'Cold Storage Requests': 'https://images.pexels.com/photos/31112245/pexels-photo-31112245.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+  'Farmer Requests': 'https://images.pexels.com/photos/13044335/pexels-photo-13044335.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+  'Live Journey': 'https://images.pexels.com/photos/29057946/pexels-photo-29057946.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
+};
+
+function featurePhotoFor(titleKey: string): string | null {
+  const key = titleKey.replace('feature.', '');
+  return featureCardPhotos[key] ?? null;
+}
+
+function FeatureCard({ title, body, icon: Icon, color, onClick, photo }: { title: string; body: string; icon: IconType; color: string; onClick: () => void; photo?: string | null }) { return <button className="feature-card feature-card-photo" onClick={onClick}>{photo ? <><div className="feature-card-image-wrap"><img className="feature-card-image" src={photo} alt="" loading="lazy" /></div><div className="feature-card-label"><strong>{title}</strong><ArrowRight size={19} /></div></> : <><span className={`feature-icon ${color}`}><Icon size={27} /></span><span><strong>{title}</strong><small>{body}</small></span><ArrowRight size={19} /></>}</button>; }
+function RoleHome({ role, open, profile, notifications, t, profileData }: { role: Role; open: (view: View) => void; profile: () => void; notifications: () => void; t: T; profileData?: Profile | null }) { const feature = (titleKey: string, bodyKey: string, icon: IconType, color: string, view: View) => <FeatureCard title={t(titleKey)} body={t(bodyKey)} icon={icon} color={color} onClick={() => open(view)} photo={featurePhotoFor(titleKey)} />; const homeLocation = (role === 'Farmer' && profileData?.home_location) ? profileData.home_location : roleMeta[role].location; return <><section className="welcome welcome-white"><div><Badge tone="green">{t('home.workspace', { role: t(`role.${role}`) })}</Badge><h1>{t(`home.greeting.${role}`)}</h1><p>{homeLocation}</p><div className="welcome-actions"><button onClick={profile}><UserRound size={18} /> {t('home.profile')}</button><button onClick={notifications}><Bell size={18} /> {t('home.notifications')}</button></div></div><Illustration label={roleMeta[role].illustration} color={roleMeta[role].color} /></section><div className="feature-grid">{role === 'Farmer' && <>{feature('feature.My Crops', 'feature.My Crops.body', Leaf, 'green', 'crops')}{feature('feature.Market', 'feature.Market.body', ShoppingBag, 'blue', 'market')}{feature('feature.Harvest Calendar', 'feature.Harvest Calendar.body', CalendarDays, 'orange', 'calendar')}{feature('feature.Transport', 'feature.Transport.body', Truck, 'teal', 'transport-options')}{feature('feature.Storage', 'feature.Storage.body', Warehouse, 'amber', 'storage')}{feature('feature.FPO Network', 'feature.FPO Network.body', Users, 'green', 'fpo')}{feature('feature.Tutorials', 'feature.Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.Help & Dispute.body', CircleHelp, 'orange', 'help')}</>}{role === 'Buyer' && <>{feature('feature.Explore Crops', 'feature.Explore Crops.body', Search, 'green', 'market')}{feature('feature.My Orders', 'feature.My Orders.body', Package, 'blue', 'orders')}{feature('feature.Deals', 'feature.Deals.body', ShieldCheck, 'teal', 'deals')}{feature('feature.Tutorials', 'feature.Buyer Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.Help & Dispute.body', CircleHelp, 'orange', 'help')}</>}{role === 'FPO' && <>{feature('feature.Member Crops', 'feature.Member Crops.body', Leaf, 'green', 'crops')}{feature('feature.Market', 'feature.Market FPO.body', ShoppingBag, 'blue', 'market')}{feature('feature.Harvest Calendar', 'feature.Member Calendar.body', CalendarDays, 'orange', 'calendar')}{feature('feature.Transport Provider', 'feature.Transport Provider.body', Truck, 'teal', 'transport-options')}{feature('feature.Storage', 'feature.Storage FPO.body', Warehouse, 'amber', 'storage')}{feature('feature.Tutorials', 'feature.FPO Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.FPO Help.body', CircleHelp, 'orange', 'help')}</>}{role === 'Storage Provider' && <>{feature('feature.Main Summary', 'feature.Main Summary.body', Zap, 'green', 'features')}{feature('feature.Storage Requests', 'feature.Storage Requests.body', Bell, 'blue', 'storage')}{feature('feature.My Approvals', 'feature.My Approvals.body', FileCheck2, 'teal', 'approvals')}{feature('feature.Tutorials', 'feature.Storage Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.Provider Help.body', CircleHelp, 'orange', 'help')}</>}{role === 'Transport Provider' && <>{feature('feature.Cold Storage Requests', 'feature.Cold Storage Requests.body', Warehouse, 'amber', 'features')}{feature('feature.Farmer Requests', 'feature.Farmer Requests.body', Sprout, 'green', 'features')}{feature('feature.My Orders', 'feature.My Orders.body', Package, 'teal', 'orders')}{feature('feature.Live Journey', 'feature.Live Journey.body', Map, 'orange', 'journey')}{feature('feature.Tutorials', 'feature.Transport Tutorials.body', BookOpen, 'blue', 'tutorials')}{feature('feature.Help & Dispute', 'feature.Provider Help.body', CircleHelp, 'orange', 'help')}</>}</div><p className="scroll-hint">{t('home.scrollHint')}</p></>; }
 
 function ClusterSummaryCard({ cluster, t, badge, onClick }: { cluster: CropClusterWithMembers; t: T; badge: string; onClick: () => void }) {
   const name = cluster.crop_name;
@@ -644,12 +679,14 @@ function ClusterSummaryCard({ cluster, t, badge, onClick }: { cluster: CropClust
   const dropIn = clusterNextDropMinutes(cluster);
   const isAtFloor = currentPrice != null && cluster.price_floor_per_kg != null && currentPrice <= cluster.price_floor_per_kg;
   const isSoldCluster = cluster.status === 'sold';
-  return <Card className={`cluster-row-card${isSoldCluster ? ' sold-card' : ''}`} onClick={onClick}>
-    <span className={`cluster-row-illustration ${cropColorFor(name)}`}><Icon size={38} strokeWidth={1.5} /></span>
-    <div className="cluster-row-content">
+  return <Card className={`cluster-image-card${isSoldCluster ? ' sold-card' : ''}`} onClick={onClick}>
+    <div className="cluster-image-wrap">
+      <img className="cluster-image-photo" src={cropPhotoFor(name)} alt={name} loading="lazy" />
+      <span className={`flip-card-status ${isSoldCluster ? 'soldout' : isHarvested ? 'harvested' : isInTransit ? 'ready' : 'ready'}`}>{statusText}</span>
+    </div>
+    <div className="cluster-image-body">
       <div className="cluster-row-badges">
         <span className="cluster-row-pill"><Layers size={12} /> {t('cluster.label')}</span>
-        <Badge tone={tone}>{statusText}</Badge>
         {cluster.verified_count > 0 && <span className="cluster-verified-fraction"><Check size={11} strokeWidth={3} /> {cluster.verified_count}/{cluster.farmer_count} verified</span>}
       </div>
       <h3>{name}{cluster.variety ? ` · ${cluster.variety}` : ''}</h3>
@@ -663,7 +700,7 @@ function ClusterSummaryCard({ cluster, t, badge, onClick }: { cluster: CropClust
         </div>
       </div>}
     </div>
-    <ArrowRight size={19} />
+    <ArrowRight size={19} className="cluster-image-arrow" />
   </Card>;
 }
 
@@ -675,12 +712,12 @@ function InviteCard({ invite, t, onAccept, onDeny, busy }: { invite: ClusterInvi
   const mySharePct = combinedTotal > 0 ? (myQty / combinedTotal) * 100 : 0;
   const estPricePerKg = 25;
   const myPayoutAmt = (mySharePct / 100) * combinedTotal * estPricePerKg;
-  return <Card className="cluster-row-card cluster-invite-card" onClick={onAccept}>
-    <span className={`cluster-row-illustration ${cropColorFor(name)}`}><Icon size={38} strokeWidth={1.5} /></span>
-    <div className="cluster-row-content">
-      <div className="cluster-row-badges">
-        <span className="cluster-row-pill cluster-invite-pill"><Layers size={12} /> {t('cluster.inviteBadge')}</span>
-      </div>
+  return <Card className="cluster-image-card cluster-invite-card" onClick={onAccept}>
+    <div className="cluster-image-wrap">
+      <img className="cluster-image-photo" src={cropPhotoFor(name)} alt={name} loading="lazy" />
+      <span className="flip-card-status ready" style={{ background: '#fef3c7', color: '#78350f', border: '1px solid #fcd34d' }}><Layers size={12} /> {t('cluster.inviteBadge')}</span>
+    </div>
+    <div className="cluster-image-body">
       <h3>{name}{invite.variety ? ` · ${invite.variety}` : ''}</h3>
       <p>{invite.location_area ?? '—'}</p>
       <p style={{ marginTop: 2 }}>{t('cluster.becomesNIfJoin', { count: invite.farmer_count, next: invite.farmer_count + 1 })}</p>
@@ -796,6 +833,47 @@ function ClusterDetail({ cluster, members, t, invite, busy, onAccept, onDeny, on
 }
 
 type ClusterModalState = { cluster: CropClusterWithMembers; members: ClusterMemberDetail[]; invite?: ClusterInvite } | null;
+
+function MyCropImageCard({ listing, t, upcoming, onClick, onFarmEye }: { listing: CropListing; t: T; upcoming: boolean; onClick: () => void; onFarmEye: () => void }) {
+  const name = cropDisplayName(listing);
+  const photo = cropPhotoFor(name);
+  const isHarvested = listing.status === 'Harvested' || listing.status === 'Sold';
+  const isSold = listing.status === 'Sold';
+  const currentPrice = computeCurrentPrice(listing);
+  const dropIn = nextDropMinutes(listing);
+  const isAtFloor = currentPrice != null && listing.price_floor_per_kg != null && currentPrice <= listing.price_floor_per_kg;
+  const statusLabel = isSold ? t('market.sold') : upcoming ? t('crops.Upcoming') : t('crops.Harvested');
+  const statusClass = isSold ? 'soldout' : upcoming ? 'ready' : 'harvested';
+  const dateLabel = upcoming ? formatDate(listing.expected_harvest_date) : formatDate(listing.harvested_at);
+  const isVerified = upcoming ? listing.listing_verified : (listing.harvest_timing_verified && listing.harvest_quantity_verified);
+
+  return (
+    <Card className="mycrop-image-card" onClick={onClick}>
+      <div className="mycrop-image-wrap">
+        <img className="mycrop-image" src={photo} alt={name} loading="lazy" />
+        <span className={`flip-card-status ${statusClass}`}>{statusLabel}</span>
+        {isVerified && <button type="button" className="verified-badge verified-badge-inline" onClick={(e) => { e.stopPropagation(); onFarmEye(); }}><Satellite size={11} /> Verified</button>}
+      </div>
+      <div className="mycrop-card-body">
+        <h3 className="mycrop-card-title">{name} · {cropDisplayVariety(listing)}</h3>
+        <p className="mycrop-card-qty">{formatKg(listing.quantity_kg)} · {dateLabel}</p>
+        {upcoming && listing.indicative_price_per_kg != null && (
+          <p className="mycrop-card-price">{formatPrice(listing.indicative_price_per_kg)}</p>
+        )}
+        {isHarvested && currentPrice != null && (
+          <div className="price-clock-widget" style={{ marginTop: 6 }}>
+            <div className="price-clock-left">
+              <span className="price-clock-price"><TrendingDown size={14} /> <strong>{formatPrice(currentPrice)}</strong></span>
+              {!isSold && dropIn != null && dropIn > 0 && !isAtFloor && <span className="price-clock-drop">{t('market.nextDropIn', { minutes: dropIn })}</span>}
+              {listing.price_floor_per_kg != null && <span className="price-clock-floor">· {formatPrice(listing.price_floor_per_kg)}</span>}
+            </div>
+          </div>
+        )}
+      </div>
+      <ArrowRight size={19} className="mycrop-card-arrow" />
+    </Card>
+  );
+}
 
 function CropView({ open, selectCrop, t, role, notify, currentUserId }: { open: (view: View) => void; selectCrop: (listing: CropListing) => void; t: T; role: Role; notify: (message: string) => void; currentUserId?: string }) {
   const [type, setType] = useState<'Upcoming' | 'Harvested' | 'Cluster'>('Upcoming');
@@ -918,23 +996,8 @@ function CropView({ open, selectCrop, t, role, notify, currentUserId }: { open: 
         {loading && <p className="calendar-empty">{t('crops.loading')}</p>}
         {error && <p className="calendar-empty">{error}</p>}
         {!loading && !error && filtered.length === 0 && <Card className="crop-row demo-buffer-card"><Illustration label="Chilli" color="orange" icon={Sprout} /><div><Badge tone="orange">{t('crops.demoBuffer')}</Badge><h3>Chilli · Guntur Red</h3><p>{t('crops.demoBuffer')}</p><p style={{ marginTop: 4 }}>350 kg · Grade A · 3 Oct 2026 · ₹42/kg</p><p style={{ marginTop: 2 }}>1 member joined</p></div></Card>}
-        <div className="crop-stack">
-          {filtered.map((listing) => {
-            if (!upcoming) {
-              return <PriceClockCard key={listing.id} listing={listing} t={t} onFarmEye={() => { selectCrop(listing); open('farmeye-detail'); }} />;
-            }
-            const name = cropDisplayName(listing);
-            return <Card key={listing.id} className="crop-row" onClick={() => { selectCrop(listing); open('crop-detail'); }}>
-              {listing.listing_verified && <button type="button" className="verified-badge" onClick={(e) => { e.stopPropagation(); selectCrop(listing); open('farmeye-detail'); }}><Satellite size={11} /> Verified</button>}
-              <Illustration label={name} color={cropColorFor(name)} icon={cropIconFor(name)} />
-              <div className="crop-row-text">
-                <Badge tone="green">{t('crops.Upcoming')}</Badge>
-                <h3>{name} · {cropDisplayVariety(listing)}</h3>
-                <p>{formatKg(listing.quantity_kg)} · {formatDate(listing.expected_harvest_date)}</p>
-              </div>
-              <ArrowRight size={19} />
-            </Card>;
-          })}
+        <div className="flip-card-grid">
+          {filtered.map((listing) => <MyCropImageCard key={listing.id} listing={listing} t={t} upcoming={upcoming} onClick={() => { selectCrop(listing); open(upcoming ? 'crop-detail' : 'farmeye-detail'); }} onFarmEye={() => { selectCrop(listing); open('farmeye-detail'); }} />)}
         </div>
       </>
     )}
