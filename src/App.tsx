@@ -1443,6 +1443,7 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
   const [leftFlipped, setLeftFlipped] = useState(false);
   const [rightFlipped, setRightFlipped] = useState(false);
   const [leftTruckData, setLeftTruckData] = useState<{ crop: string; origin: string; dest: string; qty: number; distance: number; confirmed: boolean; driver?: string; reg?: string; eta?: string } | null>(null);
+  const [cropSearch, setCropSearch] = useState('');
   const qtyPresets = [50, 100, 250, 500, 1000];
   const todayPrices = [
     { name: 'Tomato', price: 30, change: 2, category: 'vegetables' as const, tons: 142, photo: cropPhotoFor('Tomato'), mandi: 'Kolar Hub', variety: 'hybridFarmFresh' as const },
@@ -1477,6 +1478,17 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
     { name: 'Guntur Yard', state: 'Andhra Pradesh' },
   ];
   const localMandiName = 'Warangal APMC';
+  const handleCropSearch = (v: string) => {
+    setCropSearch(v);
+    const trimmed = v.trim().toLowerCase();
+    if (!trimmed) { setCalcCrop(''); setCalcResult(null); return; }
+    const match = todayPrices.find((c) => c.name.toLowerCase() === trimmed);
+    if (match) { setCalcCrop(match.name); setCalcResult(null); return; }
+    if (trimmed.length >= 2) {
+      const partial = todayPrices.find((c) => c.name.toLowerCase().includes(trimmed));
+      if (partial) { setCalcCrop(partial.name); setCalcResult(null); }
+    }
+  };
   const openTruckModal = (crop: string, origin: string, dest: string, qty: number, distance: number) => {
     setTruckModal({ crop, origin, dest, qty, distance });
     setSelectedVehicle(autoSelectVehicle(qty));
@@ -1509,56 +1521,37 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
                 const listing = qualifyingListings[safeComparePage];
                 const name = cropDisplayName(listing);
                 const h = hashStr(listing.id);
-                const marketName = distantMarkets[h % distantMarkets.length];
-                const distance = 180 + (h % 120);
                 const localPrice = computeCurrentPrice(listing) ?? listing.indicative_price_per_kg ?? 20;
-                const distantPrice = round2(localPrice + 3 + (h % 6));
-                const truckCost = distance * 5;
-                const transitHrs = round2(distance / 40);
                 const qty = listing.quantity_kg;
                 const localTotal = round2(qty * localPrice);
-                const distantInHand = round2(qty * distantPrice - truckCost);
-                const difference = round2(distantInHand - localTotal);
-                const worthIt = difference > 0;
-                const pct = Math.round((difference / localTotal) * 100);
-                return <div className="market-compare-pager">
-                  {qualifyingListings.length > 1 && <div className="market-crop-chips">{qualifyingListings.map((l, i) => { const lName = cropDisplayName(l); return <button key={l.id} type="button" className={`market-crop-chip ${i === safeComparePage ? 'selected' : ''}`} onClick={() => { setComparePage(i); setLeftFlipped(false); setLeftTruckData(null); }}><img className="market-crop-chip-thumb" src={cropPhotoFor(lName)} alt={lName} loading="lazy" /><span className="market-crop-chip-info"><strong>{lName}</strong><small>{formatKg(l.quantity_kg)}</small></span></button>; })}</div>}
-                  <div className="market-compare-card-wrap">
-                    <div className="market-compare-hero" key={listing.id}>
-                      <div className="market-compare-hero-head">
-                        <img className="market-compare-hero-thumb" src={cropPhotoFor(name)} alt={name} loading="lazy" />
-                        <div className="market-compare-hero-info">
-                          <h3>{name}</h3>
-                          <small>{t('market.harvestedYesterday')} · {formatKg(qty)} · {t('market.gradeA')}</small>
-                          <span className="market-compare-hero-badge"><CheckCircle2 size={12} /> {t('market.recommended')}</span>
-                        </div>
+                let bestMarket = distantMarkets[0]; let bestDistance = 180 + (h % 120); let bestDistantPrice = round2(localPrice + 3 + (h % 6)); let bestTruckCost = bestDistance * 5; let bestInHand = round2(qty * bestDistantPrice - bestTruckCost); let bestDiff = round2(bestInHand - localTotal);
+                distantMarkets.forEach((mkt) => { const mh = hashStr(listing.id + mkt); const dist = 180 + (mh % 120); const dPrice = round2(localPrice + 3 + (mh % 6)); const tc = dist * 5; const inHand = round2(qty * dPrice - tc); const diff = round2(inHand - localTotal); if (diff > bestDiff) { bestMarket = mkt; bestDistance = dist; bestDistantPrice = dPrice; bestTruckCost = tc; bestInHand = inHand; bestDiff = diff; } });
+                const marketName = bestMarket; const distance = bestDistance; const distantPrice = bestDistantPrice; const truckCost = bestTruckCost; const distantInHand = bestInHand; const difference = bestDiff; const pct = Math.round((difference / localTotal) * 100);
+                return <div className="market-compare-simple">
+                  <div className="market-compare-hero" key={listing.id}>
+                    <div className="market-compare-hero-head">
+                      <img className="market-compare-hero-thumb" src={cropPhotoFor(name)} alt={name} loading="lazy" />
+                      <div className="market-compare-hero-info">
+                        <h3>{name}</h3>
+                        <small>{formatKg(qty)} · {t('market.gradeA')}</small>
+                        <span className="market-compare-hero-badge"><CheckCircle2 size={12} /> {t('market.recommended')}</span>
                       </div>
-                      <div className="market-compare-versus">
-                        <div className="market-compare-side local">
-                          <div className="market-compare-side-label">{t('market.localMarket')}</div>
-                          <div className="market-compare-side-price">{formatPrice(localPrice)}</div>
-                          <div className="market-compare-side-meta">{t('market.noTransportNeeded')}</div>
-                          <div className="market-compare-side-meta" style={{ fontWeight: 700, color: '#16382b', marginTop: 4 }}>{formatRupee(localTotal)}</div>
-                        </div>
-                        <div className="market-compare-vs">vs</div>
-                        <div className="market-compare-side distant">
-                          <div className="market-compare-side-label">{marketName}</div>
-                          <div className="market-compare-side-price">{formatPrice(distantPrice)}</div>
-                          <div className="market-compare-side-meta">{t('market.kmAway', { km: distance })} · {t('market.transitTime', { hrs: String(transitHrs) })}</div>
-                          <div className="market-compare-side-meta" style={{ fontWeight: 700, color: '#16382b', marginTop: 4 }}>{t('market.inHand', { market: marketName })}: {formatRupee(distantInHand)}</div>
-                        </div>
-                      </div>
-                      <div className="market-compare-truck-bar"><Truck size={16} /> <span>{t('market.truckFreight')}: {marketName}</span> <strong>−{formatRupee(truckCost)}</strong></div>
-                      <p className={`market-compare-verdict ${worthIt ? 'positive' : 'negative'}`}>{worthIt ? t('market.worthTripPct', { amount: formatRupee(difference), pct: String(pct) }) : t('market.notWorthTrip', { amount: formatRupee(Math.abs(difference)) })}</p>
-                      <button type="button" className="market-compare-cta" onClick={() => { setLeftTruckData({ crop: name, origin: localMandiName, dest: marketName, qty, distance, confirmed: false }); openTruckModal(name, localMandiName, marketName, qty, distance); setLeftFlipped(true); }}><Truck size={18} /> {t('market.truckToBengaluru', { market: marketName })}</button>
-                      <p className="market-compare-cta-caption">{t('market.truckCaption')}</p>
                     </div>
+                    <div className="market-compare-stack">
+                      <div className="market-compare-side local">
+                        <div className="market-compare-side-label">{t('market.localMarket')}</div>
+                        <div className="market-compare-side-price">{formatPrice(localPrice)}</div>
+                        <div className="market-compare-side-meta" style={{ fontWeight: 700, color: '#16382b' }}>{formatRupee(localTotal)}</div>
+                      </div>
+                      <div className="market-compare-side distant">
+                        <div className="market-compare-side-label">{marketName}</div>
+                        <div className="market-compare-side-price">{formatPrice(distantPrice)}</div>
+                        <div className="market-compare-side-meta" style={{ fontWeight: 700, color: '#16382b' }}>{t('market.inHand', { market: marketName })}: {formatRupee(distantInHand)}</div>
+                      </div>
+                    </div>
+                    <p className="market-compare-verdict positive">{t('market.worthTripPct', { amount: formatRupee(difference), pct: String(pct) })}</p>
+                    <button type="button" className="market-compare-cta" onClick={() => { setLeftTruckData({ crop: name, origin: localMandiName, dest: marketName, qty, distance, confirmed: false }); openTruckModal(name, localMandiName, marketName, qty, distance); setLeftFlipped(true); }}><Truck size={18} /> {t('market.truckToBengaluru', { market: marketName })}</button>
                   </div>
-                  {qualifyingListings.length > 1 && <div className="market-compare-nav">
-                    <button type="button" className="market-compare-nav-btn" disabled={safeComparePage === 0} onClick={() => { setComparePage(Math.max(0, safeComparePage - 1)); setLeftFlipped(false); setLeftTruckData(null); }}><ArrowLeft size={16} /> {t('market.prev')}</button>
-                    <span className="market-compare-page">{safeComparePage + 1} / {qualifyingListings.length}</span>
-                    <button type="button" className="market-compare-nav-btn" disabled={safeComparePage === qualifyingListings.length - 1} onClick={() => { setComparePage(Math.min(qualifyingListings.length - 1, safeComparePage + 1)); setLeftFlipped(false); setLeftTruckData(null); }}>{t('market.next')} <ArrowRight size={16} /></button>
-                  </div>}
                 </div>;
               })()}
             </div>
@@ -1594,13 +1587,13 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
             <div className="flip-card-face flip-card-front market-flip-face">
               <div className="calc-step">
                 <small className="calc-step-label">{t('market.calcPickCrop')}</small>
-                <div className="calc-crop-photo-grid">{todayPrices.map((c) => { return <button type="button" key={c.name} className={`calc-crop-photo-btn ${calcCrop === c.name ? 'selected' : ''}`} onClick={() => { setCalcCrop(c.name); setCalcResult(null); }}><img className="calc-crop-photo-thumb" src={c.photo} alt={c.name} loading="lazy" /><strong>{c.name}</strong></button>; })}</div>
+                <div className="calc-crop-search-bar"><Search size={18} /><input placeholder={t('market.searchCropMarket')} value={cropSearch} onChange={(e) => handleCropSearch(e.target.value)} />{cropSearch && <button type="button" className="market-search-clear" onClick={() => { setCropSearch(''); setCalcCrop(''); setCalcResult(null); }}><X size={16} /></button>}</div>
+                {calcCrop && (() => { const cd = todayPrices.find((c) => c.name === calcCrop); return cd ? <div className="calc-crop-match"><img className="calc-crop-photo-thumb" src={cd.photo} alt={calcCrop} loading="lazy" /><strong>{calcCrop}</strong><span>{formatPrice(cd.price)}</span></div> : null; })()}
               </div>
               <div className="calc-step">
                 <small className="calc-step-label">{t('market.calcQuantity')}</small>
                 <div className="market-qty-row">
                   <div className="market-qty-stepper"><button type="button" onClick={() => { setCalcQty(Math.max(10, calcQty - 10)); setCalcResult(null); }}><Minus size={20} /></button><strong>{calcQty} kg</strong><button type="button" onClick={() => { setCalcQty(calcQty + 10); setCalcResult(null); }}><Plus size={20} /></button></div>
-                  <span className="market-qty-conversion">{t('market.quintalConversion', { q: String(round2(calcQty / 100)) })}</span>
                 </div>
                 <div className="market-qty-presets">{qtyPresets.map((p) => <button key={p} type="button" className={`market-qty-preset ${calcQty === p ? 'selected' : ''}`} onClick={() => { setCalcQty(p); setCalcResult(null); }}>{p >= 1000 ? '1 Ton' : `${p}kg`}</button>)}</div>
               </div>
@@ -1612,9 +1605,7 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
                 <small className="calc-step-label">{t('market.calcMarketBLabel')}</small>
                 <select className="calc-select" value={calcMarketB} onChange={(e) => { setCalcMarketB(e.target.value); setCalcResult(null); }}>{mandiOptions.filter((m) => m.name !== calcMarketA).map((m) => <option key={m.name} value={m.name}>{m.name}, {m.state}</option>)}</select>
               </div>
-              {calcCrop && <div className="market-calc-selected"><Zap size={16} /> {t('market.calcSelected', { crop: calcCrop, price: formatPrice(todayPrices.find((c) => c.name === calcCrop)?.price ?? 20) })}</div>}
               <Button onClick={() => { if (!calcCrop) return; const cropData = todayPrices.find((c) => c.name === calcCrop); const basePrice = cropData?.price ?? 20; const h = hashStr(calcCrop); const marketBPrice = round2(basePrice + 3 + (h % 6)); const distance = 180 + (h % 120); const vId = autoSelectVehicle(calcQty); const vehicle = calcVehicles.find((v) => v.id === vId)!; const truckCost = round2(vehicle.baseFare + vehicle.perKm * distance); const transitHrs = round2(distance / vehicle.avgSpeed); const marketATotal = round2(calcQty * basePrice); const marketBTotal = round2(calcQty * marketBPrice - truckCost); const difference = round2(marketBTotal - marketATotal); setCalcResult({ marketATotal, marketBTotal, difference, worthIt: difference > 0, truckCost, transitHrs, vehicleName: vehicle.name, marketBPrice, basePrice, distance }); setRightFlipped(true); }}><Sparkles size={18} /> {t('market.calcShowAnswer')}</Button>
-              {!calcCrop && !calcResult && <p className="calc-hint">{t('market.calcHelper')}</p>}
             </div>
             <div className="flip-card-face flip-card-back market-flip-face">
               {calcResult ? (() => { const cropData = todayPrices.find((c) => c.name === calcCrop); const harvestDate = cropData ? new Date(Date.now() - (hashStr(calcCrop) % 5) * 86400000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''; return <div className="market-flash-card">
