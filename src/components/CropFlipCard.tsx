@@ -5,27 +5,27 @@ import { cropDisplayName, cropDisplayVariety, formatKg, formatPrice, formatDate,
 import type { T } from '@/translations';
 
 const cropPhotos: Record<string, string> = {
-  tomato: 'https://images.pexels.com/photos/533280/pexels-photo-533280.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-  onion: 'https://images.pexels.com/photos/13061059/pexels-photo-13061059.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-  paddy: 'https://images.pexels.com/photos/36517201/pexels-photo-36517201.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-  rice: 'https://images.pexels.com/photos/36517201/pexels-photo-36517201.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-  chilli: 'https://images.pexels.com/photos/33973273/pexels-photo-33973273.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-  chili: 'https://images.pexels.com/photos/33973273/pexels-photo-33973273.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-  banana: 'https://images.pexels.com/photos/34454659/pexels-photo-34454659.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-  potato: 'https://images.pexels.com/photos/8369485/pexels-photo-8369485.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-  cotton: 'https://images.pexels.com/photos/20223765/pexels-photo-20223765.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-  turmeric: 'https://images.pexels.com/photos/39449734/pexels-photo-39449734.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  tomato: 'https://images.pexels.com/photos/16701788/pexels-photo-16701788.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  onion: 'https://images.pexels.com/photos/10112134/pexels-photo-10112134.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  paddy: 'https://images.pexels.com/photos/35245104/pexels-photo-35245104.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  rice: 'https://images.pexels.com/photos/35245104/pexels-photo-35245104.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  chilli: 'https://images.pexels.com/photos/10899602/pexels-photo-10899602.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  chili: 'https://images.pexels.com/photos/10899602/pexels-photo-10899602.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  banana: 'https://images.pexels.com/photos/4399936/pexels-photo-4399936.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  potato: 'https://images.pexels.com/photos/10899606/pexels-photo-10899606.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  cotton: 'https://images.pexels.com/photos/4264828/pexels-photo-4264828.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  turmeric: 'https://images.pexels.com/photos/31346461/pexels-photo-31346461.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
   groundnut: 'https://images.pexels.com/photos/9799037/pexels-photo-9799037.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
   peanut: 'https://images.pexels.com/photos/9799037/pexels-photo-9799037.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
   maize: 'https://images.pexels.com/photos/20234940/pexels-photo-20234940.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
   corn: 'https://images.pexels.com/photos/20234940/pexels-photo-20234940.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-  brinjal: 'https://images.pexels.com/photos/5529588/pexels-photo-5529588.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-  eggplant: 'https://images.pexels.com/photos/5529588/pexels-photo-5529588.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-  okra: 'https://images.pexels.com/photos/13740688/pexels-photo-13740688.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  brinjal: 'https://images.pexels.com/photos/16732700/pexels-photo-16732700.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  eggplant: 'https://images.pexels.com/photos/16732700/pexels-photo-16732700.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  okra: 'https://images.pexels.com/photos/2583187/pexels-photo-2583187.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
   mango: 'https://images.pexels.com/photos/4418671/pexels-photo-4418671.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
 };
 
-const defaultPhoto = 'https://images.pexels.com/photos/13061059/pexels-photo-13061059.jpeg?auto=compress&cs=tinysrgb&h=650&w=940';
+const defaultPhoto = 'https://images.pexels.com/photos/16701788/pexels-photo-16701788.jpeg?auto=compress&cs=tinysrgb&h=650&w=940';
 
 export function cropPhotoFor(name: string): string {
   const n = name.toLowerCase();
