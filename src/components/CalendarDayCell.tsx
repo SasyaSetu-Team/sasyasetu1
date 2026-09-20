@@ -1,4 +1,4 @@
-import { Satellite, Scissors, Truck, Handshake, Banknote, Clock3 } from 'lucide-react';
+import { Satellite, Scissors, Truck, Handshake, Banknote, Clock3, CheckCircle2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export type CalendarStage = 'verified' | 'harvested' | 'transport' | 'sold' | 'paid';
@@ -9,6 +9,7 @@ export interface CalendarDayEvent {
   color: string;
   stages: CalendarStage[];
   upcoming?: boolean;
+  photo?: string;
 }
 
 export interface CalendarDayData {
@@ -75,6 +76,15 @@ function cropEmojiColor(color: string): string {
   return colors[color] ?? '#4c9554';
 }
 
+function statusIconForEvent(event: CalendarDayEvent): { Icon: LucideIcon; color: string } {
+  if (event.upcoming) return { Icon: Clock3, color: '#047857' };
+  const stages = event.stages;
+  if (stages.includes('sold') || stages.includes('paid')) return { Icon: CheckCircle2, color: '#2a8f83' };
+  if (stages.includes('transport')) return { Icon: Truck, color: '#c87338' };
+  if (stages.includes('harvested')) return { Icon: CheckCircle2, color: '#2e7d32' };
+  return { Icon: Clock3, color: '#31749b' };
+}
+
 export function CalendarDayCell({ data }: { data: CalendarDayData }) {
   const { day, events } = data;
 
@@ -84,8 +94,7 @@ export function CalendarDayCell({ data }: { data: CalendarDayData }) {
 
   const primary = events[0];
   const hasUpcoming = events.some((e) => e.upcoming);
-  const allStages = events.flatMap((e) => e.stages);
-  const uniqueStages = [...new Set(allStages)].slice(0, 2);
+  const { Icon: StatusIcon, color: statusColor } = statusIconForEvent(primary);
 
   return (
     <span
@@ -93,33 +102,20 @@ export function CalendarDayCell({ data }: { data: CalendarDayData }) {
       style={{ background: cropBg(primary.color) }}
     >
       <span className="cal-day-num">{day}</span>
-      <span
-        className="cal-day-emoji"
-        style={{ color: cropEmojiColor(primary.color) }}
-      >
-        {primary.emoji}
+      <span className="cal-day-status-badge" style={{ background: statusColor }}>
+        <StatusIcon size={9} strokeWidth={2.5} />
       </span>
-      {uniqueStages.length > 0 && (
-        <span className="cal-day-badges">
-          {uniqueStages.map((stage) => {
-            const Icon = stageIcon[stage];
-            return (
-              <span
-                key={stage}
-                className="cal-day-badge"
-                style={{ background: stageColor[stage] }}
-              >
-                <Icon size={9} strokeWidth={2.5} />
-              </span>
-            );
-          })}
+      {primary.photo ? (
+        <img className="cal-day-photo" src={primary.photo} alt={primary.crop} loading="lazy" />
+      ) : (
+        <span
+          className="cal-day-emoji"
+          style={{ color: cropEmojiColor(primary.color) }}
+        >
+          {primary.emoji}
         </span>
       )}
-      {hasUpcoming && (
-        <span className="cal-day-clock">
-          <Clock3 size={10} />
-        </span>
-      )}
+      <span className="cal-day-crop-label">{primary.crop}</span>
     </span>
   );
 }
