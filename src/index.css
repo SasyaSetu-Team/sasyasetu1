@@ -92,3 +92,34 @@
 .cal-month-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:600;color:#57534e;background:#f5f5f4}
 .cal-month-chip i{width:6px;height:6px;border-radius:50%;display:inline-block}
 @media(max-width:700px){.cal-intel-ribbon{grid-template-columns:repeat(2,1fr)}.cal-header-title-row h2{font-size:22px}.cal-day-crop-label{display:none}.cal-header-card{padding:18px 18px}}
+.cal-day-active{cursor:pointer;transition:transform .15s,box-shadow .15s}
+.cal-day-active:hover{transform:scale(1.06);box-shadow:0 3px 10px rgba(0,0,0,0.18);z-index:5}
+.harvest-detail-modal{position:relative;width:560px;max-width:92vw;max-height:88vh;overflow-y:auto;background:#fff;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,0.25)}
+.harvest-detail-banner{position:relative;height:200px;overflow:hidden;border-radius:18px 18px 0 0}
+.harvest-detail-banner-img{width:100%;height:100%;object-fit:cover}
+.harvest-detail-banner-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.78) 0%,rgba(0,0,0,0.3) 50%,transparent 100%)}
+.harvest-detail-close{position:absolute;top:12px;right:12px;z-index:5;background:rgba(255,255,255,0.9)}
+.harvest-detail-banner-text{position:absolute;bottom:16px;left:20px;right:20px;z-index:4;color:#fff}
+.harvest-detail-eyebrow{display:block;font-size:11px;font-weight:600;opacity:.85;margin-bottom:4px}
+.harvest-detail-banner-text h2{font:700 26px 'Newsreader',Georgia,Cambria,serif;color:#fff;margin:0 0 2px}
+.harvest-detail-banner-text p{font-size:13px;opacity:.9;margin:0}
+.harvest-detail-body{padding:20px}
+.harvest-detail-section{margin-bottom:18px}
+.harvest-detail-section h3{font:700 15px 'Newsreader',Georgia,Cambria,serif;color:#16382b;margin:0 0 10px}
+.harvest-lifecycle{display:flex;justify-content:space-between;gap:2px;position:relative}
+.harvest-lifecycle::before{content:'';position:absolute;top:13px;left:20px;right:20px;height:2px;background:#e7e5e4;z-index:0}
+.harvest-lifecycle-step{display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;z-index:1;flex:1}
+.harvest-lifecycle-dot{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#fff;border:2px solid #e7e5e4;color:#a8a29e;transition:.2s}
+.harvest-lifecycle-step.done .harvest-lifecycle-dot{background:#047857;border-color:#047857;color:#fff}
+.harvest-lifecycle-step.active .harvest-lifecycle-dot{background:#fff;border-color:#047857;color:#047857;box-shadow:0 0 0 4px rgba(4,120,87,0.18)}
+.harvest-lifecycle-label{font-size:9px;font-weight:600;color:#78716c;text-align:center;line-height:1.2;max-width:60px}
+.harvest-lifecycle-step.done .harvest-lifecycle-label{color:#047857}
+.harvest-lifecycle-step.active .harvest-lifecycle-label{color:#047857;font-weight:700}
+.harvest-mandi-card{display:grid;gap:10px}
+.harvest-mandi-head{display:flex;align-items:center;gap:12px}
+.harvest-mandi-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:#eaf5eb;color:#047857;flex:none}
+.harvest-mandi-head h4{font:700 14px 'Newsreader',Georgia,Cambria,serif;color:#1c1917;margin:0}
+.harvest-mandi-head p{font-size:11px;color:#78716c;margin:2px 0 0}
+.harvest-mandi-badges{display:flex;gap:6px;flex-wrap:wrap}
+.harvest-detail-notes{font-size:12px;color:#57534e;line-height:1.6;background:#f5f5f4;padding:12px 14px;border-radius:10px;border-left:3px solid #047857;margin:0}
+@media(max-width:600px){.harvest-detail-banner{height:160px}.harvest-detail-modal{width:100vw;max-width:100vw;border-radius:16px 16px 0 0;margin-top:auto}.harvest-lifecycle-label{font-size:8px;max-width:48px}.harvest-lifecycle-dot{width:24px;height:24px}}

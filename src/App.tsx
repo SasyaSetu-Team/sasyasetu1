@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { AlertTriangle, ArrowLeft, ArrowRight, Bell, BookOpen, CalendarDays, Check, CheckCircle2, ChevronRight, CircleHelp, Clock3, Eye, EyeOff, FileCheck2, Filter, Headphones, Leaf, Layers, Map, MapPin, Mic, Minus, Package, Phone, Plus, RotateCcw, Satellite, Search, Settings, ShieldCheck, ShoppingBag, Sparkles, Sprout, Star, TrendingDown, Truck, UserRound, Users, Warehouse, X, Zap } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Banknote, Bell, BookOpen, CalendarDays, Check, CheckCircle2, ChevronRight, CircleHelp, Clock3, Eye, EyeOff, FileCheck2, Filter, Handshake, Headphones, Leaf, Layers, Map, MapPin, Mic, Minus, Package, Phone, Plus, Printer, RotateCcw, Satellite, Scissors, Search, Settings, ShieldCheck, ShoppingBag, Sparkles, Sprout, Star, TrendingDown, Truck, UserRound, Users, Warehouse, X, Zap } from 'lucide-react';
 import { allLanguages, makeT, codeFromLanguage, languageFromCode, type Language, type T } from '@/translations';
 import { demoEmails, farmerDemoEmails, useAuth, type Profile } from '@/lib/auth';
 const rameshEmail = farmerDemoEmails.find((f) => f.name === 'Ramesh Kumar')?.email ?? farmerDemoEmails[0].email;
@@ -1735,14 +1735,115 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
   </Page>;
 }
 
-function CalendarView({ open, t, profileData, myListings }: { open: (view: View) => void; t: T; profileData?: Profile | null; myListings?: CropListing[] }) {
+const harvestLifecycleSteps = [
+  { label: 'Upcoming', icon: Clock3 },
+  { label: 'Field Verified', icon: Satellite },
+  { label: 'Harvested', icon: Scissors },
+  { label: 'In Transport', icon: Truck },
+  { label: 'Sold at Mandi', icon: Handshake },
+  { label: 'Payment Cleared', icon: Banknote },
+];
+
+function lifecycleStepFromEvent(event: CalendarDayEvent): number {
+  const stages = event.stages ?? [];
+  if (stages.includes('paid')) return 5;
+  if (stages.includes('sold')) return 4;
+  if (stages.includes('transport')) return 3;
+  if (stages.includes('harvested')) return 2;
+  if (stages.includes('verified')) return 1;
+  return 0;
+}
+
+function HarvestDetailModal({ event, day, monthName, onClose, t, notify }: { event: CalendarDayEvent; day: number; monthName: string; onClose: () => void; t: T; notify: (msg: string) => void }) {
+  const photo = event.photo ?? cropPhotoFor(event.crop);
+  const listing = event.listing;
+  const currentStep = lifecycleStepFromEvent(event);
+  const variety = listing ? cropDisplayVariety(listing) : 'Hybrid Variety';
+  const harvestDateLabel = listing ? formatDate(listing.expected_harvest_date ?? listing.harvested_at) : `${monthName} ${day}, 2026`;
+  const quantityKg = listing ? Number(listing.quantity_kg) : 500;
+  const quintals = quantityKg / 100;
+  const acreage = listing?.area_acres != null ? Number(listing.area_acres) : 1.5;
+  const mandiRate = listing ? (computeCurrentPrice(listing) ?? listing.indicative_price_per_kg ?? 25) : 25;
+  const grossValue = quantityKg * mandiRate;
+  const mandiYard = listing?.location_area ?? 'Warangal APMC Yard';
+  const notes = listing?.listing_verified ? 'Satellite verification complete. Vegetation index healthy. No pest indicators detected. Ready for harvest window as scheduled.' : 'Pending field verification. Agronomist visit scheduled 3 days before harvest date.';
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="harvest-detail-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="harvest-detail-banner">
+          <img src={photo} alt={event.crop} className="harvest-detail-banner-img" />
+          <div className="harvest-detail-banner-overlay" />
+          <button className="icon-button harvest-detail-close" onClick={onClose}><X size={22} /></button>
+          <div className="harvest-detail-banner-text">
+            <span className="harvest-detail-eyebrow">{monthName} {day}, 2026</span>
+            <h2>{event.crop}</h2>
+            <p>{variety} · Harvest {harvestDateLabel}</p>
+          </div>
+        </div>
+        <div className="harvest-detail-body">
+          <div className="harvest-detail-section">
+            <h3>Harvest Lifecycle</h3>
+            <div className="harvest-lifecycle">
+              {harvestLifecycleSteps.map((step, i) => {
+                const StepIcon = step.icon;
+                const state = i < currentStep ? 'done' : i === currentStep ? 'active' : 'pending';
+                return (
+                  <div key={i} className={`harvest-lifecycle-step ${state}`}>
+                    <span className="harvest-lifecycle-dot">{i < currentStep ? <Check size={13} /> : <StepIcon size={14} />}</span>
+                    <span className="harvest-lifecycle-label">{step.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="harvest-detail-section">
+            <h3>Yield & Value Metrics</h3>
+            <div className="detail-grid">
+              <Detail label="Expected Yield" value={`${quintals.toFixed(1)} quintals`} />
+              <Detail label="Quantity (kg)" value={formatKg(quantityKg)} />
+              <Detail label="Plot Acreage" value={`${acreage} acres`} />
+              <Detail label="Mandi Rate" value={formatPrice(mandiRate)} />
+              <Detail label="Gross Estimated Value" value={`₹${Math.round(grossValue).toLocaleString('en-IN')}`} />
+              <Detail label="Harvest Status" value={event.upcoming ? 'Upcoming' : event.stages.includes('sold') ? 'Sold' : event.stages.includes('harvested') ? 'Harvested' : 'Verified'} />
+            </div>
+          </div>
+          <div className="harvest-detail-section">
+            <h3>Target Liquidation Mandi</h3>
+            <Card className="harvest-mandi-card">
+              <div className="harvest-mandi-head">
+                <span className="harvest-mandi-icon"><MapPin size={20} /></span>
+                <div>
+                  <h4>{mandiYard}</h4>
+                  <p>APMC regulated yard · Telangana</p>
+                </div>
+              </div>
+              <div className="harvest-mandi-badges">
+                <Badge tone="green"><Truck size={12} /> Freight pre-negotiated</Badge>
+                <Badge tone="blue">₹2,500 fixed</Badge>
+              </div>
+              <Button icon={ArrowRight} variant="soft" onClick={() => notify('Mandi truck pre-booking opened')}>Pre-book Mandi Truck</Button>
+            </Card>
+          </div>
+          <div className="harvest-detail-section">
+            <h3>Inspection Notes</h3>
+            <p className="harvest-detail-notes">{notes}</p>
+          </div>
+          <Button icon={Printer} wide onClick={() => notify('Mandi gate pass sent to printer')}>Print Mandi Gate Pass</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CalendarView({ open, t, profileData }: { open: (view: View) => void; t: T; profileData?: Profile | null }) {
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  const [listings, setListings] = useState<CropListing[]>(myListings ?? []);
-  const [loading, setLoading] = useState(!myListings);
+  const [listings, setListings] = useState<CropListing[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<{ day: number; monthIndex: number; event: CalendarDayEvent } | null>(null);
 
   useEffect(() => {
-    if (myListings) { setListings(myListings); setLoading(false); return; }
     let cancelled = false;
     setLoading(true);
     (async () => {
@@ -1753,7 +1854,7 @@ function CalendarView({ open, t, profileData, myListings }: { open: (view: View)
       finally { if (!cancelled) setLoading(false); }
     })();
     return () => { cancelled = true; };
-  }, [myListings, t]);
+  }, [t]);
 
   const farmerName = profileData?.display_name ?? 'Ramesh Kumar';
   const farmerLocation = profileData?.home_location ?? roleMeta.Farmer.location;
@@ -1792,7 +1893,7 @@ function CalendarView({ open, t, profileData, myListings }: { open: (view: View)
     const day = d.getDate();
     if (!realEvents[monthIdx]) realEvents[monthIdx] = {};
     if (!realEvents[monthIdx][day]) realEvents[monthIdx][day] = [];
-    realEvents[monthIdx][day].push({ crop: name, emoji, color, stages, upcoming, photo });
+    realEvents[monthIdx][day].push({ crop: name, emoji, color, stages, upcoming, photo, listing });
     if (upcoming) upcomingCount++;
     totalOutputKg += Number(listing.quantity_kg);
     const price = computeCurrentPrice(listing) ?? listing.indicative_price_per_kg ?? 0;
@@ -1880,7 +1981,7 @@ function CalendarView({ open, t, profileData, myListings }: { open: (view: View)
           </div>
           {eventCount > 0 ? <>
             <div className="cal-dow-row">{dows.map((d, i) => <span key={i}>{d}</span>)}</div>
-            <div className="calendar-grid">{getMonthDays(monthIndex).map((d, i) => <CalendarDayCell key={i} data={d} />)}</div>
+            <div className="calendar-grid">{getMonthDays(monthIndex).map((d, i) => <CalendarDayCell key={i} data={d} onDayClick={(day, events) => { if (events.length > 0) setSelectedEvent({ day, monthIndex, event: events[0] }); }} />)}</div>
             <div className="cal-month-footer">
               {chips.map((chip, i) => <span key={i} className="cal-month-chip"><i style={{ background: cropColorFor(chip.crop) === 'tomato' ? '#c15e48' : cropColorFor(chip.crop) === 'onion' ? '#a76784' : cropColorFor(chip.crop) === 'paddy' ? '#778b2e' : cropColorFor(chip.crop) === 'green' ? '#4c9554' : cropColorFor(chip.crop) === 'amber' ? '#b8860b' : cropColorFor(chip.crop) === 'orange' ? '#d97a36' : cropColorFor(chip.crop) === 'teal' ? '#1a8a7a' : '#4c9554' }} />{chip.crop} ({chip.day}th)</span>)}
             </div>
@@ -1888,6 +1989,7 @@ function CalendarView({ open, t, profileData, myListings }: { open: (view: View)
         </Card>;
       })}
     </div>
+    {selectedEvent && <HarvestDetailModal event={selectedEvent.event} day={selectedEvent.day} monthName={months[selectedEvent.monthIndex]} onClose={() => setSelectedEvent(null)} t={t} notify={(msg: string) => { setToast(msg); window.setTimeout(() => setToast(''), 2500); }} />}
   </Page>;
 }
 

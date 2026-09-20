@@ -1,5 +1,6 @@
 import { Satellite, Scissors, Truck, Handshake, Banknote, Clock3, CheckCircle2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { cropPhotoFor } from '@/components/CropFlipCard';
 
 export type CalendarStage = 'verified' | 'harvested' | 'transport' | 'sold' | 'paid';
 
@@ -10,6 +11,7 @@ export interface CalendarDayEvent {
   stages: CalendarStage[];
   upcoming?: boolean;
   photo?: string;
+  listing?: import('@/lib/crops').CropListing;
 }
 
 export interface CalendarDayData {
@@ -85,7 +87,7 @@ function statusIconForEvent(event: CalendarDayEvent): { Icon: LucideIcon; color:
   return { Icon: Clock3, color: '#31749b' };
 }
 
-export function CalendarDayCell({ data }: { data: CalendarDayData }) {
+export function CalendarDayCell({ data, onDayClick }: { data: CalendarDayData; onDayClick?: (day: number, events: CalendarDayEvent[]) => void }) {
   const { day, events } = data;
 
   if (day < 1 || events.length === 0) {
@@ -95,26 +97,21 @@ export function CalendarDayCell({ data }: { data: CalendarDayData }) {
   const primary = events[0];
   const hasUpcoming = events.some((e) => e.upcoming);
   const { Icon: StatusIcon, color: statusColor } = statusIconForEvent(primary);
+  const photo = primary.photo ?? cropPhotoFor(primary.crop);
 
   return (
     <span
       className={`cal-day cal-day-active${hasUpcoming ? ' cal-day-upcoming' : ''}`}
       style={{ background: cropBg(primary.color) }}
+      onClick={onDayClick ? () => onDayClick(day, events) : undefined}
+      role={onDayClick ? 'button' : undefined}
+      tabIndex={onDayClick ? 0 : undefined}
     >
       <span className="cal-day-num">{day}</span>
       <span className="cal-day-status-badge" style={{ background: statusColor }}>
         <StatusIcon size={9} strokeWidth={2.5} />
       </span>
-      {primary.photo ? (
-        <img className="cal-day-photo" src={primary.photo} alt={primary.crop} loading="lazy" />
-      ) : (
-        <span
-          className="cal-day-emoji"
-          style={{ color: cropEmojiColor(primary.color) }}
-        >
-          {primary.emoji}
-        </span>
-      )}
+      <img className="cal-day-photo" src={photo} alt={primary.crop} loading="lazy" />
       <span className="cal-day-crop-label">{primary.crop}</span>
     </span>
   );
