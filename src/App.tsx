@@ -1582,7 +1582,7 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
       <Card className="market-calc market-calc-v2">
         <h3 className="subhead">{t('market.calcTitle')}</h3>
         <p style={{ color: '#78716c', fontSize: 12, margin: '0 0 14px', lineHeight: 1.5 }}>{t('market.calcSubtitle')}</p>
-        <div className={`flip-card market-flip${rightFlipped ? ' flipped' : ''}`}>
+        <div className={`flip-card market-flip market-flip-calc${rightFlipped ? ' flipped' : ''}`}>
           <div className="flip-card-inner">
             <div className="flip-card-face flip-card-front market-flip-face">
               <div className="calc-step">
