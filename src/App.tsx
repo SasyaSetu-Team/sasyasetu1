@@ -1740,7 +1740,7 @@ const harvestLifecycleSteps = [
   { label: 'Field Verified', icon: Satellite },
   { label: 'Harvested', icon: Scissors },
   { label: 'In Transport', icon: Truck },
-  { label: 'Sold at Mandi', icon: Handshake },
+  { label: 'Sold', icon: Handshake },
   { label: 'Payment Cleared', icon: Banknote },
 ];
 
@@ -1805,7 +1805,7 @@ function HarvestDetailModal({ event, day, monthName, onClose, t, notify }: { eve
               <Detail label="Plot Acreage" value={`${acreage} acres`} />
               <Detail label="Mandi Rate" value={formatPrice(mandiRate)} />
               <Detail label="Gross Estimated Value" value={`₹${Math.round(grossValue).toLocaleString('en-IN')}`} />
-              <Detail label="Harvest Status" value={event.upcoming ? 'Upcoming' : event.stages.includes('sold') ? 'Sold' : event.stages.includes('harvested') ? 'Harvested' : 'Verified'} />
+              <Detail label="Harvest Status" value={event.upcoming ? 'Upcoming' : event.stages.includes('paid') ? 'Payment Cleared' : event.stages.includes('sold') ? 'Sold' : event.stages.includes('harvested') ? 'Harvested' : 'Verified'} />
             </div>
           </div>
           <div className="harvest-detail-section">
@@ -1869,8 +1869,7 @@ function CalendarView({ open, t, profileData }: { open: (view: View) => void; t:
     const dateStr = listing.expected_harvest_date ?? listing.harvested_at;
     const d = dateStr ? new Date(dateStr) : null;
     const isPast = d ? (d.getFullYear() < 2026 || (d.getFullYear() === 2026 && d.getMonth() <= 8)) : false;
-    if (isPast) stages.push('harvested');
-    if (listing.status === 'Sold') stages.push('sold');
+    if (isPast) { stages.push('harvested', 'transport', 'sold', 'paid'); }
     return stages;
   };
 
