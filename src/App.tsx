@@ -1442,14 +1442,19 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
   const [dispatchConfirmed, setDispatchConfirmed] = useState(false);
   const qtyPresets = [50, 100, 250, 500, 1000];
   const todayPrices = [
-    { name: 'Tomato', price: 30, change: 2, category: 'vegetables' as const, tons: 142, photo: cropPhotoFor('Tomato'), mandi: 'Kolar Hub' },
-    { name: 'Onion', price: 28, change: 1, category: 'vegetables' as const, tons: 98, photo: cropPhotoFor('Onion'), mandi: 'Lasalgaon' },
-    { name: 'Paddy', price: 22, change: 0, category: 'grains' as const, tons: 310, photo: cropPhotoFor('Paddy'), mandi: 'Karimnagar' },
-    { name: 'Chilli', price: 45, change: -3, category: 'spices' as const, tons: 67, photo: cropPhotoFor('Chilli'), mandi: 'Guntur Yard' },
-    { name: 'Banana', price: 18, change: 1, category: 'fruits' as const, tons: 54, photo: cropPhotoFor('Banana'), mandi: 'Jalgaon' },
-    { name: 'Turmeric', price: 38, change: 2, category: 'spices' as const, tons: 41, photo: cropPhotoFor('Turmeric'), mandi: 'Erode' },
-    { name: 'Cotton', price: 52, change: 1, category: 'cash' as const, tons: 88, photo: cropPhotoFor('Cotton'), mandi: 'Adilabad' },
-    { name: 'Potato', price: 20, change: -1, category: 'vegetables' as const, tons: 120, photo: cropPhotoFor('Potato'), mandi: 'Agra' },
+    { name: 'Tomato', price: 30, change: 2, category: 'vegetables' as const, tons: 142, photo: cropPhotoFor('Tomato'), mandi: 'Kolar Hub', variety: 'hybridFarmFresh' as const },
+    { name: 'Onion', price: 28, change: 1, category: 'vegetables' as const, tons: 98, photo: cropPhotoFor('Onion'), mandi: 'Lasalgaon', variety: 'hybridLocal' as const },
+    { name: 'Paddy', price: 22, change: 0, category: 'grains' as const, tons: 310, photo: cropPhotoFor('Paddy'), mandi: 'Karimnagar', variety: 'hybridHighYield' as const },
+    { name: 'Chilli', price: 45, change: -3, category: 'spices' as const, tons: 67, photo: cropPhotoFor('Chilli'), mandi: 'Guntur Yard', variety: 'hybridFarmFresh' as const },
+    { name: 'Banana', price: 18, change: 1, category: 'fruits' as const, tons: 54, photo: cropPhotoFor('Banana'), mandi: 'Jalgaon', variety: 'hybridLocal' as const },
+    { name: 'Turmeric', price: 38, change: 2, category: 'spices' as const, tons: 41, photo: cropPhotoFor('Turmeric'), mandi: 'Erode', variety: 'orgicCertified' as const },
+    { name: 'Cotton', price: 52, change: 1, category: 'cash' as const, tons: 88, photo: cropPhotoFor('Cotton'), mandi: 'Adilabad', variety: 'hybridDrought' as const },
+    { name: 'Potato', price: 20, change: -1, category: 'vegetables' as const, tons: 120, photo: cropPhotoFor('Potato'), mandi: 'Agra', variety: 'hybridHighYield' as const },
+    { name: 'Maize', price: 19, change: 1, category: 'grains' as const, tons: 85, photo: cropPhotoFor('Maize'), mandi: 'Nizamabad', variety: 'hybridHighYield' as const },
+    { name: 'Groundnut', price: 55, change: 2, category: 'cash' as const, tons: 44, photo: cropPhotoFor('Groundnut'), mandi: 'Kurnool', variety: 'hybridLocal' as const },
+    { name: 'Brinjal', price: 25, change: 0, category: 'vegetables' as const, tons: 62, photo: cropPhotoFor('Brinjal'), mandi: 'Warangal', variety: 'hybridFarmFresh' as const },
+    { name: 'Okra', price: 32, change: 1, category: 'vegetables' as const, tons: 51, photo: cropPhotoFor('Okra'), mandi: 'Hyderabad', variety: 'hybridLocal' as const },
+    { name: 'Mango', price: 60, change: 3, category: 'fruits' as const, tons: 38, photo: cropPhotoFor('Mango'), mandi: 'Krishna District', variety: 'orgicCertified' as const },
   ];
   const filteredPrices = benchmarkFilter === 'all' ? todayPrices : todayPrices.filter((p) => p.category === benchmarkFilter);
   const sparklineColor = (change: number) => change > 0 ? '#047857' : change < 0 ? '#9f1239' : '#a8a29e';
@@ -1550,7 +1555,7 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
         <p style={{ color: '#78716c', fontSize: 12, margin: '0 0 14px', lineHeight: 1.5 }}>{t('market.calcSubtitle')}</p>
         <div className="calc-step">
           <small className="calc-step-label">{t('market.calcPickCrop')}</small>
-          <div className="calc-crop-grid">{todayPrices.map((c) => { const Icon = cropIconFor(c.name); const color = cropColorFor(c.name); return <button type="button" key={c.name} className={`calc-crop-btn ${calcCrop === c.name ? 'selected' : ''}`} onClick={() => { setCalcCrop(c.name); setCalcResult(null); }}><span className={`calc-crop-icon ${color}`}><Icon size={28} strokeWidth={1.5} /></span><strong>{c.name}</strong></button>; })}</div>
+          <div className="calc-crop-photo-grid">{todayPrices.map((c) => { return <button type="button" key={c.name} className={`calc-crop-photo-btn ${calcCrop === c.name ? 'selected' : ''}`} onClick={() => { setCalcCrop(c.name); setCalcResult(null); }}><img className="calc-crop-photo-thumb" src={c.photo} alt={c.name} loading="lazy" /><strong>{c.name}</strong></button>; })}</div>
         </div>
         <div className="calc-step">
           <small className="calc-step-label">{t('market.calcQuantity')}</small>
@@ -1570,31 +1575,48 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
         </div>
         {calcCrop && <div className="market-calc-selected"><Zap size={16} /> {t('market.calcSelected', { crop: calcCrop, price: formatPrice(todayPrices.find((c) => c.name === calcCrop)?.price ?? 20) })}</div>}
         <Button onClick={() => { if (!calcCrop) return; const cropData = todayPrices.find((c) => c.name === calcCrop); const basePrice = cropData?.price ?? 20; const h = hashStr(calcCrop); const marketBPrice = round2(basePrice + 3 + (h % 6)); const distance = 180 + (h % 120); const vId = autoSelectVehicle(calcQty); const vehicle = calcVehicles.find((v) => v.id === vId)!; const truckCost = round2(vehicle.baseFare + vehicle.perKm * distance); const transitHrs = round2(distance / vehicle.avgSpeed); const marketATotal = round2(calcQty * basePrice); const marketBTotal = round2(calcQty * marketBPrice - truckCost); const difference = round2(marketBTotal - marketATotal); setCalcResult({ marketATotal, marketBTotal, difference, worthIt: difference > 0, truckCost, transitHrs, vehicleName: vehicle.name, marketBPrice, basePrice, distance }); }}><Sparkles size={18} /> {t('market.calcShowAnswer')}</Button>
-        {calcResult && <div className="market-freight-box">
-          <div className="market-freight-row"><span>{t('market.originRate')}</span><strong>{formatPrice(calcResult.basePrice)}</strong></div>
-          <div className="market-freight-row"><span>{t('market.destinationRate')}</span><strong>{formatPrice(calcResult.marketBPrice)}</strong></div>
-          <div className="market-freight-row"><span>{t('market.distance')}</span><strong>{calcResult.distance} km</strong></div>
-          <div className="market-freight-row"><span>{t('market.transitTime', { hrs: String(calcResult.transitHrs) })}</span><strong>~{calcResult.transitHrs} hrs</strong></div>
-          <div className="market-freight-row freight"><span>{t('market.truckFreight')} · {calcResult.vehicleName}</span><strong>−{formatRupee(calcResult.truckCost)}</strong></div>
-          <div className="market-freight-row"><span>{t('market.calcResultA', { market: calcMarketA })}</span><strong>{formatRupee(calcResult.marketATotal)}</strong></div>
-          <div className="market-freight-row"><span>{t('market.calcResultB', { market: calcMarketB })}</span><strong>{formatRupee(calcResult.marketBTotal)}</strong></div>
-          <div className="market-freight-row net"><span>{t('market.netInHand')}</span><strong>{calcResult.difference > 0 ? '+' : ''}{formatRupee(calcResult.difference)}</strong></div>
-          <div className={`market-recommendation ${calcResult.worthIt ? 'positive' : 'negative'}`}>{calcResult.worthIt ? t('market.highlyRecommended', { amount: formatRupee(calcResult.difference) }) : t('market.localRecommended')}</div>
-          {calcResult.worthIt && <button type="button" className="market-compare-cta" onClick={() => openTruckModal(calcCrop, calcMarketA, calcMarketB, calcQty, calcResult.distance)}><Truck size={18} /> {t('market.bookTruck')}</button>}
-        </div>}
+        {calcResult && (() => { const cropData = todayPrices.find((c) => c.name === calcCrop); const harvestDate = cropData ? new Date(Date.now() - (hashStr(calcCrop) % 5) * 86400000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''; return <div className="market-flash-card">
+          <div className="market-flash-head">
+            <img className="market-flash-photo" src={cropData?.photo ?? cropPhotoFor(calcCrop)} alt={calcCrop} loading="lazy" />
+            <div className="market-flash-head-info">
+              <h4>{calcCrop}</h4>
+              <small>Harvested: {harvestDate} · {formatKg(calcQty)} · Grade A</small>
+            </div>
+            <span className={`market-flash-badge ${calcResult.worthIt ? 'positive' : 'negative'}`}>{calcResult.worthIt ? t('market.recommended') : t('market.notWorthTrip', { amount: '' }).split('—')[0].trim()}</span>
+          </div>
+          <div className="market-flash-versus">
+            <div className="market-flash-side local">
+              <div className="market-flash-side-label">{t('market.localMarket')}</div>
+              <div className="market-flash-side-price">{formatPrice(calcResult.basePrice)}</div>
+              <div className="market-flash-side-meta">{t('market.noTransportNeeded')}</div>
+              <div className="market-flash-side-total">{formatRupee(calcResult.marketATotal)}</div>
+            </div>
+            <div className="market-flash-vs">vs</div>
+            <div className="market-flash-side distant">
+              <div className="market-flash-side-label">{calcMarketB}</div>
+              <div className="market-flash-side-price">{formatPrice(calcResult.marketBPrice)}</div>
+              <div className="market-flash-side-meta">{calcResult.distance} km · {t('market.transitTime', { hrs: String(calcResult.transitHrs) })}</div>
+              <div className="market-flash-side-total">{t('market.inHand', { market: calcMarketB })}: {formatRupee(calcResult.marketBTotal)}</div>
+            </div>
+          </div>
+          <div className="market-flash-truck"><Truck size={16} /> <span>{t('market.truckFreight')}: {calcMarketB}</span> <strong>−{formatRupee(calcResult.truckCost)}</strong></div>
+          <p className={`market-flash-banner ${calcResult.worthIt ? 'positive' : 'negative'}`}>{calcResult.worthIt ? t('market.worthTripTruck', { amount: formatRupee(calcResult.difference) }) : t('market.notWorthTripTruck', { amount: formatRupee(Math.abs(calcResult.difference)) })}</p>
+          <button type="button" className="market-flash-cta" onClick={() => openTruckModal(calcCrop, calcMarketA, calcMarketB, calcQty, calcResult.distance)}><Truck size={18} /> {t('market.requestTruckTo', { market: calcMarketB })}</button>
+          <p className="market-flash-caption">{t('market.freightCaption')}</p>
+        </div>; })()}
         {!calcCrop && !calcResult && <p className="calc-hint">{t('market.calcHelper')}</p>}
       </Card>
     </div>
     <Card className="market-price-ref">
       <div className="market-benchmark-head">
         <div>
-          <h3>{t('market.liveBenchmark')}</h3>
-          <p className="market-benchmark-subtitle">{t('market.todaySubtitle')}</p>
+          <h3>{t('market.todayInMarketTitle')}</h3>
+          <p className="market-benchmark-subtitle">{t('market.todayInMarketSubtitle')}</p>
         </div>
-        <span className="market-live-pill">{t('market.livePill')}</span>
+        <span className="market-live-pill">{t('market.liveMandiFeed')}</span>
       </div>
-      <div className="market-filter-chips">{(['all', 'vegetables', 'spices', 'grains', 'fruits', 'cash'] as const).map((f) => <button key={f} type="button" className={`market-filter-chip ${benchmarkFilter === f ? 'selected' : ''}`} onClick={() => setBenchmarkFilter(f)}>{t(`market.filter${f.charAt(0).toUpperCase() + f.slice(1)}`)}</button>)}</div>
-      <div className="market-benchmark-list">{filteredPrices.map((p) => { const h = hashStr(p.name); const bars = sparklineBars(h, p.change); const color = sparklineColor(p.change); return <button type="button" className="market-benchmark-row" key={p.name} onClick={() => setMarketDetail(p)} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', border: '1px solid rgba(231,229,228,0.90)', borderRadius: 14, background: '#fff' }}><img className="market-benchmark-thumb" src={p.photo} alt={p.name} loading="lazy" /><div className="market-benchmark-info"><h4>{p.name}</h4><small>{t('market.topMandi', { mandi: p.mandi })} · {t('market.tonsTraded', { tons: String(p.tons) })}</small><div className="market-sparkline">{bars.map((b, i) => <span key={i} style={{ height: `${Math.max(8, Math.min(28, b))}px`, background: color, opacity: 0.3 + (i / 7) * 0.7 }} />)}</div></div><div className="market-benchmark-price-col"><div className="market-benchmark-price">₹{p.price}/kg</div><div className={`market-benchmark-change ${p.change > 0 ? 'up' : p.change < 0 ? 'down' : 'flat'}`}>{p.change > 0 ? '▲' : p.change < 0 ? '▼' : '—'} {p.change > 0 ? t('market.vsLastWeek', { amount: String(p.change) }) : p.change < 0 ? t('market.vsLastWeekDown', { amount: String(Math.abs(p.change)) }) : t('market.vsLastWeekFlat')}</div></div></button>; })}</div>
+      <div className="market-filter-row"><Filter size={16} /> <span>{t('market.filterLabel')}</span> <div className="market-filter-chips">{(['all', 'vegetables', 'spices', 'grains', 'fruits', 'cash'] as const).map((f) => <button key={f} type="button" className={`market-filter-chip ${benchmarkFilter === f ? 'selected' : ''}`} onClick={() => setBenchmarkFilter(f)}>{t(`market.filter${f.charAt(0).toUpperCase() + f.slice(1)}`)}</button>)}</div></div>
+      <div className="market-benchmark-list">{filteredPrices.map((p) => { const h = hashStr(p.name); const bars = sparklineBars(h, p.change); const color = sparklineColor(p.change); return <button type="button" className="market-benchmark-row" key={p.name} onClick={() => setMarketDetail(p)} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', border: '1px solid rgba(231,229,228,0.90)', borderRadius: 14, background: '#fff' }}><img className="market-benchmark-thumb" src={p.photo} alt={p.name} loading="lazy" /><div className="market-benchmark-info"><h4>{p.name}<span className="market-benchmark-variety">{t(`market.${p.variety}`)}</span></h4><div className="market-benchmark-location"><MapPin size={11} /> {p.mandi} · {t('market.tonsTraded', { tons: String(p.tons) })}</div><div className="market-benchmark-trend-label">{t('market.sevenDayTrend')}</div><div className="market-sparkline">{bars.map((b, i) => <span key={i} style={{ height: `${Math.max(8, Math.min(28, b))}px`, background: color, opacity: 0.3 + (i / 7) * 0.7 }} />)}</div><div className="market-benchmark-caption">{t('market.modalApcGrade')}</div></div><div className="market-benchmark-price-col"><div className="market-benchmark-price">₹{p.price}/kg</div><div className={`market-benchmark-change ${p.change > 0 ? 'up' : p.change < 0 ? 'down' : 'flat'}`}>{p.change > 0 ? '▲' : p.change < 0 ? '▼' : '—'} {p.change > 0 ? t('market.vsLastWeek', { amount: String(p.change) }) : p.change < 0 ? t('market.vsLastWeekDown', { amount: String(Math.abs(p.change)) }) : t('market.vsLastWeekFlat')}</div></div><span className="market-benchmark-chevron"><ChevronRight size={18} /></span></button>; })}</div>
     </Card>
     {marketDetail && (() => {
       const h = hashStr(marketDetail.name);
