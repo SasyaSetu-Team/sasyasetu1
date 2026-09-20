@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight, Check, RotateCcw, ShoppingBag, TrendingDown } from 'lucide-react';
+import { ArrowRight, RotateCcw, ShoppingBag, TrendingDown } from 'lucide-react';
 import type { CropListing } from '@/lib/crops';
 import { cropDisplayName, cropDisplayVariety, formatKg, formatPrice, formatDate, computeCurrentPrice, nextDropMinutes } from '@/lib/crops';
 import type { T } from '@/translations';
@@ -35,10 +35,9 @@ export function cropPhotoFor(name: string): string {
   return defaultPhoto;
 }
 
-export function CropFlipCard({ listing, t, onBuyNow, onOpenDetail, onOpenPayment, sold }: {
+export function CropFlipCard({ listing, t, onOpenDetail, onOpenPayment, sold }: {
   listing: CropListing;
   t: T;
-  onBuyNow: () => void;
   onOpenDetail: () => void;
   onOpenPayment: () => void;
   sold?: boolean;
@@ -82,7 +81,7 @@ export function CropFlipCard({ listing, t, onBuyNow, onOpenDetail, onOpenPayment
             <p style={{ fontSize: '13px', color: '#57534e', fontWeight: 600, margin: '4px 0 8px' }}>{formatPrice(listing.indicative_price_per_kg)}</p>
           )}
           <button type="button" className="flip-card-flip-btn" onClick={() => setFlipped(true)}>
-            {t('market.seeInfo') ?? 'See Info'} <ArrowRight size={14} />
+            {t('market.seeInfo')} <ArrowRight size={14} />
           </button>
         </div>
         <div className="flip-card-face flip-card-back">
@@ -90,19 +89,19 @@ export function CropFlipCard({ listing, t, onBuyNow, onOpenDetail, onOpenPayment
           <div className="flip-card-back-rate">{formatPrice(benchmarkRate)}</div>
           <div className="flip-card-specs">
             <div className="flip-card-spec">
-              <div className="flip-card-spec-label">{t('crops.harvestDate') ?? 'Harvest Date'}</div>
+              <div className="flip-card-spec-label">{t('crops.harvestDate')}</div>
               <div className="flip-card-spec-value">{dateLabel}</div>
             </div>
             <div className="flip-card-spec">
-              <div className="flip-card-spec-label">{t('crops.yard') ?? 'Yard'}</div>
+              <div className="flip-card-spec-label">{t('crops.yard')}</div>
               <div className="flip-card-spec-value">{yard}</div>
             </div>
             <div className="flip-card-spec">
-              <div className="flip-card-spec-label">{t('crops.farmer') ?? 'Farmer'}</div>
+              <div className="flip-card-spec-label">{t('crops.farmer')}</div>
               <div className="flip-card-spec-value">{farmerName}</div>
             </div>
             <div className="flip-card-spec">
-              <div className="flip-card-spec-label">{t('crops.quantity') ?? 'Quantity'}</div>
+              <div className="flip-card-spec-label">{t('crops.quantity')}</div>
               <div className="flip-card-spec-value">{formatKg(listing.available_quantity_kg)}</div>
             </div>
           </div>
@@ -116,8 +115,7 @@ export function CropFlipCard({ listing, t, onBuyNow, onOpenDetail, onOpenPayment
           )}
           <div className="flip-card-actions">
             {!isSold && <button type="button" className="button primary" onClick={onOpenPayment}><ShoppingBag size={16} /> {t('market.buyNow')}</button>}
-            {!isSold && <button type="button" className="flip-card-back-btn" onClick={() => setFlipped(false)}><RotateCcw size={16} /> {t('common.back') ?? 'Flip Back'}</button>}
-            {isSold && <button type="button" className="flip-card-back-btn" onClick={() => setFlipped(false)}><RotateCcw size={16} /> {t('common.back') ?? 'Flip Back'}</button>}
+            <button type="button" className="flip-card-back-btn" onClick={() => setFlipped(false)}><RotateCcw size={16} /> {t('common.back')}</button>
           </div>
         </div>
       </div>

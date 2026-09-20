@@ -10,6 +10,7 @@ import { parseCommand, parseStatus, parseNumber, parseLanguageChange, extractVal
 import { useVoiceSession, speakTextViaSarvam, getTabNarration, type FormField, type SarvamVoiceResult } from '@/lib/useVoiceSession';
 import { playAudioBlob, stopAudio } from '@/lib/playAudio';
 import { CalendarDayCell, getMockMonthDays, monthHasMockEvents, mockMonthEvents, mockCalendarLegend, stageLegendColor, CalendarLegendIcon } from '@/components/CalendarDayCell';
+import { CropFlipCard } from '@/components/CropFlipCard';
 
 type Role = 'Farmer' | 'FPO' | 'Transport Provider' | 'Storage Provider' | 'Buyer';
 type View = 'home' | 'features' | 'crops' | 'crop-detail' | 'buyer-crop-detail' | 'buyer-payment' | 'crop-create' | 'crop-edit' | 'farmeye-detail' | 'market' | 'calendar' | 'transport-options' | 'transport-detail' | 'journey' | 'storage' | 'approvals' | 'fpo' | 'tutorials' | 'help' | 'dispute' | 'profile' | 'settings' | 'orders' | 'deals';
@@ -1359,12 +1360,8 @@ function MarketView({ role, open, notify, t, selectCrop }: { role: Role; open: (
         </>
       )}
       {!loading && !error && searchFiltered.length === 0 && clusterSearchFiltered.length === 0 && <Card className="buyer-crop-card demo-buffer-card"><Illustration label="Paddy" color="teal" icon={Sprout} /><div className="buyer-card-text"><Badge tone="orange">{t('crops.demoBuffer')}</Badge><h2>Paddy · Sona Masuri</h2><p>{t('crops.demoBuffer')}</p><p style={{ marginTop: 4 }}>800 kg · 28 Oct 2026 · ₹22/kg · Warangal, TS</p><p style={{ marginTop: 2 }}>3 members joined</p></div></Card>}
-      <div className="buyer-crop-list">{(clusterSearchFiltered.length > 0 ? individualListings : searchFiltered).map((listing) => {
-        if (filter === 'Harvested') {
-          return <BuyerHarvestedCard key={listing.id} listing={listing} t={t} onBuyNow={handleBuyNow} onSold={handleSold} sold={soldIds.has(listing.id)} onOpenDetail={() => { selectCrop(listing); open('buyer-crop-detail'); }} onOpenPayment={() => { selectCrop(listing); open('buyer-payment'); }} />;
-        }
-        const name = cropDisplayName(listing);
-        return <Card className="buyer-crop-card upcoming-buyer-card" key={listing.id}><Illustration label={`${name} illustration`} color={cropColorFor(name)} icon={cropIconFor(name)} /><div className="buyer-card-text">{listing.listing_verified && <span className="verified-badge verified-badge-inline"><Satellite size={11} /> Verified</span>}<h2>{name} · {cropDisplayVariety(listing)}</h2><p>{formatKg(listing.quantity_kg)} · {formatDate(listing.expected_harvest_date)}</p><strong>{formatPrice(listing.indicative_price_per_kg)} · {t('market.samplePrice')}</strong><button type="button" className="card-detail-arrow" onClick={() => { selectCrop(listing); open('buyer-crop-detail'); }}><ArrowRight size={16} /></button><div className="compact-prebook"><Button variant="soft" onClick={() => { selectCrop(listing); open('buyer-payment'); }}>{t('market.preBook')}</Button></div></div></Card>;
+      <div className="flip-card-grid">{(clusterSearchFiltered.length > 0 ? individualListings : searchFiltered).map((listing) => {
+        return <CropFlipCard key={listing.id} listing={listing} t={t} sold={soldIds.has(listing.id)} onOpenDetail={() => { selectCrop(listing); open('buyer-crop-detail'); }} onOpenPayment={() => { selectCrop(listing); open('buyer-payment'); }} />;
       })}</div>
     </Page>;
   }
