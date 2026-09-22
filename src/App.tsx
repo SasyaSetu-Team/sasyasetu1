@@ -627,7 +627,7 @@ const loginFlowPhotos: Record<string, string> = {
   Farmer: 'https://images.pexels.com/photos/29039798/pexels-photo-29039798.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
   'Transport Provider': 'https://images.pexels.com/photos/13922927/pexels-photo-13922927.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
   'Storage Provider': 'https://images.pexels.com/photos/4481327/pexels-photo-4481327.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-  Buyer: 'https://images.pexels.com/photos/30162455/pexels-photo-30162455.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  Buyer: 'https://images.pexels.com/photos/17160893/pexels-photo-17160893.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
   FPO: 'https://images.pexels.com/photos/20356942/pexels-photo-20356942.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
 };
 
