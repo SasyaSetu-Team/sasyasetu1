@@ -2214,6 +2214,7 @@ function StorageView({ role, open, notify, t }: { role: Role; open: (view: View)
   const [customCrop, setCustomCrop] = useState('');
   const [quantityKg, setQuantityKg] = useState('');
   const [durationDays, setDurationDays] = useState('');
+  const [consignmentStage, setConsignmentStage] = useState(0);
 
   useEffect(() => {
     if (step !== 2 || listings.length > 0) return;
@@ -2232,7 +2233,7 @@ function StorageView({ role, open, notify, t }: { role: Role; open: (view: View)
   const stepIndicator = <div style={{ marginBottom: 24 }}><div className="step-indicator">{[1, 2, 3].map((s) => <span key={s} className={`step-dot ${s === step ? 'active' : ''} ${s < step ? 'done' : ''}`} />)}</div><div style={{ display: 'flex', gap: '6px' }}>{stepLabels.map((label, i) => <span key={label} style={{ flex: 1, fontSize: '11px', fontWeight: 700, color: i + 1 === step ? '#047857' : '#a8a29e' }}>{label}</span>)}</div></div>;
 
   if (step === 1) {
-    return <Page title={t('storage.title')} body={t('storage.body')} back={() => open('home')} t={t}>{stepIndicator}<div className="storage-list">{storageFacilities.map((f) => <Card className="mycrop-image-card" key={f.name}><div className="mycrop-image-wrap"><img className="mycrop-image" src={f.photo} alt={f.name} loading="lazy" /><span className="flip-card-status ready" style={{ background: 'rgba(4,120,87,0.92)', color: '#fff' }}>{f.temp}</span></div><div className="mycrop-card-body"><div className="row"><Badge tone={f.status === 'available' ? 'green' : 'orange'}>{f.status === 'available' ? 'Available Space' : 'Occupied'}</Badge><strong>{f.rateKg}</strong></div><h3 className="mycrop-card-title">{f.name}</h3><p className="mycrop-card-qty">{f.type} · {f.distance} · {f.location}</p><p className="mycrop-card-qty">Capacity: {f.capacity} · Suitable: {f.crops}</p><p className="mycrop-card-price">{f.rateQtl}</p>{f.status === 'available' ? <Button variant="soft" onClick={() => { setSelectedFacility(f); setStep(2); }}>{t('storage.select')}</Button> : <Button variant="outline" onClick={() => notify(t('storage.selected', { name: f.name }))}>{t('storage.view')}</Button>}</div></Card>)}</div><Demo>{t('storage.notLiveGps')}</Demo></Page>;
+    return <Page title={t('storage.title')} body={t('storage.body')} back={() => open('home')} t={t}>{stepIndicator}<div className="storage-list">{storageFacilities.map((f) => <Card className="mycrop-image-card" key={f.name}><div className="mycrop-image-wrap"><img className="mycrop-image" src={f.photo} alt={f.name} loading="lazy" /><span className="flip-card-status ready" style={{ background: 'rgba(4,120,87,0.92)', color: '#fff' }}>{f.temp}</span></div><div className="mycrop-card-body"><div className="row"><Badge tone={f.status === 'available' ? 'green' : 'orange'}>{f.status === 'available' ? 'Available Space' : 'Occupied'}</Badge><strong>{f.rateKg}</strong></div><h3 className="mycrop-card-title">{f.name}</h3><p className="mycrop-card-qty">{f.type} · {f.distance} · {f.location}</p><p className="mycrop-card-qty">Capacity: {f.capacity} · Suitable: {f.crops}</p><p className="mycrop-card-price">{f.rateQtl}</p>{f.status === 'available' ? <Button variant="soft" onClick={() => { setSelectedFacility(f); setStep(2); }}>{t('storage.select')}</Button> : <Button variant="outline" onClick={() => { setSelectedFacility(f); setConsignmentStage(2); setStep(3); }}>{t('storage.view')}</Button>}</div></Card>)}</div><Demo>{t('storage.notLiveGps')}</Demo></Page>;
   }
 
   if (step === 2 && selectedFacility) {
@@ -2277,7 +2278,55 @@ function StorageView({ role, open, notify, t }: { role: Role; open: (view: View)
   }
 
   if (step === 3) {
-    return <Page title="My Stored Produce" body="Your storage bay has been reserved" back={() => { setStep(1); }} t={t}>{stepIndicator}<Card className="payment-card"><Badge tone="green">Gate Pass Issued</Badge><h2>{selectedFacility?.name ?? 'Storage Facility'}</h2><p>{selectedFacility?.temp} · {selectedFacility?.location}</p>{selectedListing && <p>{cropDisplayName(selectedListing)} · {formatKg(Number(quantityKg) || 0)}</p>}{!selectedListing && customCrop && <p>{customCrop} · {formatKg(Number(quantityKg) || 0)}</p>}<p>Duration: {durationDays} days</p><Demo>Demo reservation — no real booking made</Demo><Button variant="soft" onClick={() => { setStep(1); setSelectedFacility(null); setSelectedListing(null); setQuantityKg(''); setDurationDays(''); setCustomCrop(''); }}>Book Another Storage</Button></Card></Page>;
+    const f = selectedFacility;
+    const cropName = selectedListing ? cropDisplayName(selectedListing) : (customCrop || 'Crop');
+    const qty = Number(quantityKg) || 0;
+    const bags = Math.ceil(qty / 50);
+    const enwrNum = `eNWR-TS-WRG-${(hashStr((f?.name ?? '') + cropName) % 9000) + 1000}`;
+    const chamberId = `CH-${(hashStr((f?.name ?? '') + 'chamber') % 90) + 10}`;
+    const bayRack = `B${(hashStr((f?.name ?? '') + 'bay') % 50) + 1}/R${(hashStr((f?.name ?? '') + 'rack') % 20) + 1}`;
+    const stageLabels = ['Space Reserved', 'Arrived & Weighed', 'In Safe Cold Bay', 'Mandi Dispatch'];
+    const stageToasts = ['Produce arrived at facility. Weighing in progress.', 'Weighment complete. Produce moved to cold bay.', 'Produce safely stored in climate-controlled bay. Ready for dispatch.', 'Dispatched to APMC Mandi. Truck en route.'];
+
+    return <Page title="My Stored Produce" body="Your consignment is being tracked" back={() => { setStep(1); }} t={t}>{stepIndicator}
+      <div className="consignment-card" style={{ background: '#16382b', borderRadius: 16, padding: 20, color: '#fff', marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+          <div>
+            <span className="badge green" style={{ marginBottom: 8, display: 'inline-block' }}>Active Cold Consignment</span>
+            <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, margin: '4px 0 2px' }}>{f?.name ?? 'Storage Facility'}</h2>
+            <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, margin: 0 }}>{f?.temp} · {f?.location}</p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <small style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, display: 'block' }}>e-NWR Pass</small>
+            <strong style={{ color: '#fff', fontSize: 15, fontFamily: 'monospace', letterSpacing: 0.5 }}>{enwrNum}</strong>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.15)' }}>
+          <div><small style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>Chamber</small><p style={{ margin: '2px 0 0', fontWeight: 600, fontSize: 13 }}>{chamberId}</p></div>
+          <div><small style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>Bay / Rack</small><p style={{ margin: '2px 0 0', fontWeight: 600, fontSize: 13 }}>{bayRack}</p></div>
+          <div><small style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>Duration</small><p style={{ margin: '2px 0 0', fontWeight: 600, fontSize: 13 }}>{durationDays || '—'} days</p></div>
+        </div>
+      </div>
+
+      <div className="summary-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 16 }}>
+        <Card className="stat-card-mini"><Warehouse size={20} /><h3 style={{ fontSize: 18, fontWeight: 700 }}>{f?.temp ?? '—'}</h3><p>Bay Temperature</p></Card>
+        <Card className="stat-card-mini"><Package size={20} /><h3 style={{ fontSize: 18, fontWeight: 700 }}>{formatKg(qty)}</h3><p>{bags} bags</p></Card>
+        <Card className="stat-card-mini"><Sprout size={20} /><h3 style={{ fontSize: 16, fontWeight: 700 }}>{cropName}</h3><p>Commodity</p></Card>
+      </div>
+
+      <Card className="payment-card">
+        <h3 style={{ marginBottom: 12 }}>Consignment Tracker</h3>
+        <div className="order-track" style={{ marginBottom: 16 }}>
+          {stageLabels.map((label, i) => <span key={label} className={i < consignmentStage ? 'done' : i === consignmentStage ? 'active' : ''}>{label}</span>)}
+        </div>
+        <Button icon={Check} disabled={consignmentStage >= 3} onClick={() => { const next = consignmentStage + 1; setConsignmentStage(next); notify(stageToasts[next - 1] ?? stageToasts[2]); }}>Next Stage</Button>
+      </Card>
+
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 16 }}><div style={{ flex: 1, minWidth: 180 }}><Button icon={Truck} onClick={() => { notify('Truck dispatched to APMC Mandi. Live tracking enabled.'); open('journey'); }}>Dispatch to APMC Mandi via Truck</Button></div><div style={{ flex: 1, minWidth: 180 }}><a href="tel:+919876543210" style={{ textDecoration: 'none' }}><Button variant="outline" icon={Phone} wide>Call Cold Store Manager</Button></a></div></div>
+
+      <div style={{ marginTop: 16 }}><Demo>Demo reservation — no real booking made</Demo></div>
+      <div style={{ marginTop: 12 }}><Button variant="soft" onClick={() => { setStep(1); setSelectedFacility(null); setSelectedListing(null); setQuantityKg(''); setDurationDays(''); setCustomCrop(''); setConsignmentStage(0); }}>Book Another Storage</Button></div>
+    </Page>;
   }
 
   return <Page title={t('storage.title')} body={t('storage.body')} back={() => open('home')} t={t}>{stepIndicator}<div className="storage-list">{storageFacilities.map((f) => <Card className="mycrop-image-card" key={f.name}><div className="mycrop-image-wrap"><img className="mycrop-image" src={f.photo} alt={f.name} loading="lazy" /></div><div className="mycrop-card-body"><h3 className="mycrop-card-title">{f.name}</h3><p className="mycrop-card-qty">{f.type} · {f.location}</p></div></Card>)}</div></Page>;
