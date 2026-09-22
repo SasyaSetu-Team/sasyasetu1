@@ -1765,7 +1765,6 @@ function HarvestDetailModal({ event, day, monthName, onClose, t, notify }: { eve
   const acreage = listing?.area_acres != null ? Number(listing.area_acres) : 1.5;
   const mandiRate = listing ? (computeCurrentPrice(listing) ?? listing.indicative_price_per_kg ?? 25) : 25;
   const grossValue = quantityKg * mandiRate;
-  const mandiYard = listing?.location_area ?? 'Warangal APMC Yard';
   const notes = listing?.listing_verified ? 'Satellite verification complete. Vegetation index healthy. No pest indicators detected. Ready for harvest window as scheduled.' : 'Pending field verification. Agronomist visit scheduled 3 days before harvest date.';
 
   return (
@@ -1807,23 +1806,6 @@ function HarvestDetailModal({ event, day, monthName, onClose, t, notify }: { eve
               <Detail label="Gross Estimated Value" value={`₹${Math.round(grossValue).toLocaleString('en-IN')}`} />
               <Detail label="Harvest Status" value={event.upcoming ? 'Upcoming' : event.stages.includes('paid') ? 'Payment Cleared' : event.stages.includes('sold') ? 'Sold' : event.stages.includes('harvested') ? 'Harvested' : 'Verified'} />
             </div>
-          </div>
-          <div className="harvest-detail-section">
-            <h3>Target Liquidation Mandi</h3>
-            <Card className="harvest-mandi-card">
-              <div className="harvest-mandi-head">
-                <span className="harvest-mandi-icon"><MapPin size={20} /></span>
-                <div>
-                  <h4>{mandiYard}</h4>
-                  <p>APMC regulated yard · Telangana</p>
-                </div>
-              </div>
-              <div className="harvest-mandi-badges">
-                <Badge tone="green"><Truck size={12} /> Freight pre-negotiated</Badge>
-                <Badge tone="blue">₹2,500 fixed</Badge>
-              </div>
-              <Button icon={ArrowRight} variant="soft" onClick={() => notify('Mandi truck pre-booking opened')}>Pre-book Mandi Truck</Button>
-            </Card>
           </div>
           <div className="harvest-detail-section">
             <h3>Inspection Notes</h3>
@@ -1878,9 +1860,6 @@ function CalendarView({ open, t, profileData }: { open: (view: View) => void; t:
   const dows = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
   const realEvents: Record<number, Record<number, CalendarDayEvent[]>> = {};
-  let upcomingCount = 0;
-  let totalOutputKg = 0;
-  let estimatedRevenue = 0;
 
   for (const listing of listings) {
     const name = cropDisplayName(listing);
@@ -1898,10 +1877,6 @@ function CalendarView({ open, t, profileData }: { open: (view: View) => void; t:
     if (!realEvents[monthIdx]) realEvents[monthIdx] = {};
     if (!realEvents[monthIdx][day]) realEvents[monthIdx][day] = [];
     realEvents[monthIdx][day].push({ crop: name, emoji, color, stages, upcoming, photo, listing });
-    if (upcoming) upcomingCount++;
-    totalOutputKg += Number(listing.quantity_kg);
-    const price = computeCurrentPrice(listing) ?? listing.indicative_price_per_kg ?? 0;
-    estimatedRevenue += Number(listing.quantity_kg) * price;
   }
 
   const mergedEvents: Record<number, Record<number, CalendarDayEvent[]>> = { ...mockMonthEvents };
@@ -1909,11 +1884,19 @@ function CalendarView({ open, t, profileData }: { open: (view: View) => void; t:
     mergedEvents[mIdx] = { ...(mergedEvents[mIdx] ?? {}), ...realEvents[mIdx] };
   }
 
-  const totalHarvests = listings.filter((l) => { const ds = l.expected_harvest_date ?? l.harvested_at; return ds && new Date(ds).getFullYear() === 2026; }).length;
+  const allEventsFlat: CalendarDayEvent[] = Object.values(mergedEvents).flatMap((days) => Object.values(days).flat());
+  const totalHarvests = allEventsFlat.length;
+  const upcomingCount = allEventsFlat.filter((e) => e.upcoming).length;
+  const totalOutputKg = allEventsFlat.reduce((sum, e) => sum + (e.listing ? Number(e.listing.quantity_kg) : 500), 0);
+  const estimatedRevenue = allEventsFlat.reduce((sum, e) => {
+    const kg = e.listing ? Number(e.listing.quantity_kg) : 500;
+    const rate = e.listing ? (computeCurrentPrice(e.listing) ?? e.listing.indicative_price_per_kg ?? 25) : 25;
+    return sum + kg * rate;
+  }, 0);
   const totalTons = totalOutputKg / 1000;
   const totalQuintals = totalOutputKg / 100;
   const revenueLakhs = estimatedRevenue / 100000;
-  const activeLoads = listings.filter((l) => l.status === 'Harvested' || l.status === 'Sold').length;
+  const activeLoads = allEventsFlat.filter((e) => e.stages.includes('transport') && !e.stages.includes('sold')).length;
 
   const getMonthDays = (monthIndex: number): CalendarDayData[] => {
     const startOffset = monthStartOffsets2026[monthIndex] ?? 0;
