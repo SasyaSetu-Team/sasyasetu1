@@ -31,7 +31,15 @@ const allRoles: Role[] = ['Farmer', 'FPO', 'Transport Provider', 'Storage Provid
 const visibleRoles: Role[] = allRoles.filter((r) => r !== 'FPO');
 const rameshVerificationData = { verificationId: 'TG-WGL-1042', category: 'Land Owner', homeLocation: 'Warangal, Telangana', name: 'Ramesh Kumar' };
 
-function Illustration({ label, color, icon: Icon = Sprout }: { label: string; color: string; icon?: IconType }) { return <div className={`illustration ${color}`}><div className="illustration-shape"><Icon size={58} strokeWidth={1.5} /></div><small>{label}</small></div>; }
+function Illustration({ label, color, icon: Icon = Sprout, photo }: { label: string; color: string; icon?: IconType; photo?: string }) { return <div className={`illustration ${color}`}>
+    {photo ? <>
+      <img src={photo} alt={label} className="illustration-photo" loading="lazy" />
+      <div className="illustration-photo-overlay"><small>{label}</small></div>
+    </> : <>
+      <div className="illustration-shape"><Icon size={58} strokeWidth={1.5} /></div>
+      <small>{label}</small>
+    </>}
+  </div>; }
 function Badge({ children, tone = 'green' }: { children: ReactNode; tone?: string }) { return <span className={`badge ${tone}`}>{children}</span>; }
 function Button({ children, icon: Icon, variant = 'primary', onClick, wide = false, disabled = false }: { children: ReactNode; icon?: IconType; variant?: string; onClick?: () => void; wide?: boolean; disabled?: boolean }) { return <button className={`button ${variant} ${wide ? 'wide' : ''}`} onClick={onClick} disabled={disabled}>{Icon && <Icon size={18} />}{children}</button>; }
 function Card({ children, className = '', onClick }: { children: ReactNode; className?: string; onClick?: () => void }) { return <div className={`card ${className} ${onClick ? 'clickable' : ''}`} onClick={onClick}>{children}</div>; }
@@ -608,17 +616,26 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
 const roleCardPhotos: Record<Role, string> = {
   Farmer: 'https://images.pexels.com/photos/11070641/pexels-photo-11070641.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
   'Transport Provider': 'https://images.pexels.com/photos/20922619/pexels-photo-20922619.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-  'Storage Provider': 'https://images.pexels.com/photos/27786504/pexels-photo-27786504.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  'Storage Provider': 'https://images.pexels.com/photos/4487364/pexels-photo-4487364.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
   Buyer: 'https://images.pexels.com/photos/17160893/pexels-photo-17160893.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
   FPO: 'https://images.pexels.com/photos/20356942/pexels-photo-20356942.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
 };
 
 function Login({ onRole, voiceOpen, t, language }: { onRole: (role: Role) => void; voiceOpen: () => void; t: T; language: Language }) { const handleRole = (role: Role) => { warmupSpeech(); onRole(role); }; return <main className="login-screen"><div className="login-brand"><span><Sprout size={27} /></span><strong>{t('app.name')}</strong></div><VoiceButton onClick={voiceOpen} t={t} /><div className="role-cards">{visibleRoles.map((role) => <button className="role-card" key={role} onClick={() => handleRole(role)}><div className="role-card-photo"><img src={roleCardPhotos[role]} alt={t(`role.${role}`)} loading="lazy" /></div><h2>{t(`role.${role}`)}</h2><ArrowRight size={21} /></button>)}</div><button className="sasya-button" onClick={voiceOpen}><Sprout size={18} /> {t('app.name')}</button></main>; }
 
+const loginFlowPhotos: Record<string, string> = {
+  Farmer: 'https://images.pexels.com/photos/29039798/pexels-photo-29039798.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  'Transport Provider': 'https://images.pexels.com/photos/13922927/pexels-photo-13922927.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  'Storage Provider': 'https://images.pexels.com/photos/4481327/pexels-photo-4481327.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  Buyer: 'https://images.pexels.com/photos/30162455/pexels-photo-30162455.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+  FPO: 'https://images.pexels.com/photos/20356942/pexels-photo-20356942.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+};
+
 function LoginFlow({ role, done, back, t, authError, clearError, signingIn, step, setStep, mobile, setMobile, otp, setOtp, buyerCat, setBuyerCat }: { role: Role; done: (email: string, password: string, buyerCategory?: string) => Promise<void>; back: () => void; t: T; authError: string | null; clearError: () => void; signingIn: boolean; step: number; setStep: (step: number) => void; mobile: string; setMobile: (value: string) => void; otp: string; setOtp: (value: string) => void; buyerCat: string; setBuyerCat: (value: string) => void }) {
   const totalSteps = 3;
   const roleIcon = role === 'Farmer' ? Sprout : role === 'FPO' ? Users : role === 'Buyer' ? ShoppingBag : role === 'Storage Provider' ? Warehouse : Truck;
   const roleColor = roleMeta[role].color;
+  const rolePhoto = loginFlowPhotos[role];
 
   const verifyAndSignIn = async (category?: string) => { const email = role === 'Farmer' ? rameshEmail : demoEmails[role]; await done(email, 'Demo1234!', category); };
 
@@ -632,7 +649,7 @@ function LoginFlow({ role, done, back, t, authError, clearError, signingIn, step
     return (<><div className="step-count">{t('login.step', { n: 3, total: totalSteps })}</div><h2>{stepTitle}</h2><p>{role === 'Farmer' ? t('login.farmerVerificationPrompt') : role === 'FPO' ? t('login.fpoVerificationPrompt') : t('login.providerVerificationPrompt')}</p><div className="verification-fields">{fields.map((f) => <div key={f.label} className="verification-field"><small>{f.label}</small><strong>{f.value}</strong></div>)}<div className="verification-badge"><ShieldCheck size={16} /> Demo Verified</div></div>{authError && <p className="auth-error" role="alert">{authError}</p>}<Button wide onClick={() => verifyAndSignIn()} icon={signingIn ? undefined : ArrowRight}>{signingIn ? 'Signing in…' : t('login.continue')}</Button><button type="button" className="text-link" onClick={() => setStep(1)} disabled={signingIn}>{t('common.back')}</button></>);
   };
 
-  return <main className="login-flow"><button className="back-button" onClick={back}><ArrowLeft size={18} /> {t('common.back')}</button><div className="flow-grid"><div><Illustration label={roleMeta[role].illustration} color={roleColor} icon={roleIcon} /><h1>{t(`role.${role}`)} {t('login.continue').toLowerCase()}</h1><p>{t('login.useSampleDetails', { role: t(`role.${role}`) })}</p><Demo>{t('login.demoAccount')}</Demo></div><Card className="login-form"><div className="step-indicator">{Array.from({ length: totalSteps }).map((_, i) => <span key={i} className={`step-dot ${i === step ? 'active' : ''} ${i < step ? 'done' : ''}`} />)}</div>{renderStep()}</Card></div></main>;
+  return <main className="login-flow"><button className="back-button" onClick={back}><ArrowLeft size={18} /> {t('common.back')}</button><div className="flow-grid"><div><Illustration label={roleMeta[role].illustration} color={roleColor} icon={roleIcon} photo={rolePhoto} /><h1>{t(`role.${role}`)} {t('login.continue').toLowerCase()}</h1><p>{t('login.useSampleDetails', { role: t(`role.${role}`) })}</p><Demo>{t('login.demoAccount')}</Demo></div><Card className="login-form"><div className="step-indicator">{Array.from({ length: totalSteps }).map((_, i) => <span key={i} className={`step-dot ${i === step ? 'active' : ''} ${i < step ? 'done' : ''}`} />)}</div>{renderStep()}</Card></div></main>;
 }
 const featureCardPhotos: Record<string, string> = {
   'My Crops': 'https://images.pexels.com/photos/13061059/pexels-photo-13061059.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
