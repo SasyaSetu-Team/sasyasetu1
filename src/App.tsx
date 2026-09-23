@@ -2509,13 +2509,12 @@ const tutorialData: Record<TutorialRole, TutorialRoleData> = {
 const tutorialRoles: TutorialRole[] = ['Farmer', 'Transport Provider', 'Storage Provider', 'Buyer'];
 
 function TutorialsView({ role, open, t, voiceOpen, language }: { role: Role; open: (view: View) => void; t: T; voiceOpen: () => void; language: Language }) {
-  const initialTab: TutorialRole = tutorialRoles.includes(role as TutorialRole) ? (role as TutorialRole) : 'Farmer';
-  const [activeTab, setActiveTab] = useState<TutorialRole>(initialTab);
+  const activeRole: TutorialRole = tutorialRoles.includes(role as TutorialRole) ? (role as TutorialRole) : 'Farmer';
   const [activeFilter, setActiveFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [selectedVideo, setSelectedVideo] = useState<TutorialVideo | null>(null);
 
-  const data = tutorialData[activeTab];
+  const data = tutorialData[activeRole];
 
   const filtered = data.videos.filter((v) => {
     if (search.trim() && !v.title.toLowerCase().includes(search.toLowerCase().trim())) return false;
@@ -2530,10 +2529,6 @@ function TutorialsView({ role, open, t, voiceOpen, language }: { role: Role; ope
         <p>{data.subtitle}</p>
       </div>
       <button className="tutorials-voice-help" onClick={voiceOpen}><Headphones size={18} /> Voice Help</button>
-    </div>
-
-    <div className="tutorials-tabs">
-      {tutorialRoles.map((r) => <button key={r} className={`tutorial-tab ${activeTab === r ? 'active' : ''}`} onClick={() => { setActiveTab(r); setActiveFilter('All'); setSearch(''); }}>{t(`role.${r}`)}</button>)}
     </div>
 
     <div className="tutorials-search">
