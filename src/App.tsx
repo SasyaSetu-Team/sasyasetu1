@@ -2233,7 +2233,7 @@ function StorageView({ role, open, notify, t }: { role: Role; open: (view: View)
   const stepIndicator = <div style={{ marginBottom: 24 }}><div className="step-indicator">{[1, 2, 3].map((s) => <span key={s} className={`step-dot ${s === step ? 'active' : ''} ${s < step ? 'done' : ''}`} />)}</div><div style={{ display: 'flex', gap: '6px' }}>{stepLabels.map((label, i) => <span key={label} style={{ flex: 1, fontSize: '11px', fontWeight: 700, color: i + 1 === step ? '#047857' : '#a8a29e' }}>{label}</span>)}</div></div>;
 
   if (step === 1) {
-    return <Page title={t('storage.title')} body={t('storage.body')} back={() => open('home')} t={t}>{stepIndicator}<div className="storage-list">{storageFacilities.map((f) => <Card className="storage-row-card" key={f.name}><div className="storage-row-thumb"><img src={f.photo} alt={f.name} loading="lazy" /><span className="storage-row-temp">{f.tempLabel}</span></div><div className="storage-row-info"><div className="storage-row-top"><span className={"storage-row-status " + f.status}><span className="storage-row-dot"></span>{f.status === "available" ? "Available Space" : "Occupied"}</span><span className="storage-row-distance">{f.distance}</span></div><h3 className="storage-row-name">{f.name}</h3><p className="storage-row-detail">{f.tempRange} · {f.capacity} capacity</p><p className="storage-row-detail">{f.location} · Ideal for {f.crops}</p></div><div className="storage-row-right"><strong className="storage-row-rate">{f.rateKg}</strong><small className="storage-row-rate-sub">{f.rateQtl}</small>{f.status === "available" ? <Button variant="soft" onClick={() => { setSelectedFacility(f); setStep(2); }}>{t("storage.select")}</Button> : <Button variant="outline" onClick={() => { setSelectedFacility(f); setConsignmentStage(2); setStep(3); }}>{t("storage.view")}</Button>}</div></Card>)}</div><Demo>{t("storage.notLiveGps")}</Demo></Page>;
+    return <Page title={t('storage.title')} body={t('storage.body')} back={() => open('home')} t={t}>{stepIndicator}<div className="storage-list">{storageFacilities.map((f) => <Card className="storage-row-card" key={f.name}><div className="storage-row-thumb"><img src={f.photo} alt={f.name} loading="lazy" /><span className="storage-row-temp">{f.tempLabel}</span></div><div className="storage-row-info"><div className="storage-row-top"><span className={"storage-row-status " + f.status}><span className="storage-row-dot"></span>{f.status === "available" ? "Available Space" : "Occupied"}</span><span className="storage-row-distance">{f.distance}</span></div><h3 className="storage-row-name">{f.name}</h3><p className="storage-row-detail">{f.tempRange} · {f.capacity} capacity</p><p className="storage-row-detail">{f.location} · Ideal for {f.crops}</p></div><div className="storage-row-right"><strong className="storage-row-rate">{f.rateKg}</strong><small className="storage-row-rate-sub">{f.rateQtl}</small>{f.status === "available" ? <Button variant="soft" onClick={() => { setSelectedFacility(f); setStep(2); }}>{t("storage.select")}</Button> : <Button variant="outline" onClick={() => { setSelectedFacility(f); setStep(2); }}>{t("storage.view")}</Button>}</div></Card>)}</div><Demo>{t("storage.notLiveGps")}</Demo></Page>;
   }
 
   if (step === 2 && selectedFacility) {
@@ -2250,30 +2250,108 @@ function StorageView({ role, open, notify, t }: { role: Role; open: (view: View)
     const bags = Math.ceil(qty / 50);
     const quintals = (qty / 100).toFixed(2);
     const months = (dur / 30).toFixed(1);
+    const cropName = selectedListing ? cropDisplayName(selectedListing) : (customCrop || '—');
+    const varietyLabel = selectedListing ? cropDisplayVariety(selectedListing) : '';
+    const qtyPresets = [100, 200, 500, 1000, 2500];
+    const durPresets = [15, 30, 60, 90];
+    const searchCropTiles = [
+      { name: 'Onion', variety: 'Nasik Red', photo: cropPhotoFor('Onion') },
+      { name: 'Paddy', variety: 'Sona Masoori', photo: cropPhotoFor('Paddy') },
+      { name: 'Groundnut', variety: 'TMV-2', photo: cropPhotoFor('Groundnut') },
+      { name: 'Red Chilli', variety: 'Teja', photo: cropPhotoFor('Red Chilli') },
+      { name: 'Tomato', variety: 'Hybrid', photo: cropPhotoFor('Tomato') },
+      { name: 'Potato', variety: 'Kufri Jyoti', photo: cropPhotoFor('Potato') },
+      { name: 'Mustard', variety: 'Pusa Bold', photo: cropPhotoFor('Mustard') },
+      { name: 'Maize', variety: 'DHM-117', photo: cropPhotoFor('Maize') },
+    ];
 
     return <Page title="Book Storage Space" body={`${f.name} · ${f.tempRange} · ${f.location}`} back={() => { setStep(1); }} t={t}>
       {stepIndicator}
-      <Card className="mycrop-image-card"><div className="mycrop-image-wrap"><img className="mycrop-image" src={f.photo} alt={f.name} loading="lazy" /><span className="flip-card-status ready" style={{ background: 'rgba(4,120,87,0.92)', color: '#fff' }}>{f.tempRange}</span></div><div className="mycrop-card-body"><h3 className="mycrop-card-title">{f.name}</h3><p className="mycrop-card-qty">{f.type} · {f.location}</p><p className="mycrop-card-price">{f.rateKg} · {f.rateQtl}</p></div></Card>
 
-      <SectionHeading title="Select Crop from Your Harvest Calendar" body="Tap a crop to auto-fill details below" icon={Sprout} />
+      <div className="book-topbar">
+        <button className="book-back-link" onClick={() => setStep(1)}><ArrowLeft size={16} /> Back to Storage Options</button>
+        <span className="book-step-label">STEP 2: RESERVE BAY</span>
+      </div>
+
+      <Card className="book-facility-summary">
+        <div className="book-facility-thumb"><img src={f.photo} alt={f.name} loading="lazy" /></div>
+        <div className="book-facility-info">
+          <h3 className="book-facility-name">{f.name}</h3>
+          <p className="book-facility-sub">{f.tempRange} · {f.location}</p>
+          {f.status === 'occupied' && <span className="book-facility-occupied"><span className="storage-row-dot" style={{ background: '#f59e0b' }}></span>Currently Occupied — viewing details only</span>}
+        </div>
+        <div className="book-facility-price">
+          <strong>{f.rateKg}</strong>
+          <small>Standard tariff</small>
+        </div>
+      </Card>
+
+      <div className="book-section-header">
+        <div>
+          <h3 className="book-section-title">SELECT CROP FROM YOUR HARVEST CALENDAR</h3>
+          <p className="book-section-sub">Tap any harvested crop card below to auto-fill crop variety & harvest weight</p>
+        </div>
+        <span className="book-autofill-pill"><Zap size={13} /> Quick Auto-Fill</span>
+      </div>
       {loadingListings && <p className="calendar-empty">{t('crops.loading')}</p>}
       {!loadingListings && upcomingListings.length === 0 && <Card><p className="calendar-empty">No upcoming harvest entries found. Use the search below to pick a crop manually.</p></Card>}
-      {!loadingListings && upcomingListings.length > 0 && <div className="storage-list" style={{ marginBottom: 16 }}>{upcomingListings.map((l) => { const name = cropDisplayName(l); const variety = cropDisplayVariety(l); const isSelected = selectedListing?.id === l.id; return <Card key={l.id} className={`mycrop-image-card${isSelected ? ' selected-crop-card' : ''}`} onClick={() => { setSelectedListing(l); setCustomCrop(''); setQuantityKg(String(l.quantity_kg)); }}><div className="mycrop-image-wrap"><img className="mycrop-image" src={cropPhotoFor(name)} alt={name} loading="lazy" />{isSelected && <span className="flip-card-status ready" style={{ background: 'rgba(4,120,87,0.92)', color: '#fff' }}><Check size={14} /></span>}</div><div className="mycrop-card-body"><div className="row"><Badge tone="orange">Upcoming</Badge><strong>{formatPrice(l.indicative_price_per_kg)}</strong></div><h3 className="mycrop-card-title">{name} · {variety}</h3><p className="mycrop-card-qty">{formatKg(l.quantity_kg)} · {formatDate(l.expected_harvest_date)}</p></div></Card>; })}</div>}
+      {!loadingListings && upcomingListings.length > 0 && <div className="book-harvest-row">{upcomingListings.map((l) => { const name = cropDisplayName(l); const variety = cropDisplayVariety(l); const isSelected = selectedListing?.id === l.id; return <Card key={l.id} className={`book-harvest-card${isSelected ? ' selected' : ''}`} onClick={() => { setSelectedListing(l); setCustomCrop(''); setQuantityKg(String(l.quantity_kg)); }}><div className="book-harvest-thumb"><img src={cropPhotoFor(name)} alt={name} loading="lazy" />{isSelected && <span className="book-harvest-check"><Check size={14} /></span>}</div><div className="book-harvest-body"><div className="row"><Badge tone="orange">Upcoming</Badge><strong>{formatPrice(l.indicative_price_per_kg)}</strong></div><h4>{name} · {variety}</h4><p>{formatKg(l.quantity_kg)} · {formatDate(l.expected_harvest_date)}</p></div><button className="book-harvest-arrow"><ArrowRight size={16} /></button></Card>; })}</div>}
 
-      <Card className="form-card">
-        <label>Crop Search<input type="text" value={cropSearch} onChange={(e) => setCropSearch(e.target.value)} placeholder="Search crops from your harvest..." /></label>
-        {!loadingListings && filteredCrops.length > 0 && <div className="crop-selector-grid" style={{ marginTop: 8 }}>{filteredCrops.map((l) => { const name = cropDisplayName(l); const isSelected = selectedListing?.id === l.id; return <button type="button" key={l.id} className={`crop-option ${isSelected ? 'selected' : ''}`} onClick={() => { setSelectedListing(l); setCustomCrop(''); setQuantityKg(String(l.quantity_kg)); }}><span className="crop-option-icon"><img src={cropPhotoFor(name)} alt={name} style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover' }} /></span><span><strong>{name}</strong><small>{formatKg(l.quantity_kg)}</small></span></button>; })}</div>}
-        {!loadingListings && filteredCrops.length === 0 && upcomingListings.length === 0 && <button type="button" className="crop-option selected" onClick={() => { setSelectedListing(null); }}><span className="crop-option-icon"><Plus size={22} /></span><span><strong>Use as My Crop</strong><small>Custom entry</small></span></button>}
-        {selectedListing === null && <label style={{ marginTop: 8 }}>Crop Name<input type="text" value={customCrop} onChange={(e) => setCustomCrop(e.target.value)} placeholder="Enter crop name" /></label>}
+      <div className="book-section-header" style={{ marginTop: 24 }}>
+        <div>
+          <h3 className="book-section-title">OR SEARCH ANY COMMODITY TO STORE</h3>
+        </div>
+        {cropName !== '—' && <span className="book-selected-tag">Selected: {cropName}{varietyLabel ? ' · ' + varietyLabel : ''}</span>}
+      </div>
+      <div className="book-search-wrap">
+        <Search size={18} className="book-search-icon" />
+        <input type="text" className="book-search-input" value={cropSearch} onChange={(e) => setCropSearch(e.target.value)} placeholder="Search crop name, variety, or grade (e.g. Onion, Chilli, Paddy, Potato, Maize...)" />
+      </div>
+      <div className="book-crop-tile-grid">
+        {searchCropTiles.filter((c) => !cropSearch.trim() || c.name.toLowerCase().includes(cropSearch.toLowerCase()) || c.variety.toLowerCase().includes(cropSearch.toLowerCase())).map((c) => { const isSelected = customCrop === c.name && !selectedListing; return <button type="button" key={c.name} className={`book-crop-tile${isSelected ? ' selected' : ''}`} onClick={() => { setSelectedListing(null); setCustomCrop(c.name); }}><div className="book-crop-tile-photo"><img src={c.photo} alt={c.name} loading="lazy" /></div><div className="book-crop-tile-label"><strong>{c.name}</strong><small>{c.variety}</small></div></button>; })}
+      </div>
 
-        <label style={{ marginTop: 16 }}>Quantity (kg)<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><button type="button" className="button outline" style={{ minWidth: 40, padding: '8px 0' }} onClick={() => setQuantityKg(String(Math.max(0, (Number(quantityKg) || 0) - 50)))}><Minus size={16} /></button><input type="number" min="0" step="1" value={quantityKg} onChange={(e) => setQuantityKg(e.target.value)} style={{ flex: 1 }} /><button type="button" className="button outline" style={{ minWidth: 40, padding: '8px 0' }} onClick={() => setQuantityKg(String((Number(quantityKg) || 0) + 50))}><Plus size={16} /></button></div>{qty > 0 && <small style={{ display: 'block', marginTop: 4, color: '#57534e' }}>{bags} bags (50 kg) · {quintals} quintals</small>}<div style={{ display: 'flex', gap: 6, marginTop: 6 }}>{[100, 200, 500, 1000].map((v) => <button key={v} type="button" className="button outline" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => setQuantityKg(String((Number(quantityKg) || 0) + v))}>+{v} kg</button>)}</div></label>
+      <div className="book-section-header" style={{ marginTop: 24 }}>
+        <div>
+          <h3 className="book-section-title">QUANTITY NUMBER SELECTION</h3>
+        </div>
+        {qty > 0 && <span className="book-live-conversion">≈ {bags} Bags (50kg) · {quintals} Qtl</span>}
+      </div>
+      <div className="book-number-row">
+        <button type="button" className="book-number-btn" onClick={() => setQuantityKg(String(Math.max(0, (Number(quantityKg) || 0) - 50)))}><Minus size={20} /></button>
+        <div className="book-number-display"><span className="book-number-value">{quantityKg || '0'}</span><span className="book-number-unit">kg</span></div>
+        <button type="button" className="book-number-btn" onClick={() => setQuantityKg(String((Number(quantityKg) || 0) + 50))}><Plus size={20} /></button>
+      </div>
+      <div className="book-preset-row">{qtyPresets.map((v) => { const presetBags = Math.ceil(v / 50); const isSel = qty === v; return <button key={v} type="button" className={`book-preset-pill${isSel ? ' selected' : ''}`} onClick={() => setQuantityKg(String(v))}>{v} kg ({presetBags} bags)</button>; })}</div>
 
-        <label style={{ marginTop: 16 }}>Duration (days)<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><button type="button" className="button outline" style={{ minWidth: 40, padding: '8px 0' }} onClick={() => setDurationDays(String(Math.max(0, (Number(durationDays) || 0) - 5)))}><Minus size={16} /></button><input type="number" min="0" step="1" value={durationDays} onChange={(e) => setDurationDays(e.target.value)} style={{ flex: 1 }} /><button type="button" className="button outline" style={{ minWidth: 40, padding: '8px 0' }} onClick={() => setDurationDays(String((Number(durationDays) || 0) + 5))}><Plus size={16} /></button></div>{dur > 0 && <small style={{ display: 'block', marginTop: 4, color: '#57534e' }}>{months} months</small>}<div style={{ display: 'flex', gap: 6, marginTop: 6 }}>{[15, 30, 60, 90].map((v) => <button key={v} type="button" className="button outline" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => setDurationDays(String(v))}>{v} days</button>)}</div></label>
+      <div className="book-section-header" style={{ marginTop: 24 }}>
+        <div>
+          <h3 className="book-section-title">STORAGE DURATION NUMBER SELECTION</h3>
+        </div>
+        {dur > 0 && <span className="book-live-conversion">{dur} Days (~{months} Months)</span>}
+      </div>
+      <div className="book-number-row">
+        <button type="button" className="book-number-btn" onClick={() => setDurationDays(String(Math.max(0, (Number(durationDays) || 0) - 5)))}><Minus size={20} /></button>
+        <div className="book-number-display"><span className="book-number-value">{durationDays || '0'}</span><span className="book-number-unit">days</span></div>
+        <button type="button" className="book-number-btn" onClick={() => setDurationDays(String((Number(durationDays) || 0) + 5))}><Plus size={20} /></button>
+      </div>
+      <div className="book-preset-row">{durPresets.map((v) => { const label = v < 30 ? `${v} Days (2 Wks)` : `${v} Days (${v / 30} Mo)`; const isSel = dur === v; return <button key={v} type="button" className={`book-preset-pill${isSel ? ' selected' : ''}`} onClick={() => setDurationDays(String(v))}>{label}</button>; })}</div>
 
-        {qty > 0 && dur > 0 && <div style={{ marginTop: 16 }}><Card className="payment-card"><h3 style={{ marginBottom: 8 }}>Cost Breakdown</h3><div className="payment-summary"><div className="payment-row"><span>Storage Rent ({formatRupee(ratePerKgDay)}/kg/day × {qty} kg × {dur} days)</span><strong>{formatRupee(storageRent)}</strong></div><div className="payment-row"><span>Handling Charges</span><strong>{formatRupee(handling)}</strong></div><div className="payment-row"><span>Insurance</span><strong>{formatRupee(insurance)}</strong></div><div className="payment-row payment-due"><span>Total Cost</span><strong>{formatRupee(totalCost)}</strong></div></div></Card></div>}
+      {qty > 0 && dur > 0 && <Card className="book-cost-summary">
+        <div className="book-cost-left">
+          <span className="book-cost-label">ESTIMATED TOTAL STORAGE CHARGE</span>
+          <p className="book-cost-detail">{formatKg(qty)} ({bags} bags) · {dur} days · {cropName}{varietyLabel ? ' · ' + varietyLabel : ''}</p>
+        </div>
+        <div className="book-cost-right">
+          <strong className="book-cost-total">{formatRupee(totalCost)}</strong>
+          <small className="book-cost-breakdown">Rent: {formatRupee(storageRent)} + Handling: {formatRupee(handling)} + Insurance: {formatRupee(insurance)}</small>
+        </div>
+      </Card>}
 
-        <div style={{ marginTop: 16 }}><Button icon={ShieldCheck} disabled={qty <= 0 || dur <= 0} onClick={() => { setStep(3); notify('Bay reservation confirmed. Gate pass issued.'); }}>Confirm Bay Reservation & Issue Gate Pass</Button></div>
-      </Card>
+      <div style={{ marginTop: 20 }}>
+        <Button icon={ShieldCheck} wide disabled={qty <= 0 || dur <= 0 || f.status === 'occupied'} onClick={() => { setStep(3); notify('Bay reservation confirmed. Gate pass issued.'); }}>Confirm Bay Reservation & Issue Gate Pass</Button>
+      </div>
+      {f.status === 'occupied' && <p className="book-occupied-note">This facility is currently occupied. Select an available facility to make a reservation.</p>}
     </Page>;
   }
 

@@ -123,3 +123,67 @@
 .harvest-mandi-badges{display:flex;gap:6px;flex-wrap:wrap}
 .harvest-detail-notes{font-size:12px;color:#57534e;line-height:1.6;background:#f5f5f4;padding:12px 14px;border-radius:10px;border-left:3px solid #047857;margin:0}
 @media(max-width:600px){.harvest-detail-banner{height:160px}.harvest-detail-modal{width:100vw;max-width:100vw;border-radius:16px 16px 0 0;margin-top:auto}.harvest-lifecycle-label{font-size:8px;max-width:48px}.harvest-lifecycle-dot{width:24px;height:24px}}
+
+.book-topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #e7e5e4}
+.book-back-link{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:#047857;font-size:14px;font-weight:600;cursor:pointer;padding:0}
+.book-back-link:hover{color:#064e3b;text-decoration:underline}
+.book-step-label{font-size:11px;font-weight:700;letter-spacing:1px;color:#a8a29e}
+.book-facility-summary{display:flex;align-items:center;gap:14px;padding:16px;margin-bottom:20px}
+.book-facility-thumb{width:64px;height:64px;border-radius:12px;overflow:hidden;flex-shrink:0}
+.book-facility-thumb img{width:100%;height:100%;object-fit:cover}
+.book-facility-info{flex:1;min-width:0}
+.book-facility-name{font:700 18px 'Newsreader',Georgia,Cambria,serif;color:#16382b;margin:0 0 2px;line-height:1.2}
+.book-facility-sub{font-size:13px;color:#78716c;margin:0}
+.book-facility-occupied{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#b45309;margin-top:4px}
+.book-facility-price{text-align:right;flex-shrink:0}
+.book-facility-price strong{display:block;font-size:16px;font-weight:700;color:#16382b}
+.book-facility-price small{font-size:11px;color:#a8a29e}
+.book-section-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+.book-section-title{font-size:11px;font-weight:700;letter-spacing:0.8px;color:#57534e;margin:0;line-height:1.3}
+.book-section-sub{font-size:12px;color:#a8a29e;margin:4px 0 0;line-height:1.4}
+.book-autofill-pill{display:inline-flex;align-items:center;gap:4px;background:#d1fae5;color:#064e3b;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;flex-shrink:0}
+.book-selected-tag{font-size:12px;font-weight:600;color:#047857;background:#f0fdf4;padding:4px 10px;border-radius:8px;flex-shrink:0}
+.book-harvest-row{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px;-webkit-overflow-scrolling:touch}
+.book-harvest-card{flex:0 0 200px;padding:0;overflow:hidden;cursor:pointer;transition:.18s;border:2px solid transparent}
+.book-harvest-card.selected{border-color:#047857;box-shadow:0 0 0 3px rgba(4,120,87,0.12)}
+.book-harvest-thumb{position:relative;width:100%;height:100px;overflow:hidden}
+.book-harvest-thumb img{width:100%;height:100%;object-fit:cover}
+.book-harvest-check{position:absolute;top:8px;right:8px;background:#047857;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.book-harvest-body{padding:10px 12px}
+.book-harvest-body h4{font:600 14px 'Newsreader',Georgia,Cambria,serif;color:#16382b;margin:0 0 2px;line-height:1.2}
+.book-harvest-body p{font-size:11px;color:#78716c;margin:0}
+.book-harvest-arrow{position:absolute;bottom:10px;right:10px;background:#f5f5f4;border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#047857;cursor:pointer}
+.book-search-wrap{position:relative;margin-bottom:14px}
+.book-search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#a8a29e;pointer-events:none}
+.book-search-input{width:100%;padding:12px 14px 12px 44px;border:1px solid #e7e5e4;border-radius:12px;font-size:14px;background:#fff;color:#16382b}
+.book-search-input:focus{outline:none;border-color:#047857;box-shadow:0 0 0 3px rgba(4,120,87,0.1)}
+.book-search-input::placeholder{color:#a8a29e}
+.book-crop-tile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:10px;margin-bottom:8px}
+.book-crop-tile{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px;border:2px solid #e7e5e4;border-radius:12px;background:#fff;cursor:pointer;transition:.15s}
+.book-crop-tile:hover{border-color:#86efac}
+.book-crop-tile.selected{border-color:#047857;background:#f0fdf4}
+.book-crop-tile-photo{width:100%;aspect-ratio:1;border-radius:8px;overflow:hidden}
+.book-crop-tile-photo img{width:100%;height:100%;object-fit:cover}
+.book-crop-tile-label{text-align:center}
+.book-crop-tile-label strong{display:block;font-size:12px;font-weight:600;color:#16382b;line-height:1.2}
+.book-crop-tile-label small{display:block;font-size:10px;color:#a8a29e;margin-top:1px}
+.book-number-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.book-number-btn{flex-shrink:0;width:52px;height:52px;border-radius:14px;border:2px solid #e7e5e4;background:#fff;display:flex;align-items:center;justify-content:center;color:#047857;cursor:pointer;transition:.15s}
+.book-number-btn:hover{border-color:#047857;background:#f0fdf4}
+.book-number-btn:active{transform:scale(0.95)}
+.book-number-display{flex:1;display:flex;align-items:baseline;justify-content:center;gap:6px;padding:14px;border:2px solid #e7e5e4;border-radius:14px;background:#fafaf9}
+.book-number-value{font:700 28px 'Newsreader',Georgia,Cambria,serif;color:#16382b;line-height:1}
+.book-number-unit{font-size:14px;font-weight:600;color:#a8a29e}
+.book-preset-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.book-preset-pill{padding:8px 14px;border:1.5px solid #e7e5e4;border-radius:999px;background:#fff;color:#57534e;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+.book-preset-pill:hover{border-color:#86efac;background:#f0fdf4}
+.book-preset-pill.selected{background:#16382b;border-color:#16382b;color:#fff}
+.book-live-conversion{font-size:12px;font-weight:600;color:#047857;flex-shrink:0}
+.book-cost-summary{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 20px;margin-top:20px;background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1px solid #bbf7d0}
+.book-cost-left{flex:1;min-width:0}
+.book-cost-label{font-size:10px;font-weight:700;letter-spacing:0.8px;color:#047857;display:block;margin-bottom:4px}
+.book-cost-detail{font-size:13px;color:#57534e;margin:0;line-height:1.4}
+.book-cost-right{text-align:right;flex-shrink:0}
+.book-cost-total{font:700 24px 'Newsreader',Georgia,Cambria,serif;color:#16382b;display:block;line-height:1}
+.book-cost-breakdown{font-size:11px;color:#78716c;margin-top:4px;display:block}
+.book-occupied-note{font-size:13px;color:#b45309;text-align:center;margin-top:12px;font-weight:500}
