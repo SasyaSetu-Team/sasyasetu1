@@ -857,11 +857,8 @@ function MyCropImageCard({ listing, t, upcoming, onClick, onFarmEye }: { listing
   const isHarvested = listing.status === 'Harvested' || listing.status === 'Sold';
   const isSold = listing.status === 'Sold';
   const currentPrice = computeCurrentPrice(listing);
-  const dropIn = nextDropMinutes(listing);
-  const isAtFloor = currentPrice != null && listing.price_floor_per_kg != null && currentPrice <= listing.price_floor_per_kg;
   const statusLabel = isSold ? t('market.sold') : upcoming ? t('crops.Upcoming') : t('crops.Harvested');
   const statusClass = isSold ? 'soldout' : upcoming ? 'ready' : 'harvested';
-  const dateLabel = upcoming ? formatDate(listing.expected_harvest_date) : formatDate(listing.harvested_at);
   const isVerified = upcoming ? listing.listing_verified : (listing.harvest_timing_verified && listing.harvest_quantity_verified);
 
   return (
@@ -873,21 +870,12 @@ function MyCropImageCard({ listing, t, upcoming, onClick, onFarmEye }: { listing
       </div>
       <div className="mycrop-card-body">
         <h3 className="mycrop-card-title">{name} · {cropDisplayVariety(listing)}</h3>
-        <p className="mycrop-card-qty">{formatKg(listing.quantity_kg)} · {dateLabel}</p>
-        {upcoming && listing.indicative_price_per_kg != null && (
-          <p className="mycrop-card-price">{formatPrice(listing.indicative_price_per_kg)}</p>
-        )}
-        {isHarvested && currentPrice != null && (
-          <div className="price-clock-widget" style={{ marginTop: 6 }}>
-            <div className="price-clock-left">
-              <span className="price-clock-price"><TrendingDown size={14} /> <strong>{formatPrice(currentPrice)}</strong></span>
-              {!isSold && dropIn != null && dropIn > 0 && !isAtFloor && <span className="price-clock-drop">{t('market.nextDropIn', { minutes: dropIn })}</span>}
-              {listing.price_floor_per_kg != null && <span className="price-clock-floor">· {formatPrice(listing.price_floor_per_kg)}</span>}
-            </div>
-          </div>
-        )}
+        <p className="mycrop-card-qty">{formatKg(listing.quantity_kg)}</p>
+        <p className="mycrop-card-price">{upcoming && listing.indicative_price_per_kg != null ? formatPrice(listing.indicative_price_per_kg) : isHarvested && currentPrice != null ? formatPrice(currentPrice) : '—'}</p>
       </div>
-      <ArrowRight size={19} className="mycrop-card-arrow" />
+      <div className="mycrop-card-btn-wrap">
+        <button type="button" className="flip-card-flip-btn" onClick={(e) => { e.stopPropagation(); onClick(); }}>{t('market.seeInfo')} <ArrowRight size={14} /></button>
+      </div>
     </Card>
   );
 }
