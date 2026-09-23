@@ -649,7 +649,7 @@ function LoginFlow({ role, done, back, t, authError, clearError, signingIn, step
     return (<><div className="step-count">{t('login.step', { n: 3, total: totalSteps })}</div><h2>{stepTitle}</h2><p>{role === 'Farmer' ? t('login.farmerVerificationPrompt') : role === 'FPO' ? t('login.fpoVerificationPrompt') : t('login.providerVerificationPrompt')}</p><div className="verification-fields">{fields.map((f) => <div key={f.label} className="verification-field"><small>{f.label}</small><strong>{f.value}</strong></div>)}<div className="verification-badge"><ShieldCheck size={16} /> Demo Verified</div></div>{authError && <p className="auth-error" role="alert">{authError}</p>}<Button wide onClick={() => verifyAndSignIn()} icon={signingIn ? undefined : ArrowRight}>{signingIn ? 'Signing in…' : t('login.continue')}</Button><button type="button" className="text-link" onClick={() => setStep(1)} disabled={signingIn}>{t('common.back')}</button></>);
   };
 
-  return <main className="login-flow"><button className="back-button" onClick={back}><ArrowLeft size={18} /> {t('common.back')}</button><div className="flow-grid"><div><Illustration label={roleMeta[role].illustration} color={roleColor} icon={roleIcon} photo={rolePhoto} /><h1>{t(`role.${role}`)} {t('login.continue').toLowerCase()}</h1><p>{t('login.useSampleDetails', { role: t(`role.${role}`) })}</p><Demo>{t('login.demoAccount')}</Demo></div><Card className="login-form"><div className="step-indicator">{Array.from({ length: totalSteps }).map((_, i) => <span key={i} className={`step-dot ${i === step ? 'active' : ''} ${i < step ? 'done' : ''}`} />)}</div>{renderStep()}</Card></div></main>;
+  return <main className="login-flow"><button className="back-button" onClick={back}><ArrowLeft size={18} /> {t('common.back')}</button><div className="flow-grid"><div><Illustration label={roleMeta[role].illustration} color={roleColor} icon={roleIcon} photo={rolePhoto} /><h1>{t(`role.${role}`)} {t('login.continue').toLowerCase()}</h1><p>{t('login.useSampleDetails', { role: t(`role.${role}`) })}</p></div><Card className="login-form"><div className="step-indicator">{Array.from({ length: totalSteps }).map((_, i) => <span key={i} className={`step-dot ${i === step ? 'active' : ''} ${i < step ? 'done' : ''}`} />)}</div>{renderStep()}</Card></div></main>;
 }
 const featureCardPhotos: Record<string, string> = {
   'My Crops': 'https://images.pexels.com/photos/13061059/pexels-photo-13061059.jpeg?auto=compress&cs=tinysrgb&h=400&w=600',
@@ -864,9 +864,7 @@ function MyCropImageCard({ listing, t, upcoming, onEdit, onMarkHarvested, onView
   const booked = bookedQuantity(listing);
   const variety = cropDisplayVariety(listing);
   const dateLabel = upcoming ? formatDate(listing.expected_harvest_date) : formatDate(listing.harvested_at);
-  const areaLabel = listing.area_acres != null ? `${listing.area_acres} ${t('crops.acresUnit')}` : '—';
-  const yieldLabel = listing.expected_yield_kg != null ? formatKg(listing.expected_yield_kg) : '—';
-  const marketLabel = `${formatPrice(listing.indicative_price_per_kg)} · ${t('crops.sampleMarketPrice')}`;
+  const marketLabel = formatPrice(listing.indicative_price_per_kg);
   const priceLabel = upcoming && listing.indicative_price_per_kg != null ? formatPrice(listing.indicative_price_per_kg) : isHarvested && currentPrice != null ? formatPrice(currentPrice) : '—';
 
   return (
@@ -902,22 +900,30 @@ function MyCropImageCard({ listing, t, upcoming, onEdit, onMarkHarvested, onView
             <h3 className="bf-crop-title">{name}</h3>
           </div>
           <div className="bf-body" onWheel={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}>
-            <div className="mycrop-spec-rows">
-              <div className="mycrop-spec-row">
-                <div className="mycrop-spec-item"><div className="bf-spec-label">{t('crops.variety').toUpperCase()}</div><div className="bf-spec-value">{variety}</div></div>
-                <div className="mycrop-spec-item"><div className="bf-spec-label">{t('crops.quantity').toUpperCase()}</div><div className="bf-spec-value">{formatKg(listing.quantity_kg)}</div></div>
+            <div className="bf-specs-grid">
+              <div className="bf-spec-box">
+                <div className="bf-spec-label">{t('crops.variety').toUpperCase()}</div>
+                <div className="bf-spec-value">{variety}</div>
               </div>
-              <div className="mycrop-spec-row">
-                <div className="mycrop-spec-item"><div className="bf-spec-label">{t('crops.bookedQuantity').toUpperCase()}</div><div className="bf-spec-value">{formatKg(booked)}</div></div>
-                <div className="mycrop-spec-item"><div className="bf-spec-label">{t('crops.remainingQuantity').toUpperCase()}</div><div className="bf-spec-value">{formatKg(listing.available_quantity_kg)}</div></div>
+              <div className="bf-spec-box">
+                <div className="bf-spec-label">{t('crops.quantity').toUpperCase()}</div>
+                <div className="bf-spec-value">{formatKg(listing.quantity_kg)}</div>
               </div>
-              <div className="mycrop-spec-row">
-                <div className="mycrop-spec-item"><div className="bf-spec-label">{t('crops.expectedHarvest').toUpperCase()}</div><div className="bf-spec-value">{dateLabel}</div></div>
-                <div className="mycrop-spec-item"><div className="bf-spec-label">{t('crops.areaCultivated').toUpperCase()}</div><div className="bf-spec-value">{areaLabel}</div></div>
+              <div className="bf-spec-box">
+                <div className="bf-spec-label">{t('crops.bookedQuantity').toUpperCase()}</div>
+                <div className="bf-spec-value">{formatKg(booked)}</div>
               </div>
-              <div className="mycrop-spec-row">
-                <div className="mycrop-spec-item"><div className="bf-spec-label">{t('crops.expectedYield').toUpperCase()}</div><div className="bf-spec-value">{yieldLabel}</div></div>
-                <div className="mycrop-spec-item"><div className="bf-spec-label">{t('crops.marketInfo').toUpperCase()}</div><div className="bf-spec-value">{marketLabel}</div></div>
+              <div className="bf-spec-box">
+                <div className="bf-spec-label">{t('crops.remainingQuantity').toUpperCase()}</div>
+                <div className="bf-spec-value">{formatKg(listing.available_quantity_kg)}</div>
+              </div>
+              <div className="bf-spec-box">
+                <div className="bf-spec-label">{t('crops.expectedHarvest').toUpperCase()}</div>
+                <div className="bf-spec-value">{dateLabel}</div>
+              </div>
+              <div className="bf-spec-box">
+                <div className="bf-spec-label">{t('crops.marketInfo').toUpperCase()}</div>
+                <div className="bf-spec-value">{marketLabel}</div>
               </div>
             </div>
           </div>
@@ -1059,7 +1065,6 @@ function CropView({ open, selectCrop, t, role, notify, currentUserId }: { open: 
       </>
     )}
     {(role === 'Farmer' || role === 'FPO') && !isClusterTab && <Button icon={Plus} onClick={() => open('crop-create')}>{t('crops.createCrop')}</Button>}
-    <Demo>{t('crops.cropDetailsSample')}</Demo>
     {modal && <ClusterDetail cluster={modal.cluster} members={modal.members} t={t} invite={modal.invite} busy={busyClusterId === modal.cluster.id} onAccept={handleAccept} onDeny={handleDeny} onClose={() => setModal(null)} currentUserId={currentUserId} />}
   </Page>;
 }
@@ -1083,9 +1088,7 @@ function CropDetail({ open, crop, t, role, onEdit, onMarkHarvested }: { open: (v
       <Detail label={t('crops.bookedQuantity')} value={formatKg(booked)} />
       <Detail label={t('crops.remainingQuantity')} value={formatKg(crop.available_quantity_kg)} />
       <Detail label={isHarvested ? t('crops.harvestedDate') : t('crops.expectedHarvest')} value={isHarvested ? formatDate(crop.harvested_at) : formatDate(crop.expected_harvest_date)} />
-      <Detail label={t('crops.areaCultivated')} value={crop.area_acres != null ? `${crop.area_acres} ${t('crops.acresUnit')}` : '—'} />
-      <Detail label={t('crops.expectedYield')} value={crop.expected_yield_kg != null ? formatKg(crop.expected_yield_kg) : '—'} />
-      <Detail label={t('crops.marketInfo')} value={`${formatPrice(crop.indicative_price_per_kg)} · ${t('crops.sampleMarketPrice')}`} />
+      <Detail label={t('crops.marketInfo')} value={formatPrice(crop.indicative_price_per_kg)} />
     </div>
     {(role === 'Farmer' || role === 'FPO') && <>
       <Button icon={Settings} onClick={onEdit}>{t('crops.edit')}</Button>
@@ -1124,7 +1127,7 @@ function BuyerCropDetail({ crop, open, t }: { crop: CropListing; open: (view: Vi
       <Detail label={isHarvested ? t('crops.harvestedDate') : t('crops.expectedHarvest')} value={isHarvested ? formatDate(crop.harvested_at) : formatDate(crop.expected_harvest_date)} />
       <Detail label={t('crops.farmerName')} value={farmerName} />
       <Detail label={t('crops.farmerRating')} value={`${farmerRating} / 5 ★`} />
-      <Detail label={t('crops.marketInfo')} value={`${formatPrice(price)} · ${t('crops.sampleMarketPrice')}`} />
+      <Detail label={t('crops.marketInfo')} value={formatPrice(price)} />
       <Detail label={t('cluster.location')} value={crop.location_area ?? '—'} />
     </div>
   </Page>;
