@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { AlertTriangle, ArrowLeft, ArrowRight, Banknote, Bell, BookOpen, CalendarDays, Check, CheckCircle2, ChevronRight, CircleHelp, Clock3, Eye, EyeOff, FileCheck2, Filter, Handshake, Headphones, Leaf, Layers, Map, MapPin, Mic, Minus, Package, Phone, Plus, Printer, RotateCcw, Satellite, Scissors, Search, Settings, ShieldCheck, ShoppingBag, Sparkles, Sprout, Star, TrendingDown, Truck, UserRound, Users, Warehouse, X, Zap } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Banknote, Bell, BookOpen, CalendarDays, Check, CheckCircle2, ChevronRight, CircleHelp, Clock3, Eye, EyeOff, FileCheck2, Filter, Handshake, Headphones, Leaf, Layers, Map, MapPin, Mic, Minus, Package, Phone, Plus, Printer, RotateCcw, Satellite, Scissors, Search, Settings, ShieldCheck, ShoppingBag, Sparkles, Sprout, Star, TrendingDown, Truck, UserRound, Users, Volume2, Warehouse, X, Zap, RefreshCw } from 'lucide-react';
 import { allLanguages, makeT, codeFromLanguage, languageFromCode, type Language, type T } from '@/translations';
 import { demoEmails, farmerDemoEmails, useAuth, type Profile } from '@/lib/auth';
 const rameshEmail = farmerDemoEmails.find((f) => f.name === 'Ramesh Kumar')?.email ?? farmerDemoEmails[0].email;
@@ -851,7 +851,8 @@ function ClusterDetail({ cluster, members, t, invite, busy, onAccept, onDeny, on
 
 type ClusterModalState = { cluster: CropClusterWithMembers; members: ClusterMemberDetail[]; invite?: ClusterInvite } | null;
 
-function MyCropImageCard({ listing, t, upcoming, onClick, onFarmEye }: { listing: CropListing; t: T; upcoming: boolean; onClick: () => void; onFarmEye: () => void }) {
+function MyCropImageCard({ listing, t, upcoming, onEdit, onMarkHarvested, onViewBuyerRequests, onFarmEye }: { listing: CropListing; t: T; upcoming: boolean; onEdit: () => void; onMarkHarvested: () => void; onViewBuyerRequests: () => void; onFarmEye: () => void }) {
+  const [flipped, setFlipped] = useState(false);
   const name = cropDisplayName(listing);
   const photo = cropPhotoFor(name);
   const isHarvested = listing.status === 'Harvested' || listing.status === 'Sold';
@@ -860,23 +861,75 @@ function MyCropImageCard({ listing, t, upcoming, onClick, onFarmEye }: { listing
   const statusLabel = isSold ? t('market.sold') : upcoming ? t('crops.Upcoming') : t('crops.Harvested');
   const statusClass = isSold ? 'soldout' : upcoming ? 'ready' : 'harvested';
   const isVerified = upcoming ? listing.listing_verified : (listing.harvest_timing_verified && listing.harvest_quantity_verified);
+  const booked = bookedQuantity(listing);
+  const variety = cropDisplayVariety(listing);
+  const dateLabel = upcoming ? formatDate(listing.expected_harvest_date) : formatDate(listing.harvested_at);
+  const areaLabel = listing.area_acres != null ? `${listing.area_acres} ${t('crops.acresUnit')}` : '—';
+  const yieldLabel = listing.expected_yield_kg != null ? formatKg(listing.expected_yield_kg) : '—';
+  const marketLabel = `${formatPrice(listing.indicative_price_per_kg)} · ${t('crops.sampleMarketPrice')}`;
+  const priceLabel = upcoming && listing.indicative_price_per_kg != null ? formatPrice(listing.indicative_price_per_kg) : isHarvested && currentPrice != null ? formatPrice(currentPrice) : '—';
 
   return (
-    <Card className="mycrop-image-card" onClick={onClick}>
-      <div className="mycrop-image-wrap">
-        <img className="mycrop-image" src={photo} alt={name} loading="lazy" />
-        <span className={`flip-card-status ${statusClass}`}>{statusLabel}</span>
-        {isVerified && <button type="button" className="verified-badge verified-badge-inline" onClick={(e) => { e.stopPropagation(); onFarmEye(); }}><Satellite size={11} /> Verified</button>}
+    <div className={`flip-card${flipped ? ' flipped' : ''}`} onClick={() => setFlipped(f => !f)}>
+      <div className="flip-card-inner">
+        <div className="flip-card-face flip-card-front" style={{ pointerEvents: flipped ? 'none' : 'auto' }}>
+          <div className="flip-card-image-wrap">
+            <img className="flip-card-image" src={photo} alt={name} loading="lazy" />
+            <span className={`flip-card-status ${statusClass}`}>{statusLabel}</span>
+          </div>
+          <h3 className="flip-card-title">{name} · {variety}</h3>
+          <div className="flip-card-qty">{formatKg(listing.quantity_kg)}</div>
+          <p style={{ fontSize: '13px', color: '#047857', fontWeight: 700, margin: '4px 0 8px' }}>{priceLabel}</p>
+          <button type="button" className="flip-card-flip-btn" onClick={(e) => { e.stopPropagation(); setFlipped(true); }}>
+            {t('market.seeInfo')} <ArrowRight size={14} />
+          </button>
+        </div>
+        <div className="flip-card-face flip-card-back" style={{ pointerEvents: flipped ? 'auto' : 'none' }}>
+          <div className="bf-header">
+            <div className="bf-header-top">
+              <div className="bf-header-left">
+                {isVerified && <span className="mycrop-verified-pill"><Satellite size={11} /> Verified</span>}
+              </div>
+              <div className="bf-header-icons">
+                <button type="button" className="bf-icon-btn" onClick={(e) => { e.stopPropagation(); }}>
+                  <Volume2 size={15} />
+                </button>
+                <button type="button" className="bf-icon-btn" onClick={(e) => { e.stopPropagation(); setFlipped(false); }}>
+                  <RefreshCw size={15} />
+                </button>
+              </div>
+            </div>
+            <h3 className="bf-crop-title">{name}</h3>
+            <img className="mycrop-back-photo" src={photo} alt={name} loading="lazy" />
+          </div>
+          <div className="bf-body" onWheel={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}>
+            <div className="mycrop-spec-rows">
+              <div className="mycrop-spec-row">
+                <div className="mycrop-spec-item"><div className="bf-spec-label">{t('crops.variety').toUpperCase()}</div><div className="bf-spec-value">{variety}</div></div>
+                <div className="mycrop-spec-item"><div className="bf-spec-label">{t('crops.quantity').toUpperCase()}</div><div className="bf-spec-value">{formatKg(listing.quantity_kg)}</div></div>
+              </div>
+              <div className="mycrop-spec-row">
+                <div className="mycrop-spec-item"><div className="bf-spec-label">{t('crops.bookedQuantity').toUpperCase()}</div><div className="bf-spec-value">{formatKg(booked)}</div></div>
+                <div className="mycrop-spec-item"><div className="bf-spec-label">{t('crops.remainingQuantity').toUpperCase()}</div><div className="bf-spec-value">{formatKg(listing.available_quantity_kg)}</div></div>
+              </div>
+              <div className="mycrop-spec-row">
+                <div className="mycrop-spec-item"><div className="bf-spec-label">{t('crops.expectedHarvest').toUpperCase()}</div><div className="bf-spec-value">{dateLabel}</div></div>
+                <div className="mycrop-spec-item"><div className="bf-spec-label">{t('crops.areaCultivated').toUpperCase()}</div><div className="bf-spec-value">{areaLabel}</div></div>
+              </div>
+              <div className="mycrop-spec-row">
+                <div className="mycrop-spec-item"><div className="bf-spec-label">{t('crops.expectedYield').toUpperCase()}</div><div className="bf-spec-value">{yieldLabel}</div></div>
+                <div className="mycrop-spec-item"><div className="bf-spec-label">{t('crops.marketInfo').toUpperCase()}</div><div className="bf-spec-value">{marketLabel}</div></div>
+              </div>
+            </div>
+          </div>
+          <div className="flip-card-actions mycrop-back-actions" style={{ flexShrink: 0 }}>
+            <button type="button" className="button primary" onClick={(e) => { e.stopPropagation(); onEdit(); }}><Settings size={16} /> {t('crops.edit')}</button>
+            {!isHarvested && <button type="button" className="button primary" onClick={(e) => { e.stopPropagation(); onMarkHarvested(); }}><Check size={16} /> {t('crops.markHarvested')}</button>}
+            <button type="button" className="button primary" onClick={(e) => { e.stopPropagation(); onViewBuyerRequests(); }}><ShoppingBag size={16} /> {t('crops.viewBuyerRequests')}</button>
+          </div>
+        </div>
       </div>
-      <div className="mycrop-card-body">
-        <h3 className="mycrop-card-title">{name} · {cropDisplayVariety(listing)}</h3>
-        <p className="mycrop-card-qty">{formatKg(listing.quantity_kg)}</p>
-        <p className="mycrop-card-price">{upcoming && listing.indicative_price_per_kg != null ? formatPrice(listing.indicative_price_per_kg) : isHarvested && currentPrice != null ? formatPrice(currentPrice) : '—'}</p>
-      </div>
-      <div className="mycrop-card-btn-wrap">
-        <button type="button" className="flip-card-flip-btn" onClick={(e) => { e.stopPropagation(); onClick(); }}>{t('market.seeInfo')} <ArrowRight size={14} /></button>
-      </div>
-    </Card>
+    </div>
   );
 }
 
@@ -1002,7 +1055,7 @@ function CropView({ open, selectCrop, t, role, notify, currentUserId }: { open: 
         {error && <p className="calendar-empty">{error}</p>}
         {!loading && !error && filtered.length === 0 && <Card className="crop-row demo-buffer-card"><Illustration label="Chilli" color="orange" icon={Sprout} /><div><Badge tone="orange">{t('crops.demoBuffer')}</Badge><h3>Chilli · Guntur Red</h3><p>{t('crops.demoBuffer')}</p><p style={{ marginTop: 4 }}>350 kg · Grade A · 3 Oct 2026 · ₹42/kg</p><p style={{ marginTop: 2 }}>1 member joined</p></div></Card>}
         <div className="flip-card-grid">
-          {filtered.map((listing) => <MyCropImageCard key={listing.id} listing={listing} t={t} upcoming={upcoming} onClick={() => { selectCrop(listing); open(upcoming ? 'crop-detail' : 'farmeye-detail'); }} onFarmEye={() => { selectCrop(listing); open('farmeye-detail'); }} />)}
+          {filtered.map((listing) => <MyCropImageCard key={listing.id} listing={listing} t={t} upcoming={upcoming} onEdit={() => { selectCrop(listing); open('crop-edit'); }} onMarkHarvested={async () => { try { await markAsHarvested(listing.id, new Date().toISOString()); notify(t('crops.markedHarvested')); await loadAll(); } catch { notify(t('crops.loadError')); } }} onViewBuyerRequests={() => { open('market'); }} onFarmEye={() => { selectCrop(listing); open('farmeye-detail'); }} />)}
         </div>
       </>
     )}
