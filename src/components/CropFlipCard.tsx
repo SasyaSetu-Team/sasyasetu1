@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight, RotateCcw, ShoppingBag, TrendingDown } from 'lucide-react';
+import { ArrowRight, RotateCcw, ShoppingBag, TrendingUp, Volume2, RefreshCw } from 'lucide-react';
 import type { CropListing } from '@/lib/crops';
 import { cropDisplayName, cropDisplayVariety, formatKg, formatPrice, formatDate, computeCurrentPrice, nextDropMinutes } from '@/lib/crops';
 import type { T } from '@/translations';
@@ -62,7 +62,7 @@ export function CropFlipCard({ listing, t, onOpenDetail, onOpenPayment, sold }: 
   return (
     <div className={`flip-card${flipped ? ' flipped' : ''}`}>
       <div className="flip-card-inner">
-        <div className="flip-card-face flip-card-front">
+        <div className="flip-card-face flip-card-front" style={{ pointerEvents: flipped ? 'none' : 'auto' }}>
           <div className="flip-card-image-wrap">
             <img className="flip-card-image" src={photo} alt={name} loading="lazy" />
             <span className={`flip-card-status ${statusClass}`}>{statusLabel}</span>
@@ -84,38 +84,56 @@ export function CropFlipCard({ listing, t, onOpenDetail, onOpenPayment, sold }: 
             {t('market.seeInfo')} <ArrowRight size={14} />
           </button>
         </div>
-        <div className="flip-card-face flip-card-back">
-          <h3 className="flip-card-title" style={{ marginBottom: 4 }}>{name}</h3>
-          <div className="flip-card-back-rate">{formatPrice(benchmarkRate)}</div>
-          <div className="flip-card-specs">
-            <div className="flip-card-spec">
-              <div className="flip-card-spec-label">{t('crops.harvestDate')}</div>
-              <div className="flip-card-spec-value">{dateLabel}</div>
-            </div>
-            <div className="flip-card-spec">
-              <div className="flip-card-spec-label">{t('crops.yard')}</div>
-              <div className="flip-card-spec-value">{yard}</div>
-            </div>
-            <div className="flip-card-spec">
-              <div className="flip-card-spec-label">{t('crops.farmer')}</div>
-              <div className="flip-card-spec-value">{farmerName}</div>
-            </div>
-            <div className="flip-card-spec">
-              <div className="flip-card-spec-label">{t('crops.quantity')}</div>
-              <div className="flip-card-spec-value">{formatKg(listing.available_quantity_kg)}</div>
-            </div>
-          </div>
-          {isHarvested && currentPrice != null && !isSold && (
-            <div className="price-clock-widget" style={{ margin: '0 0 12px' }}>
-              <div className="price-clock-left">
-                <span className="price-clock-price"><TrendingDown size={14} /> <strong>{formatPrice(currentPrice)}</strong></span>
-                {dropIn != null && dropIn > 0 && !isAtFloor && <span className="price-clock-drop">{t('market.nextDropIn', { minutes: dropIn })}</span>}
+        <div className="flip-card-face flip-card-back" style={{ pointerEvents: flipped ? 'auto' : 'none' }}>
+          <div className="bf-header">
+            <div className="bf-header-top">
+              <div className="bf-header-left">
+                <span className="bf-quality-pill">EXPORT QUALITY {cropDisplayVariety(listing).toUpperCase()}</span>
+                <span className="bf-verified-subtitle">Verified Produce</span>
+              </div>
+              <div className="bf-header-icons">
+                <button type="button" className="bf-icon-btn" onClick={(e) => { e.stopPropagation(); }}>
+                  <Volume2 size={15} />
+                </button>
+                <button type="button" className="bf-icon-btn" onClick={(e) => { e.stopPropagation(); setFlipped(false); }}>
+                  <RefreshCw size={15} />
+                </button>
               </div>
             </div>
-          )}
-          <div className="flip-card-actions">
-            {!isSold && <button type="button" className="button primary" onClick={onOpenPayment}><ShoppingBag size={16} /> {t('market.buyNow')}</button>}
-            <button type="button" className="flip-card-back-btn" onClick={() => setFlipped(false)}><RotateCcw size={16} /> {t('common.back')}</button>
+            <h3 className="bf-crop-title">{name} ({cropDisplayVariety(listing)})</h3>
+          </div>
+          <div className="bf-body" onWheel={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}>
+            <div className="bf-benchmark-box">
+              <div className="bf-benchmark-top">
+                <span className="bf-benchmark-label">MANDI BENCHMARK RATE</span>
+                <span className="bf-mandi-pill"><TrendingUp size={11} /> {yard} Mandi Benchmark</span>
+              </div>
+              <div className="bf-benchmark-price">
+                <span className="bf-price-value">{formatPrice(benchmarkRate)}</span>
+              </div>
+            </div>
+            <div className="bf-specs-grid">
+              <div className="bf-spec-box">
+                <div className="bf-spec-label">QUANTITY</div>
+                <div className="bf-spec-value">{formatKg(listing.available_quantity_kg)}</div>
+              </div>
+              <div className="bf-spec-box">
+                <div className="bf-spec-label">HARVEST DATE</div>
+                <div className="bf-spec-value">{dateLabel}</div>
+              </div>
+              <div className="bf-spec-box">
+                <div className="bf-spec-label">FARMER</div>
+                <div className="bf-spec-value">{farmerName}</div>
+              </div>
+              <div className="bf-spec-box">
+                <div className="bf-spec-label">MANDI YARD</div>
+                <div className="bf-spec-value">{yard}</div>
+              </div>
+            </div>
+          </div>
+          <div className="flip-card-actions" style={{ flexShrink: 0 }}>
+            {!isSold && <button type="button" className="button primary" onClick={(e) => { e.stopPropagation(); onOpenPayment(); }}><ShoppingBag size={16} /> {t('market.buyNow')}</button>}
+            <button type="button" className="flip-card-back-btn" onClick={(e) => { e.stopPropagation(); setFlipped(false); }}><RotateCcw size={16} /> {t('common.back')}</button>
           </div>
         </div>
       </div>
