@@ -900,7 +900,6 @@ function MyCropImageCard({ listing, t, upcoming, onEdit, onMarkHarvested, onView
               </div>
             </div>
             <h3 className="bf-crop-title">{name}</h3>
-            <img className="mycrop-back-photo" src={photo} alt={name} loading="lazy" />
           </div>
           <div className="bf-body" onWheel={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}>
             <div className="mycrop-spec-rows">
