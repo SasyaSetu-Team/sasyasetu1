@@ -60,7 +60,7 @@ export function CropFlipCard({ listing, t, onOpenDetail, onOpenPayment, sold }: 
   const statusLabel = isSold ? t('market.sold') : isHarvested ? t('crops.Harvested') : t('crops.Upcoming');
 
   return (
-    <div className={`flip-card${flipped ? ' flipped' : ''}`}>
+    <div className={`flip-card${flipped ? ' flipped' : ''}`} onClick={() => setFlipped(f => !f)}>
       <div className="flip-card-inner">
         <div className="flip-card-face flip-card-front" style={{ pointerEvents: flipped ? 'none' : 'auto' }}>
           <div className="flip-card-image-wrap">
@@ -80,7 +80,7 @@ export function CropFlipCard({ listing, t, onOpenDetail, onOpenPayment, sold }: 
           {isUpcoming && listing.indicative_price_per_kg != null && (
             <p style={{ fontSize: '13px', color: '#57534e', fontWeight: 600, margin: '4px 0 8px' }}>{formatPrice(listing.indicative_price_per_kg)}</p>
           )}
-          <button type="button" className="flip-card-flip-btn" onClick={() => setFlipped(true)}>
+          <button type="button" className="flip-card-flip-btn" onClick={(e) => { e.stopPropagation(); setFlipped(true); }}>
             {t('market.seeInfo')} <ArrowRight size={14} />
           </button>
         </div>
