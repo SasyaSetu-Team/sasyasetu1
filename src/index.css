@@ -308,6 +308,43 @@
 .tp-consignment-card[role="button"]{cursor:pointer;transition:transform .15s,box-shadow .15s}
 .tp-consignment-card[role="button"]:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
 .tp-consignment-card[role="button"]:active{transform:translateY(0)}
+.tp-req-card{background:#fff;border-radius:20px;padding:20px 24px;border:1px solid rgba(231,229,228,0.9);box-shadow:0 1px 2px rgba(0,0,0,0.04);transition:border-color .2s,box-shadow .2s;display:flex;flex-direction:column;gap:16px}
+.tp-req-card[role="button"]{cursor:pointer}
+.tp-req-card[role="button"]:hover{border-color:#16382b;box-shadow:0 4px 12px rgba(0,0,0,0.08)}
+.tp-req-card-top{display:flex;align-items:flex-start;gap:14px}
+.tp-req-thumb-wrap{position:relative;width:56px;height:56px;border-radius:14px;overflow:hidden;border:1px solid #E7E5E4;flex-shrink:0}
+.tp-req-thumb{width:100%;height:100%;object-fit:cover}
+.tp-req-thumb-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.25),transparent 50%)}
+.tp-req-card-info{flex:1;min-width:0}
+.tp-req-card-header{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.tp-req-lr{font:700 10px 'BR Omega','Outfit',sans-serif;color:#78716C;letter-spacing:0.03em}
+.tp-req-title{font:800 16px 'BR Omega','Outfit',sans-serif;color:#0C0A09;margin:0 0 6px;line-height:1.2}
+.tp-req-meta-row{display:flex;flex-wrap:wrap;gap:10px;font:600 11px 'BR Omega','Outfit',sans-serif;color:#78716C}
+.tp-req-meta-row span{display:inline-flex;align-items:center;gap:4px}
+.tp-req-meta-row svg{color:#A8A29E}
+.tp-req-weight-badge{display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0}
+.tp-req-weight-label{font:700 11px 'BR Omega','Outfit',sans-serif;color:#78716C;text-transform:uppercase;letter-spacing:0.06em;display:block}
+.tp-req-weight-value{font:900 24px 'BR Omega','Outfit',monospace;color:#16382b;line-height:1;margin-top:2px}
+@media(min-width:640px){.tp-req-weight-value{font-size:30px}}
+.tp-req-route-section{display:flex;flex-direction:column;padding-left:4px}
+.tp-req-waypoint{display:flex;align-items:center;gap:12px}
+.tp-req-node{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tp-req-node-from{background:#047857;color:#fff;box-shadow:0 0 0 4px #D1FAE5}
+.tp-req-node-dot{width:8px;height:8px;border-radius:50%;background:#fff}
+.tp-req-node-to{background:#E11D48;color:#fff;box-shadow:0 0 0 4px #FFE4E6}
+.tp-req-waypoint-body{display:flex;flex-direction:column;gap:2px}
+.tp-req-waypoint-label{font:800 11px 'BR Omega','Outfit',sans-serif;text-transform:uppercase;letter-spacing:0.06em;padding:2px 8px;border-radius:6px;display:inline-block;width:fit-content}
+.tp-req-label-from{color:#065F46;background:rgba(209,250,229,0.9)}
+.tp-req-label-to{color:#9F1239;background:rgba(255,228,230,0.9)}
+.tp-req-waypoint-address{font:700 15px 'Newsreader',Georgia,Cambria,serif;color:#1C1917}
+.tp-req-connector{width:0;border-left:2px dashed #D6D3D1;height:20px;margin-left:11px}
+.tp-req-driver-pay{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 16px;background:#F5F5F4;border-radius:14px}
+.tp-req-pay-stat{display:flex;flex-direction:column;gap:2px}
+.tp-req-pay-label{font:700 11px 'BR Omega','Outfit',sans-serif;color:#78716C;text-transform:uppercase;letter-spacing:0.04em}
+.tp-req-pay-value{font:900 18px 'BR Omega','Outfit',sans-serif;color:#16382b}
+.tp-req-pay-detail{font:600 12px 'BR Omega','Outfit',sans-serif;color:#78716C;margin-left:auto;text-align:right}
+.tp-req-accept-btn{width:100%;padding:14px 28px;border:0;border-radius:16px;background:#16382b;color:#fff;font:800 14px 'BR Omega','Outfit',sans-serif;cursor:pointer;transition:background .18s}
+.tp-req-accept-btn:hover{background:#102a20}
 .tp-card-actions{display:flex;gap:8px;flex-wrap:wrap;padding:0 0 12px;margin-top:-4px}
 .tp-card-actions .button{font:700 12px 'BR Omega','Outfit',sans-serif;padding:8px 14px;white-space:nowrap}
 .journey-shipment-info{display:flex;flex-direction:column;gap:6px;padding:12px 0;border-top:1px solid #E7E5E4;border-bottom:1px solid #E7E5E4;margin:12px 0}
