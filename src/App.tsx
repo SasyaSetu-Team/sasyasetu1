@@ -3203,8 +3203,9 @@ function OrdersView({ role, open, notify, t }: { role: Role; open: (view: View) 
       try {
         const data = await fetchMyOrders();
         if (!cancelled) setOrders(data);
-      } catch {
-        if (!cancelled) setError(t('crops.loadError'));
+      } catch (err) {
+        console.error('[OrdersView] failed to load orders:', err);
+        if (!cancelled) setError(t('orders.loadError'));
       } finally {
         if (!cancelled) setLoading(false);
       }

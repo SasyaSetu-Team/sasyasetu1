@@ -203,6 +203,7 @@ export async function bookListing(listingId: string, paymentType: 'token' | 'ful
 
 export async function fetchMyOrders(): Promise<OrderRow[]> {
   const userId = await getCachedUserId();
+  if (!userId) return [];
   const { data, error } = await supabase
     .from('orders')
     .select('*, listing:crop_listings(*, crop:crops(id, name, variety, unit, description))')

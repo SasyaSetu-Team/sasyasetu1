@@ -544,6 +544,7 @@ const en: Dict = {
   'orders.paidSoFar': 'Paid so far',
   'orders.balanceDue': 'Balance due',
   'orders.openLiveJourney': 'Open Live Journey',
+  'orders.loadError': 'Could not load your orders. Please try again.',
 
   // Deals
   'deals.title': 'Deals',
@@ -1271,6 +1272,7 @@ const te: Dict = {
   'orders.paidSoFar': 'ఇప్పటి వరకు చెల్లించారు',
   'orders.balanceDue': 'మిగిలిన మొత్తం',
   'orders.openLiveJourney': 'లైవ్ ప్రయాణం తెరవండి',
+  'orders.loadError': 'మీ ఆర్డర్‌లను లోడ్ చేయలేకపోయాము. దయచేసి మళ్లీ ప్రయత్నించండి.',
 
   'deals.title': 'డీల్స్',
   'deals.body': 'హామీ డీల్ మరియు సవరించబడిన చెల్లింపు స్థితులు.',
@@ -1993,6 +1995,7 @@ const hi: Dict = {
   'orders.paidSoFar': 'अब तक भुगतान',
   'orders.balanceDue': 'शेष राशि',
   'orders.openLiveJourney': 'लाइव यात्रा खोलें',
+  'orders.loadError': 'आपके आदेश लोड नहीं हो सके। कृपया पुनः प्रयास करें।',
 
   'deals.title': 'डील',
   'deals.body': 'आश्वासित डील और संशोधित भुगतान स्थितियां।',
