@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { AlertTriangle, ArrowLeft, ArrowRight, Banknote, Bell, BookOpen, CalendarDays, Check, CheckCircle2, ChevronRight, CircleHelp, Clock3, Eye, EyeOff, FileCheck2, Filter, Handshake, Headphones, Leaf, Layers, Map, MapPin, Mic, Minus, Package, Pause, Phone, Play, Plus, Printer, RotateCcw, Satellite, Scissors, Search, Settings, ShieldCheck, ShoppingBag, Sparkles, Sprout, Star, TrendingDown, Truck, UserRound, Users, Volume2, VolumeX, Warehouse, X, Zap, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Banknote, Bell, BookOpen, CalendarDays, Check, CheckCircle2, ChevronRight, CircleHelp, Clock3, Eye, EyeOff, FileCheck2, Filter, Handshake, Headphones, Leaf, Layers, Map, MapPin, Mic, Minus, Package, Pause, Phone, Play, Plus, Printer, RotateCcw, Satellite, Scissors, Search, Settings, ShieldCheck, ShoppingBag, Sparkles, Sprout, Star, Thermometer, TrendingDown, Truck, UserRound, Users, Volume2, VolumeX, Warehouse, X, Zap, RefreshCw } from 'lucide-react';
 import { allLanguages, makeT, codeFromLanguage, languageFromCode, type Language, type T } from '@/translations';
 import { demoEmails, farmerDemoEmails, useAuth, type Profile } from '@/lib/auth';
 const rameshEmail = farmerDemoEmails.find((f) => f.name === 'Ramesh Kumar')?.email ?? farmerDemoEmails[0].email;
@@ -2735,9 +2735,12 @@ type TpSubTab = 'cold-storage' | 'farmer-requests' | 'my-orders';
 
 interface TpConsignment {
   id: string;
+  lrNumber: string;
   farmerName: string;
   cropName: string;
   quantityKg: number;
+  unitType: 'crates' | 'gunny sacks';
+  unitCount: number;
   vehicleType: string;
   distanceKm: number;
   routeFrom: string;
@@ -2745,23 +2748,26 @@ interface TpConsignment {
   estValue: number;
   status: string;
   daysCold: number;
+  tempReq: string;
+  baseFare: number;
+  perKmRate: number;
 }
 
 const tpColdStorageConsignments: TpConsignment[] = [
-  { id: 'tp-cs-1', farmerName: 'Ramesh Kumar', cropName: 'Tomato', quantityKg: 500, vehicleType: 'Reefer', distanceKm: 42, routeFrom: 'Anantapur', routeTo: 'Warangal Cold Storage', estValue: 12500, status: 'Open', daysCold: 7 },
-  { id: 'tp-cs-2', farmerName: 'Lakshmi Devi', cropName: 'Chilli', quantityKg: 300, vehicleType: 'Open Body', distanceKm: 28, routeFrom: 'Warangal', routeTo: 'Warangal Cold Storage', estValue: 21000, status: 'Open', daysCold: 14 },
-  { id: 'tp-cs-3', farmerName: 'Suresh Reddy', cropName: 'Banana', quantityKg: 800, vehicleType: 'Mini Truck', distanceKm: 55, routeFrom: 'Khammam', routeTo: 'Warangal Cold Storage', estValue: 16000, status: 'Open', daysCold: 5 },
+  { id: 'tp-cs-1', lrNumber: 'TS-WGL-LR-4827', farmerName: 'Ramesh Kumar', cropName: 'Tomato', quantityKg: 500, unitType: 'crates', unitCount: 25, vehicleType: 'Reefer', distanceKm: 42, routeFrom: 'Anantapur', routeTo: 'Warangal Cold Storage', estValue: 12500, status: 'Open', daysCold: 7, tempReq: 'Reefer 4–8°C', baseFare: 200, perKmRate: 25 },
+  { id: 'tp-cs-2', lrNumber: 'TS-WGL-LR-4831', farmerName: 'Lakshmi Devi', cropName: 'Chilli', quantityKg: 300, unitType: 'gunny sacks', unitCount: 6, vehicleType: 'Open Body', distanceKm: 28, routeFrom: 'Warangal', routeTo: 'Warangal Cold Storage', estValue: 21000, status: 'Open', daysCold: 14, tempReq: 'Ambient / Tarp Covered', baseFare: 100, perKmRate: 15 },
+  { id: 'tp-cs-3', lrNumber: 'TS-KHM-LR-4833', farmerName: 'Suresh Reddy', cropName: 'Banana', quantityKg: 800, unitType: 'crates', unitCount: 40, vehicleType: 'Mini Truck', distanceKm: 55, routeFrom: 'Khammam', routeTo: 'Warangal Cold Storage', estValue: 16000, status: 'Open', daysCold: 5, tempReq: 'Reefer 13–15°C', baseFare: 100, perKmRate: 15 },
 ];
 
 const tpFarmerRequestConsignments: TpConsignment[] = [
-  { id: 'tp-fr-1', farmerName: 'Ramesh Kumar', cropName: 'Tomato', quantityKg: 500, vehicleType: 'Open Body', distanceKm: 42, routeFrom: 'Anantapur', routeTo: 'Warangal Mandi', estValue: 12500, status: 'Open', daysCold: 0 },
-  { id: 'tp-fr-2', farmerName: 'Anjali Rao', cropName: 'Onion', quantityKg: 1200, vehicleType: 'Container', distanceKm: 67, routeFrom: 'Nizamabad', routeTo: 'Warangal Mandi', estValue: 36000, status: 'Open', daysCold: 0 },
-  { id: 'tp-fr-3', farmerName: 'Pochamma', cropName: 'Cotton', quantityKg: 2000, vehicleType: 'Open Body', distanceKm: 35, routeFrom: 'Warangal', routeTo: 'Warangal Mandi', estValue: 90000, status: 'Open', daysCold: 0 },
+  { id: 'tp-fr-1', lrNumber: 'AP-ANT-LR-4912', farmerName: 'Ramesh Kumar', cropName: 'Tomato', quantityKg: 500, unitType: 'crates', unitCount: 25, vehicleType: 'Open Body', distanceKm: 42, routeFrom: 'Anantapur', routeTo: 'Warangal Mandi', estValue: 12500, status: 'Open', daysCold: 0, tempReq: 'Ambient / Tarp Covered', baseFare: 200, perKmRate: 25 },
+  { id: 'tp-fr-2', lrNumber: 'TS-NZB-LR-4918', farmerName: 'Anjali Rao', cropName: 'Onion', quantityKg: 1200, unitType: 'gunny sacks', unitCount: 24, vehicleType: 'Container', distanceKm: 67, routeFrom: 'Nizamabad', routeTo: 'Warangal Mandi', estValue: 36000, status: 'Open', daysCold: 0, tempReq: 'Ambient / Tarp Covered', baseFare: 200, perKmRate: 25 },
+  { id: 'tp-fr-3', lrNumber: 'TS-WGL-LR-4920', farmerName: 'Pochamma', cropName: 'Cotton', quantityKg: 2000, unitType: 'gunny sacks', unitCount: 40, vehicleType: 'Open Body', distanceKm: 35, routeFrom: 'Warangal', routeTo: 'Warangal Mandi', estValue: 90000, status: 'Open', daysCold: 0, tempReq: 'Ambient / Tarp Covered', baseFare: 200, perKmRate: 25 },
 ];
 
 const tpMyOrderConsignments: TpConsignment[] = [
-  { id: 'tp-mo-1', farmerName: 'Ramesh Kumar', cropName: 'Tomato', quantityKg: 500, vehicleType: 'Reefer', distanceKm: 42, routeFrom: 'Anantapur', routeTo: 'Warangal Mandi', estValue: 12500, status: 'In Transit', daysCold: 0 },
-  { id: 'tp-mo-2', farmerName: 'Lakshmi Devi', cropName: 'Chilli', quantityKg: 300, vehicleType: 'Open Body', distanceKm: 28, routeFrom: 'Warangal', routeTo: 'Hyderabad Mandi', estValue: 21000, status: 'Delivered', daysCold: 0 },
+  { id: 'tp-mo-1', lrNumber: 'AP-ANT-LR-4912', farmerName: 'Ramesh Kumar', cropName: 'Tomato', quantityKg: 500, unitType: 'crates', unitCount: 25, vehicleType: 'Reefer', distanceKm: 42, routeFrom: 'Anantapur', routeTo: 'Warangal Mandi', estValue: 12500, status: 'In Transit', daysCold: 0, tempReq: 'Reefer 4–8°C', baseFare: 200, perKmRate: 25 },
+  { id: 'tp-mo-2', lrNumber: 'TS-WGL-LR-4935', farmerName: 'Lakshmi Devi', cropName: 'Chilli', quantityKg: 300, unitType: 'gunny sacks', unitCount: 6, vehicleType: 'Open Body', distanceKm: 28, routeFrom: 'Warangal', routeTo: 'Hyderabad Mandi', estValue: 21000, status: 'Delivered', daysCold: 0, tempReq: 'Ambient / Tarp Covered', baseFare: 100, perKmRate: 15 },
 ];
 
 function tpConsignmentPhoto(c: TpConsignment): string {
@@ -2774,23 +2780,33 @@ function TpKpiCard({ icon: Icon, value, label, tone }: { icon: IconType; value: 
   return <div className="tp-kpi-card"><span className={`tp-kpi-icon ${tone}`}><Icon size={20} /></span><span className="tp-kpi-value">{value}</span><span className="tp-kpi-label">{label}</span></div>;
 }
 
+function tpFreightPayout(c: TpConsignment): number { return round2(c.baseFare + c.perKmRate * c.distanceKm); }
+
 function TpConsignmentCard({ c, t }: { c: TpConsignment; t: T }) {
-  const photo = tpConsignmentPhoto(c);
   const cropPhoto = cropPhotoFor(c.cropName);
+  const freight = tpFreightPayout(c);
   return <div className="tp-consignment-card">
     <img className="tp-consignment-photo" src={cropPhoto} alt={c.cropName} loading="lazy" />
     <div className="tp-consignment-body">
       <div className="tp-consignment-top">
         <Badge tone={c.status === 'Delivered' ? 'blue' : 'green'}>{c.status}</Badge>
-        <span style={{ fontSize: 11, color: '#78716c', fontWeight: 600 }}>{c.vehicleType}</span>
+        <span style={{ fontSize: 10, color: '#78716c', fontWeight: 700, letterSpacing: '0.03em' }}>LR {c.lrNumber}</span>
       </div>
       <h3>{c.farmerName} · {c.cropName}</h3>
-      <p>{formatKg(c.quantityKg)} · Est. {formatRupee(c.estValue)}{c.daysCold > 0 ? ` · ${c.daysCold} days cold storage` : ''}</p>
+      <p>{formatKg(c.quantityKg)} · {c.unitCount} {c.unitType} · Est. {formatRupee(c.estValue)}{c.daysCold > 0 ? ` · ${c.daysCold} days cold storage` : ''}</p>
       <div className="tp-consignment-meta">
-        <span><MapPin size={12} /> {c.distanceKm} km</span>
+        <span><Thermometer size={12} /> {c.tempReq}</span>
         <span><Truck size={12} /> {c.vehicleType}</span>
       </div>
       <div className="tp-consignment-route"><span>{c.routeFrom}</span><ArrowRight size={12} /><strong>{c.routeTo}</strong></div>
+      <div className="tp-freight-breakdown">
+        <span className="tp-freight-label">Freight Payout <Demo>Sample</Demo></span>
+        <div className="tp-freight-detail">
+          <span>Base ₹{c.baseFare}</span>
+          <span>+ ₹{c.perKmRate}/km × {c.distanceKm} km</span>
+          <strong>= {formatRupee(freight)}</strong>
+        </div>
+      </div>
     </div>
   </div>;
 }
