@@ -875,6 +875,7 @@ function MyCropImageCard({ listing, t, upcoming, onEdit, onMarkHarvested, onView
         <div className="flip-card-face flip-card-front" style={{ pointerEvents: flipped ? 'none' : 'auto' }}>
           <div className="flip-card-image-wrap">
             <img className="flip-card-image" src={photo} alt={name} loading="lazy" />
+            <button type="button" className="farmeye-badge" title="FarmEye Verified" onClick={(e) => { e.stopPropagation(); onFarmEye(); }}><Satellite size={16} /><span className="farmeye-ring" /></button>
             <span className={`flip-card-status ${statusClass}`}>{statusLabel}</span>
           </div>
           <h3 className="flip-card-title">{name} · {variety}</h3>
@@ -1279,6 +1280,7 @@ function ClusterCropCard({ cluster, t, onNotify, role, onBuyNow, onSold, sold, i
     <Card className="cluster-card">
       <div className="cluster-badge-row">
         <span className="cluster-pill"><Layers size={14} /> {t('cluster.label')}</span>
+        <span className="farmeye-badge-static" title="FarmEye Verified"><Satellite size={13} /></span>
         <Badge tone={statusTone}>{statusLabel}</Badge>
         {cluster.verified_count > 0 && <span className="cluster-verified-fraction"><Check size={11} strokeWidth={3} /> {cluster.verified_count}/{cluster.farmer_count} verified</span>}
       </div>

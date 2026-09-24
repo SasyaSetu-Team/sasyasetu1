@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight, RotateCcw, ShoppingBag, TrendingUp, Volume2, RefreshCw } from 'lucide-react';
+import { ArrowRight, RotateCcw, Satellite, ShoppingBag, TrendingUp, Volume2, RefreshCw } from 'lucide-react';
 import type { CropListing } from '@/lib/crops';
 import { cropDisplayName, cropDisplayVariety, formatKg, formatPrice, formatDate, computeCurrentPrice, nextDropMinutes } from '@/lib/crops';
 import type { T } from '@/translations';
@@ -65,6 +65,7 @@ export function CropFlipCard({ listing, t, onOpenDetail, onOpenPayment, sold }: 
         <div className="flip-card-face flip-card-front" style={{ pointerEvents: flipped ? 'none' : 'auto' }}>
           <div className="flip-card-image-wrap">
             <img className="flip-card-image" src={photo} alt={name} loading="lazy" />
+            <span className="farmeye-badge info-only" title="FarmEye Verified"><Satellite size={16} /><span className="farmeye-ring" /></span>
             <span className={`flip-card-status ${statusClass}`}>{statusLabel}</span>
           </div>
           <h3 className="flip-card-title">{name} · {cropDisplayVariety(listing)}</h3>

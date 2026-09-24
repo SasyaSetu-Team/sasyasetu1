@@ -107,6 +107,12 @@
 .cluster-image-card:hover .cluster-image-photo{transform:scale(1.05)}
 .cluster-image-wrap::after{content:'';position:absolute;bottom:0;left:0;right:0;height:60px;background:linear-gradient(to top,rgba(0,0,0,0.4),transparent);pointer-events:none}
 .cluster-image-wrap .flip-card-status{top:12px;right:12px;z-index:2}
+.farmeye-badge{position:absolute;top:12px;left:12px;z-index:3;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.95);border:1.5px solid #A7F3D0;box-shadow:0 2px 8px rgba(0,0,0,0.15);color:#047857;cursor:pointer;transition:transform .15s,box-shadow .15s;backdrop-filter:blur(4px)}
+.farmeye-badge:hover{transform:scale(1.08);box-shadow:0 4px 12px rgba(0,0,0,0.22)}
+.farmeye-badge.info-only{cursor:default}
+.farmeye-badge.info-only:hover{transform:none;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+.farmeye-badge .farmeye-ring{position:absolute;inset:-3px;border-radius:50%;border:1.5px solid rgba(4,120,87,0.2);pointer-events:none}
+.cluster-badge-row .farmeye-badge-static{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#ECFDF5;border:1.5px solid #A7F3D0;color:#047857;flex-shrink:0}
 .cluster-image-body{padding:14px 16px 16px}
 .cluster-image-body h3{color:#1c1917;font:700 18px 'Newsreader',Georgia,Cambria,serif;margin:4px 0 4px;line-height:1.2}
 .cluster-image-body p{color:#78716c;font-size:11px;margin:0;line-height:1.5}
