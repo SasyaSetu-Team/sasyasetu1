@@ -2796,6 +2796,8 @@ function TpConsignmentCard({ c, t }: { c: TpConsignment; t: T }) {
 }
 
 function FeatureView({ role, open, notify, t, profile, onNotifications }: { role: Role; open: (view: View) => void; notify: (message: string) => void; t: T; profile: () => void; onNotifications: () => void }) {
+  const [subTab, setSubTab] = useState<TpSubTab>('cold-storage');
+
   if (role !== 'Transport Provider') {
     const request = t('feature.Main Summary');
     return <Page title={request} body={t('features.body')} back={() => open('home')} t={t}>
@@ -2803,8 +2805,6 @@ function FeatureView({ role, open, notify, t, profile, onNotifications }: { role
       <Card className="request-card"><Illustration label={t('role.Farmer')} color="amber" icon={Warehouse} /><div><Badge tone="blue">{t('features.openRequest')}</Badge><h3>Ramesh Kumar · Tomato</h3><p>500 kg · 7 days · sample requirement</p><Button variant="soft" onClick={() => notify(t('features.requestReviewOpened'))}>{t('features.reviewRequest')}</Button></div></Card>
     </Page>;
   }
-
-  const [subTab, setSubTab] = useState<TpSubTab>('cold-storage');
 
   const consignments = subTab === 'cold-storage' ? tpColdStorageConsignments : subTab === 'farmer-requests' ? tpFarmerRequestConsignments : tpMyOrderConsignments;
 
