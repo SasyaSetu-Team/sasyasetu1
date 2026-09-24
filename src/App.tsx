@@ -2864,7 +2864,8 @@ function tpFreightPayout(c: TpConsignment): number { return round2(c.baseFare + 
 function TpConsignmentCard({ c, t, onClick }: { c: TpConsignment; t: T; onClick?: () => void }) {
   const cropPhoto = cropPhotoFor(c.cropName);
   const freight = tpFreightPayout(c);
-  return <div className="tp-consignment-card" onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } } }>
+  const clickable = !!onClick;
+  return <div className="tp-consignment-card" onClick={onClick} role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined} onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } } : undefined}>
     <img className="tp-consignment-photo" src={cropPhoto} alt={c.cropName} loading="lazy" />
     <div className="tp-consignment-body">
       <div className="tp-consignment-top">
@@ -3112,10 +3113,10 @@ function FeatureView({ role, open, notify, t, profile, onNotifications, onOpenJo
       </div>
     </div>
     <div className="page-title"><h1>{tabLabel}</h1><p>{t('features.body')}</p></div>
-    <div className="tp-subtabs">
-      <button className={`tp-subtab ${subTab === 'cold-storage' ? 'active' : ''}`} onClick={() => setSubTab('cold-storage')}>{t('feature.Cold Storage Requests')}</button>
-      <button className={`tp-subtab ${subTab === 'farmer-requests' ? 'active' : ''}`} onClick={() => setSubTab('farmer-requests')}>{t('feature.Farmer Requests')}</button>
-      <button className={`tp-subtab ${subTab === 'my-orders' ? 'active' : ''}`} onClick={() => setSubTab('my-orders')}>{t('feature.My Orders')}</button>
+    <div className="filter-row">
+      <button className={subTab === 'cold-storage' ? 'selected' : ''} onClick={() => setSubTab('cold-storage')}>{t('feature.Cold Storage Requests')}</button>
+      <button className={subTab === 'farmer-requests' ? 'selected' : ''} onClick={() => setSubTab('farmer-requests')}>{t('feature.Farmer Requests')}</button>
+      <button className={subTab === 'my-orders' ? 'selected' : ''} onClick={() => setSubTab('my-orders')}>{t('feature.My Orders')}</button>
     </div>
     {kpis}
     <div className="tp-card-list">
