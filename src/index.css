@@ -466,3 +466,93 @@
 .sp-segmented button{flex:1;padding:10px 14px;border-radius:10px;border:none;background:transparent;font:700 13px 'BR Omega','Outfit',sans-serif;color:#78716C;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
 .sp-segmented button.selected{background:#16382b;color:#fff}
 .sp-empty{padding:40px 20px;text-align:center;font:600 14px 'BR Omega','Outfit',sans-serif;color:#A8A29E}
+
+/* ===== Buyer Orders (Amazon-style) ===== */
+.orders-page{max-width:860px;margin:0 auto;padding:0 16px 40px}
+.orders-topbar{display:flex;align-items:center;padding:16px 0 8px}
+.orders-header{margin-bottom:16px}
+.orders-header h1{font:800 24px 'BR Omega','Outfit',sans-serif;color:#0C0A09;margin:0 0 4px}
+.orders-header p{font:600 13px 'BR Omega','Outfit',sans-serif;color:#78716C;margin:0}
+.orders-filter-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.orders-filter-pills button{padding:8px 16px;border-radius:20px;border:1px solid #E7E5E4;background:#fff;font:700 12px 'BR Omega','Outfit',sans-serif;color:#57534E;cursor:pointer;transition:all .2s}
+.orders-filter-pills button.selected{background:#16382b;color:#fff;border-color:#16382b}
+.orders-filter-pills button .orders-pill-count{font-weight:800;opacity:.7;margin-left:4px}
+
+.ord-card{background:#fff;border:1px solid #E7E5E4;border-radius:16px;margin-bottom:12px;overflow:hidden;transition:box-shadow .2s}
+.ord-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.ord-card-topstrip{display:flex;gap:0;padding:10px 16px;background:#F5F5F4;border-bottom:1px solid #E7E5E4}
+.ord-card-topstrip .ord-strip-col{flex:1;display:flex;flex-direction:column;gap:1px}
+.ord-card-topstrip .ord-strip-col + .ord-strip-col{padding-left:16px}
+.ord-card-topstrip small{font:700 10px 'BR Omega','Outfit',sans-serif;color:#78716C;letter-spacing:.04em;text-transform:uppercase}
+.ord-card-topstrip strong{font:700 13px 'BR Omega','Outfit',sans-serif;color:#0C0A09}
+.ord-card-body{display:flex;align-items:center;gap:14px;padding:14px 16px}
+.ord-card-thumb{width:56px;height:56px;border-radius:12px;overflow:hidden;flex-shrink:0}
+.ord-card-thumb img{width:100%;height:100%;object-fit:cover}
+.ord-card-info{flex:1;min-width:0}
+.ord-status-pill{display:inline-flex;align-items:center;gap:5px;font:700 11px 'BR Omega','Outfit',sans-serif;border-radius:8px;padding:3px 10px;margin-bottom:6px}
+.ord-status-pill.transit{background:#FEF3C7;color:#92400E}
+.ord-status-pill.transit .ord-pulse{width:7px;height:7px;border-radius:50%;background:#F59E0B;animation:ord-pulse 1.5s infinite}
+@keyframes ord-pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.ord-status-pill.delivered{background:#ECFDF5;color:#047857}
+.ord-card-info h3{font:800 15px 'BR Omega','Outfit',sans-serif;color:#0C0A09;margin:0}
+.ord-card-info p{font:600 12px 'BR Omega','Outfit',sans-serif;color:#78716C;margin:3px 0 0}
+.ord-card-preview-btn{display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:1px solid #D6D3D1;background:#fff;font:700 12px 'BR Omega','Outfit',sans-serif;color:#44403C;cursor:pointer;transition:all .15s;flex-shrink:0}
+.ord-card-preview-btn:hover{background:#F5F5F4;border-color:#A8A29E}
+
+.ord-modal{background:#fff;border-radius:24px;max-width:680px;width:calc(100% - 32px);max-height:92vh;overflow-y:auto;margin:auto}
+.ord-modal-header{padding:20px 24px 16px;border-bottom:1px solid #F5F5F4;display:flex;justify-content:space-between;align-items:flex-start}
+.ord-modal-header h2{font:800 18px 'BR Omega','Outfit',sans-serif;color:#0C0A09;margin:0}
+.ord-modal-header .ord-modal-meta{font:600 12px 'BR Omega','Outfit',sans-serif;color:#78716C;margin:4px 0 6px}
+.ord-modal-tabs{display:flex;gap:0;border-bottom:1px solid #E7E5E4;padding:0 24px}
+.ord-modal-tabs button{padding:12px 16px;border:none;background:transparent;font:700 13px 'BR Omega','Outfit',sans-serif;color:#78716C;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;display:flex;align-items:center;gap:6px}
+.ord-modal-tabs button.selected{color:#16382b;border-bottom-color:#16382b}
+.ord-modal-body{padding:20px 24px}
+.ord-modal-footer{padding:16px 24px;border-top:1px solid #F5F5F4;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ord-modal-footer .ord-footer-spacer{flex:1}
+
+.ord-track-alert{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#FEF3C7;border-radius:12px;margin-bottom:16px}
+.ord-track-alert svg{color:#B45309;flex-shrink:0}
+.ord-track-alert span{font:700 12px 'BR Omega','Outfit',sans-serif;color:#92400E}
+.ord-track-driver{display:flex;align-items:center;gap:12px;padding:14px;background:#F5F5F4;border-radius:14px;margin-bottom:16px}
+.ord-track-driver-info{flex:1}
+.ord-track-driver-info strong{font:800 14px 'BR Omega','Outfit',sans-serif;color:#0C0A09;display:block}
+.ord-track-driver-info small{font:600 11px 'BR Omega','Outfit',sans-serif;color:#78716C}
+.ord-track-driver-info .ord-vehicle{font:700 12px 'BR Omega','Outfit',sans-serif;color:#44403C;margin-top:2px}
+.ord-track-ewaybill{font:700 12px 'BR Omega','Outfit',sans-serif;color:#44403C;padding:8px 12px;background:#F0FDF4;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:6px}
+.ord-track-ewaybill svg{color:#047857;flex-shrink:0}
+.ord-milestones{display:flex;flex-direction:column;gap:0;margin-bottom:16px}
+.ord-milestone{display:flex;gap:12px;align-items:flex-start;cursor:pointer;padding:6px 0;transition:opacity .15s}
+.ord-milestone-dot{width:24px;height:24px;border-radius:50%;border:2px solid #D6D3D1;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;background:#fff}
+.ord-milestone.done .ord-milestone-dot{background:#047857;border-color:#047857}
+.ord-milestone.done .ord-milestone-dot svg{color:#fff}
+.ord-milestone.active .ord-milestone-dot{border-color:#F59E0B;background:#FEF3C7}
+.ord-milestone.active .ord-milestone-dot .ord-pulse{width:8px;height:8px;border-radius:50%;background:#F59E0B;animation:ord-pulse 1.5s infinite}
+.ord-milestone-body{flex:1;padding-top:2px}
+.ord-milestone-body strong{font:700 13px 'BR Omega','Outfit',sans-serif;color:#0C0A09;display:block}
+.ord-milestone-body small{font:600 11px 'BR Omega','Outfit',sans-serif;color:#A8A29E}
+.ord-milestone-connector{width:2px;height:20px;background:#E7E5E4;margin-left:11px;margin-top:-2px;margin-bottom:-2px}
+.ord-milestone.done + .ord-milestone-connector{background:#047857}
+
+.ord-crop-grid{display:flex;gap:16px;margin-bottom:16px}
+.ord-crop-img{width:100px;height:100px;border-radius:16px;overflow:hidden;flex-shrink:0}
+.ord-crop-img img{width:100%;height:100%;object-fit:cover}
+.ord-crop-details{flex:1}
+.ord-crop-details h3{font:800 16px 'BR Omega','Outfit',sans-serif;color:#0C0A09;margin:0 0 6px}
+.ord-crop-details .ord-crop-row{font:600 12px 'BR Omega','Outfit',sans-serif;color:#57534E;margin:3px 0;display:flex;align-items:center;gap:6px}
+.ord-crop-details .ord-crop-row svg{color:#78716C;flex-shrink:0}
+.ord-pkg-box{background:#F5F5F4;border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.ord-pkg-box h4{font:700 11px 'BR Omega','Outfit',sans-serif;color:#78716C;letter-spacing:.04em;text-transform:uppercase;margin:0 0 4px}
+.ord-pkg-box p{font:700 13px 'BR Omega','Outfit',sans-serif;color:#0C0A09;margin:0}
+
+.ord-billing-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:#F0FDF4;border-radius:10px;font:700 12px 'BR Omega','Outfit',sans-serif;color:#047857;margin-bottom:16px}
+.ord-billing-badge svg{flex-shrink:0}
+.ord-billing-row{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid #F5F5F4}
+.ord-billing-row:last-child{border-bottom:none}
+.ord-billing-row span{font:600 13px 'BR Omega','Outfit',sans-serif;color:#57534E}
+.ord-billing-row strong{font:800 14px 'BR Omega','Outfit',sans-serif;color:#0C0A09}
+.ord-billing-row.total span{font-weight:800;color:#0C0A09}
+.ord-billing-row.total strong{font-size:16px;color:#16382b}
+.ord-problem-link{font:700 12px 'BR Omega','Outfit',sans-serif;color:#A8A29E;cursor:pointer;text-decoration:underline;background:none;border:none;padding:0}
+.ord-problem-link:hover{color:#78716C}
+.ord-call-driver{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;background:#16382b;color:#fff;font:700 12px 'BR Omega','Outfit',sans-serif;cursor:pointer;border:none;text-decoration:none;flex-shrink:0}
+.ord-call-driver:hover{background:#1e4d3a}

@@ -3039,11 +3039,162 @@ function DisputeView({ open, notify, t }: { open: (view: View) => void; notify: 
 function ProfileView({ role, open, language, setLanguage, buyerCategory, signOut, addAccount, t, profileData }: { role: Role; open: (view: View) => void; language: Language; setLanguage: (language: Language) => void; buyerCategory: string; signOut: () => void; addAccount: () => void; t: T; profileData?: Profile | null }) { return <Page title={t('profile.title')} body={t('profile.body')} back={() => open('home')} t={t}><Card className="profile-card"><span className={`profile-avatar ${roleMeta[role].color}`}>{roleMeta[role].initials}</span><div><Badge tone="green">{t('profile.demoVerified')}</Badge><h2>{role === 'Farmer' ? (profileData?.display_name ?? 'Ramesh Kumar') : role === 'Buyer' ? 'Venkat Reddy' : roleMeta[role].illustration}</h2><p>{role === 'Farmer' ? (profileData?.home_location ?? roleMeta[role].location) : roleMeta[role].location}</p></div></Card>{role === 'Farmer' && <><SectionHeading title={t('profile.farmerVerification')} body={t('profile.farmerVerificationBody')} icon={FileCheck2} /><div className="detail-grid"><Detail label={t('profile.farmerCategory')} value={profileData?.farmer_category ?? t('login.landOwner')} /><Detail label={t('profile.govVerification')} value={t('profile.pmKisan')} /><Detail label={t('profile.verificationDoc')} value={t('profile.aadhaarLinked')} /><Detail label={t('profile.landOwnership')} value={t('profile.landDetails')} /><Detail label={t('profile.cropsCultivated')} value="Tomato, Onion, Paddy" /><Detail label={t('profile.quantityHarvested')} value={t('profile.sampleQuantity')} /></div></>}{role === 'Buyer' && <><SectionHeading title={t('profile.buyerVerification')} body={t('profile.buyerVerificationBody')} icon={FileCheck2} /><div className="detail-grid"><Detail label={t('profile.buyerCategory')} value={buyerCategory} /><Detail label={t('profile.mobileNumber')} value="+91 98765 43210" /><Detail label={t('profile.googleAccount')} value="venkat@example.com" /><Detail label={t('profile.completeAddress')} value="Warangal Market Road, Telangana" /><Detail label={t('profile.blockArea')} value="Hanamkonda · Near Rythu Bazaar" /><Detail label={t('profile.buyerRating')} value={t('profile.demoRating')} /></div></>}{(role === 'FPO' || role === 'Storage Provider' || role === 'Transport Provider') && <div className="detail-grid"><Detail label={t('profile.organisation')} value={roleMeta[role].illustration} /><Detail label={t('profile.verification')} value={t('profile.permitReview')} /><Detail label={t('profile.contact')} value="+91 98765 43210 · sample@example.com" /><Detail label={t('profile.serviceArea')} value="Warangal, Karimnagar, Hyderabad" /></div>}<Card className="settings-card" onClick={() => open('settings')}><Settings size={22} /><div><h3>{t('profile.settings')}</h3><p>{t('profile.settingsBody')}</p></div><ArrowRight size={18} /></Card><div className="profile-actions"><Button variant="soft" onClick={addAccount}>{t('profile.addAccount')}</Button><Button variant="outline" onClick={signOut}>{t('profile.signOut')}</Button></div></Page>; }
 function SettingsView({ open, language, setLanguage, t }: { open: (view: View) => void; language: Language; setLanguage: (language: Language) => void; t: T }) { return <Page title={t('settings.title')} body={t('settings.body')} back={() => open('profile')} t={t}><Card className="settings-card large"><Settings size={22} /><div><h3>{t('settings.language')}</h3><p>{t('settings.languageBody')}</p><div className="language-options"><LanguagePicker value={language} setValue={setLanguage} t={t} /></div></div></Card><Card className="settings-card large"><Headphones size={22} /><div><h3>{t('settings.voiceAssistant')}</h3><p>{t('settings.voiceBody')}</p></div><span className="toggle on" /></Card></Page>; }
 
+function orderEtaDate(order: OrderRow): string {
+  const booked = new Date(order.booked_at);
+  booked.setDate(booked.getDate() + 2 + (hashStr(order.id) % 3));
+  return booked.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+function orderPlacedDate(order: OrderRow): string {
+  return new Date(order.booked_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function orderShortId(order: OrderRow): string {
+  return 'ORD-TS-' + (hashStr(order.id) % 9000 + 1000);
+}
+
+function orderIsTransit(order: OrderRow): boolean {
+  return ['Booked', 'Farmer Confirmed', 'Assured Deal', 'Ready', 'In Transit'].includes(order.status);
+}
+
+function orderDriverInfo(order: OrderRow): { name: string; phone: string; vehicle: string; eWayBill: string } {
+  const drivers = [
+    { name: 'Mallikarjun', phone: '+91 90000 12345', vehicle: 'TS 09 UV 2468' },
+    { name: 'Venkatesh', phone: '+91 90000 67890', vehicle: 'AP 02 TR 7788' },
+    { name: 'Somaiah', phone: '+91 90000 33445', vehicle: 'TS 07 PQ 1122' },
+    { name: 'Ravi Kumar', phone: '+91 90000 77889', vehicle: 'AP 16 KL 5566' },
+  ];
+  const idx = hashStr(order.id) % drivers.length;
+  const d = drivers[idx];
+  return { ...d, eWayBill: 'EWB-' + (hashStr(order.id + 'ewb') % 90000 + 10000) };
+}
+
+function orderFarmerInfo(order: OrderRow): { name: string; village: string; phone: string } {
+  const farmerNames = ['Ramesh Kumar', 'Lakshmi Devi', 'Suresh Reddy', 'Anjali Rao', 'Pochamma'];
+  const villages = ['Pembarthy', 'Hasanparthy', 'Geesukonda', 'Nekkonda', 'Atmakur'];
+  const phones = ['+91 98765 43210', '+91 98765 12345', '+91 98765 56789', '+91 98765 67890', '+91 98765 78901'];
+  const idx = hashStr(order.listing?.owner_id ?? order.id) % 5;
+  return { name: farmerNames[idx], village: villages[idx], phone: phones[idx] };
+}
+
+const orderMilestones = ['Farmgate Loading', 'En Route Highway', 'APMC Weighbridge', 'Unloading Bay & Escrow'];
+
+function OrderPreviewModal({ order, onClose, notify, t }: { order: OrderRow; onClose: () => void; notify: (msg: string) => void; t: T }) {
+  const [tab, setTab] = useState<'track' | 'crop' | 'billing'>('track');
+  const [milestones, setMilestones] = useState<boolean[]>(() => {
+    const transit = orderIsTransit(order);
+    const delivered = !transit;
+    if (delivered) return [true, true, true, true];
+    const stageMap: Record<string, number> = { 'Booked': 0, 'Farmer Confirmed': 1, 'Assured Deal': 1, 'Ready': 2, 'In Transit': 2 };
+    const stage = stageMap[order.status] ?? 1;
+    return [true, stage >= 1, stage >= 2, false];
+  });
+
+  const listing = order.listing;
+  const cropName = listing ? cropDisplayName(listing) : 'Unknown crop';
+  const variety = listing ? cropDisplayVariety(listing) : '';
+  const totalAmount = round2(Number(order.quantity_kg) * Number(order.unit_price));
+  const isTransit = orderIsTransit(order);
+  const driver = orderDriverInfo(order);
+  const farmer = orderFarmerInfo(order);
+  const grossAmount = totalAmount;
+  const ampcCess = round2(grossAmount * 0.01);
+  const loadingFee = round2(Number(order.quantity_kg) * 0.5);
+  const netTotal = round2(grossAmount + ampcCess + loadingFee);
+
+  const toggleMilestone = (i: number) => {
+    if (!isTransit && i < 3) return;
+    setMilestones(prev => prev.map((v, idx) => idx === i ? !v : v));
+  };
+
+  const activeMilestone = milestones.findIndex((v, i) => v && !milestones[i + 1]);
+
+  return <div className="modal-backdrop" onClick={onClose}>
+    <div className="ord-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="ord-modal-header">
+        <div>
+          <h2>Order {orderShortId(order)}</h2>
+          <div className="ord-modal-meta">{orderPlacedDate(order)}</div>
+          <Badge tone={isTransit ? 'amber' : 'green'}>{isTransit ? 'In Transit' : 'Delivered'}</Badge>
+        </div>
+        <button className="icon-button" onClick={onClose}><X size={22} /></button>
+      </div>
+      <div className="ord-modal-tabs">
+        <button className={tab === 'track' ? 'selected' : ''} onClick={() => setTab('track')}><Map size={15} /> Track Package</button>
+        <button className={tab === 'crop' ? 'selected' : ''} onClick={() => setTab('crop')}><Leaf size={15} /> Crop &amp; Farm</button>
+        <button className={tab === 'billing' ? 'selected' : ''} onClick={() => setTab('billing')}><Wallet size={15} /> Billing &amp; Escrow</button>
+      </div>
+      <div className="ord-modal-body">
+        {tab === 'track' && <>
+          {isTransit && <div className="ord-track-alert"><Truck size={16} /><span>Arriving {orderEtaDate(order)} · GPS tracking active</span></div>}
+          <div className="ord-track-driver">
+            <div className="ord-track-driver-info">
+              <strong>{driver.name}</strong>
+              <small>Assigned driver</small>
+              <div className="ord-vehicle">Vehicle: {driver.vehicle}</div>
+            </div>
+            <a href={`tel:${driver.phone}`} className="ord-call-driver"><Phone size={14} /> Call Driver</a>
+          </div>
+          <div className="ord-track-ewaybill"><ShieldCheck size={14} /> e-Way Bill: {driver.eWayBill}</div>
+          <div className="ord-milestones">
+            {orderMilestones.map((label, i) => <div key={label}>
+              <div className={`ord-milestone ${milestones[i] ? 'done' : ''} ${!milestones[i] && i === activeMilestone + 1 ? 'active' : ''}`} onClick={() => toggleMilestone(i)}>
+                <div className="ord-milestone-dot">{milestones[i] ? <Check size={14} /> : !milestones[i] && i === activeMilestone + 1 ? <span className="ord-pulse" /> : null}</div>
+                <div className="ord-milestone-body"><strong>{label}</strong><small>{milestones[i] ? 'Completed' : 'Pending'}</small></div>
+              </div>
+              {i < orderMilestones.length - 1 && <div className={`ord-milestone-connector ${milestones[i] ? 'done' : ''}`} />}
+            </div>)}
+          </div>
+          {isTransit && <Button icon={Check} wide onClick={() => { setMilestones([true, true, true, true]); notify('Intake confirmed at unloading bay.'); }}>Confirm Intake</Button>}
+        </>}
+        {tab === 'crop' && <>
+          <div className="ord-crop-grid">
+            <div className="ord-crop-img"><img src={cropPhotoFor(cropName)} alt={cropName} loading="lazy" /></div>
+            <div className="ord-crop-details">
+              <h3>{cropName}</h3>
+              <div className="ord-crop-row"><Sprout size={13} /> Variety: {variety}</div>
+              <div className="ord-crop-row"><UserRound size={13} /> Farmer: {farmer.name}</div>
+              <div className="ord-crop-row"><MapPin size={13} /> Village: {farmer.village}</div>
+              <div className="ord-crop-row"><Phone size={13} /> {farmer.phone}</div>
+            </div>
+          </div>
+          <div className="ord-pkg-box">
+            <h4>Destination &amp; Packaging</h4>
+            <p>Warangal APMC Mandi · Unloading Bay {(hashStr(order.id) % 10) + 1}</p>
+          </div>
+          <div className="ord-pkg-box">
+            <h4>Packaging Specifications</h4>
+            <p>{Math.ceil(Number(order.quantity_kg) / 50)} × 50 kg gunny bags / crates</p>
+          </div>
+        </>}
+        {tab === 'billing' && <>
+          <div className="ord-billing-badge"><ShieldCheck size={14} /> e-NAM Escrow Protected</div>
+          <div className="ord-billing-row"><span>Produce gross amount</span><strong>{formatRupee(grossAmount)}</strong></div>
+          <div className="ord-billing-row"><span>APMC market cess (1.0%)</span><strong>{formatRupee(ampcCess)}</strong></div>
+          <div className="ord-billing-row"><span>Loading / bagging fee</span><strong>{formatRupee(loadingFee)}</strong></div>
+          <div className="ord-billing-row total"><span>Net total</span><strong>{formatRupee(netTotal)}</strong></div>
+          <div style={{ marginTop: 14 }}>
+            <Button variant="outline" icon={Printer} onClick={() => notify('APMC Mandi Tax Invoice & e-Way bill ready to print.')} wide>View APMC Mandi Tax Invoice</Button>
+          </div>
+        </>}
+      </div>
+      <div className="ord-modal-footer">
+        <Button variant="outline" icon={Printer} onClick={() => notify('Invoice downloaded.')}>Invoice</Button>
+        <div className="ord-footer-spacer" />
+        {isTransit && <Button icon={Check} onClick={() => { setMilestones([true, true, true, true]); notify('Delivery confirmed. Escrow released to farmer.'); }}>Confirm Delivery</Button>}
+        {!isTransit && <Button icon={ShoppingBag} onClick={() => { notify('Added to cart — buy again.'); }}>Buy Again</Button>}
+        <button className="ord-problem-link" onClick={() => notify('Problem report submitted. Support will contact you.')}>Problem with order?</button>
+      </div>
+    </div>
+  </div>;
+}
+
 function OrdersView({ role, open, notify, t }: { role: Role; open: (view: View) => void; notify: (message: string) => void; t: T }) {
-  const [group, setGroup] = useState<'Current' | 'Previous'>('Current');
+  const [filter, setFilter] = useState<'all' | 'transit' | 'delivered'>('all');
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [previewOrder, setPreviewOrder] = useState<OrderRow | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -3061,41 +3212,61 @@ function OrdersView({ role, open, notify, t }: { role: Role; open: (view: View) 
     return () => { cancelled = true; };
   }, []);
 
-  const activeStatuses = ['Booked', 'Farmer Confirmed', 'Assured Deal', 'Ready', 'In Transit'];
-  const currentOrders = orders.filter((o) => activeStatuses.includes(o.status));
-  const previousOrders = orders.filter((o) => !activeStatuses.includes(o.status));
-  const displayOrders = group === 'Current' ? currentOrders : previousOrders;
+  const transitOrders = orders.filter((o) => orderIsTransit(o));
+  const deliveredOrders = orders.filter((o) => !orderIsTransit(o));
+  const filteredOrders = filter === 'transit' ? transitOrders : filter === 'delivered' ? deliveredOrders : orders;
 
-  return <Page title={t('orders.title')} body={t('orders.body')} back={() => open('home')} t={t}>
-    <div className="filter-row"><button className={group === 'Current' ? 'selected' : ''} onClick={() => setGroup('Current')}>{t('orders.current')}</button><button className={group === 'Previous' ? 'selected' : ''} onClick={() => setGroup('Previous')}>{t('orders.previous')}</button></div>
-    {loading && <p className="calendar-empty">{t('crops.loading')}</p>}
-    {error && <p className="calendar-empty">{error}</p>}
-    {!loading && !error && displayOrders.length === 0 && <Card className="order-card"><p className="calendar-empty">{t('orders.noOrders')}</p></Card>}
-    {!loading && !error && displayOrders.map((order) => {
-      const listing = order.listing;
-      const cropName = listing ? cropDisplayName(listing) : 'Unknown crop';
-      const variety = listing ? cropDisplayVariety(listing) : '';
-      const totalAmount = round2(Number(order.quantity_kg) * Number(order.unit_price));
-      const isToken = order.payment_type === 'token';
-      const balanceAmount = isToken ? round2(totalAmount - Number(order.amount_paid ?? 0)) : 0;
-      return <Card className="order-card" key={order.id}>
-        <Badge tone={group === 'Current' ? 'green' : 'blue'}>{group === 'Current' ? t('orders.bookingConfirmed') : t('orders.completedOrder')}</Badge>
-        <h2>{cropName}{variety ? ` · ${variety}` : ''} · {formatKg(Number(order.quantity_kg))}</h2>
-        <p>{formatPrice(Number(order.unit_price))} · {formatDate(order.booked_at)}</p>
-        <div className="order-track"><span className="done">{t('orders.booked')}</span><span className={order.status === 'Farmer Confirmed' || order.status === 'Assured Deal' || order.status === 'Ready' || order.status === 'In Transit' || order.status === 'Delivered' ? 'done' : ''}>{t('orders.farmerConfirmed')}</span><span className={order.status === 'Assured Deal' || order.status === 'Ready' || order.status === 'In Transit' || order.status === 'Delivered' ? 'done' : group === 'Current' ? 'active' : 'done'}>{t('orders.assuredDeal')}</span><span className={order.status === 'Delivered' ? 'done' : ''}>{t('orders.delivered')}</span></div>
-        <div className="payment-summary">
-          <div className="payment-row"><span>{t('market.totalValue')}</span><strong>{formatRupee(totalAmount)}</strong></div>
-          <div className="payment-row"><span>{t('orders.paidSoFar')}</span><strong>{formatRupee(Number(order.amount_paid ?? 0))}</strong></div>
-          {isToken && balanceAmount > 0 && <div className="payment-row payment-due"><span>{t('orders.balanceDue')}</span><strong>{formatRupee(balanceAmount)}</strong></div>}
-        </div>
-        <div className="row"><Demo>{t('orders.samplePayment')}</Demo></div>
-        {group === 'Current' && isToken && balanceAmount > 0 && <Button icon={ShieldCheck} onClick={() => notify(t('orders.payBalanceFlow'))}>{t('orders.payBalance')}</Button>}
-        {group === 'Current' && !isToken && <Button onClick={() => notify(t('orders.viewMapOpened'))}>{t('orders.viewMap')}</Button>}
-      </Card>;
-    })}
-    {!loading && !error && displayOrders.length > 0 && <Notice tone="warning"><strong>{t('orders.shortageTitle')}</strong><p>{t('orders.shortageBody')}</p></Notice>}
-    {role === 'Transport Provider' && <Button icon={Map} onClick={() => open('journey')}>{t('orders.openLiveJourney')}</Button>}
-  </Page>;
+  if (role === 'Transport Provider') {
+    return <Page title={t('orders.title')} body={t('orders.body')} back={() => open('home')} t={t}>
+      <Button icon={Map} onClick={() => open('journey')}>{t('orders.openLiveJourney')}</Button>
+    </Page>;
+  }
+
+  return <main className="dedicated-page">
+    <div className="orders-page">
+      <div className="orders-topbar">
+        <button className="back-button" onClick={() => open('home')}><ArrowLeft size={18} /> Back to Home</button>
+      </div>
+      <div className="orders-header">
+        <h1>Your Orders</h1>
+        <p>Track shipments, view invoices, or reorder previous farmgate lots.</p>
+      </div>
+      <div className="orders-filter-pills">
+        <button className={filter === 'all' ? 'selected' : ''} onClick={() => setFilter('all')}>Orders <span className="orders-pill-count">{orders.length}</span></button>
+        <button className={filter === 'transit' ? 'selected' : ''} onClick={() => setFilter('transit')}>In Transit <span className="orders-pill-count">{transitOrders.length}</span></button>
+        <button className={filter === 'delivered' ? 'selected' : ''} onClick={() => setFilter('delivered')}>Delivered <span className="orders-pill-count">{deliveredOrders.length}</span></button>
+      </div>
+      {loading && <p className="sp-empty">{t('crops.loading')}</p>}
+      {error && <p className="sp-empty">{error}</p>}
+      {!loading && !error && filteredOrders.length === 0 && <p className="sp-empty">{t('orders.noOrders')}</p>}
+      {!loading && !error && filteredOrders.map((order) => {
+        const listing = order.listing;
+        const cropName = listing ? cropDisplayName(listing) : 'Unknown crop';
+        const variety = listing ? cropDisplayVariety(listing) : '';
+        const totalAmount = round2(Number(order.quantity_kg) * Number(order.unit_price));
+        const isTransit = orderIsTransit(order);
+        return <div className="ord-card" key={order.id}>
+          <div className="ord-card-topstrip">
+            <div className="ord-strip-col"><small>Order Placed</small><strong>{orderPlacedDate(order)}</strong></div>
+            <div className="ord-strip-col"><small>Total</small><strong>{formatRupee(totalAmount)}</strong></div>
+            <div className="ord-strip-col"><small>Order #</small><strong>{orderShortId(order)}</strong></div>
+          </div>
+          <div className="ord-card-body">
+            <div className="ord-card-thumb"><img src={cropPhotoFor(cropName)} alt={cropName} loading="lazy" /></div>
+            <div className="ord-card-info">
+              {isTransit
+                ? <span className="ord-status-pill transit"><span className="ord-pulse" /> In Transit &middot; Arriving {orderEtaDate(order)}</span>
+                : <span className="ord-status-pill delivered"><Check size={12} /> Delivered on {orderPlacedDate(order)}</span>}
+              <h3>{cropName}{variety ? `, ${variety}` : ''}</h3>
+              <p>{Number(order.quantity_kg).toLocaleString('en-IN')} kg &middot; {formatPrice(Number(order.unit_price))}</p>
+            </div>
+            <button className="ord-card-preview-btn" onClick={() => setPreviewOrder(order)}><Eye size={15} /> Preview</button>
+          </div>
+        </div>;
+      })}
+    </div>
+    {previewOrder && <OrderPreviewModal order={previewOrder} onClose={() => setPreviewOrder(null)} notify={notify} t={t} />}
+  </main>;
 }
 function DealsView({ open, notify, t }: { open: (view: View) => void; notify: (message: string) => void; t: T }) { return <Page title={t('deals.title')} body={t('deals.body')} back={() => open('home')} t={t}><Card className="payment-card"><Badge tone="orange">{t('deals.paymentPending')}</Badge><h2>{t('deals.tomatoOrder')}</h2><p>{t('deals.initialToken')}</p><div className="payment-states"><span className="done"><Check size={15} /> {t('deals.initialPayment')}</span><span className="active"><Clock3 size={15} /> {t('deals.paymentPending')}</span><span><Check size={15} /> {t('deals.paymentCompleted')}</span></div><Button icon={ShieldCheck} onClick={() => notify(t('orders.payBalanceFlow'))}>{t('deals.payBalance')}</Button><small>{t('deals.notRealPayment')}</small></Card></Page>; }
 const tpTruckPhotos: Record<string, string> = {
