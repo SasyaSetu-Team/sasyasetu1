@@ -2295,6 +2295,186 @@ const storageFacilities = [
   { name: 'Storage C', type: 'Scientific Dry Godown', tempLabel: 'Ambient Ventilated', tempRange: 'Ambient', status: 'available', distance: '12 km away', capacity: '10,000 kg', location: 'Kazipet Grain Depot', crops: 'Paddy, Maize, Pulses, Wheat', rateKg: '₹1.00/kg/day', rateQtl: '₹90/qtl/month', photo: 'https://images.pexels.com/photos/13870874/pexels-photo-13870874.jpeg?auto=compress&cs=tinysrgb&h=200&w=200' },
 ];
 
+type SpTempRegime = 'chilled' | 'cool' | 'ca';
+type SpStorageRequest = {
+  id: string;
+  farmerName: string;
+  village: string;
+  district: string;
+  cropName: string;
+  variety: string;
+  packaging: string;
+  batchCount: number;
+  quantityKg: number;
+  tempRegime: SpTempRegime;
+  tempLabel: string;
+  depositWindow: string;
+  estRevenue: number;
+  moisturePct: number;
+  grade: string;
+  arrivalDate: string;
+  chamberTemp: string;
+  chamberHumidity: string;
+};
+
+type SpEnwrReceipt = {
+  enwrId: string;
+  gatePassNo: string;
+  farmerName: string;
+  village: string;
+  district: string;
+  cropName: string;
+  variety: string;
+  netWeightKg: number;
+  bagCount: number;
+  grade: string;
+  chamber: string;
+  bay: string;
+  temp: string;
+  humidity: string;
+  insuranceValue: number;
+  valuation: number;
+  depositDate: string;
+  releaseDate?: string;
+  status: 'in-vault' | 'released';
+  finalEarnings?: number;
+};
+
+const spRequestsSeed: SpStorageRequest[] = [
+  { id: 'sp-req-1', farmerName: 'Ramesh Kumar', village: 'Pembarthy', district: 'Warangal', cropName: 'Tomato', variety: 'Hybrid F1', packaging: 'Crates', batchCount: 25, quantityKg: 500, tempRegime: 'chilled', tempLabel: '0–4°C Chilled', depositWindow: '18–25 Oct 2026', estRevenue: 3750, moisturePct: 92, grade: 'A Grade', arrivalDate: '17 Oct 2026', chamberTemp: '2°C', chamberHumidity: '90% RH' },
+  { id: 'sp-req-2', farmerName: 'Lakshmi Devi', village: 'Hasanparthy', district: 'Warangal', cropName: 'Potato', variety: 'Kufri Jyoti', packaging: 'Gunny Bags', batchCount: 10, quantityKg: 1000, tempRegime: 'cool', tempLabel: '10–15°C Cool', depositWindow: '20–30 Oct 2026', estRevenue: 6000, moisturePct: 78, grade: 'A Grade', arrivalDate: '19 Oct 2026', chamberTemp: '12°C', chamberHumidity: '85% RH' },
+  { id: 'sp-req-3', farmerName: 'Suresh Reddy', village: 'Geesukonda', district: 'Warangal', cropName: 'Banana', variety: 'Grand Naine', packaging: 'Crates', batchCount: 40, quantityKg: 800, tempRegime: 'ca', tempLabel: 'Controlled Atmosphere', depositWindow: '22 Oct–5 Nov 2026', estRevenue: 7200, moisturePct: 75, grade: 'B Grade', arrivalDate: '21 Oct 2026', chamberTemp: '14°C', chamberHumidity: '92% RH' },
+  { id: 'sp-req-4', farmerName: 'Warangal Farmers FPO', village: 'Nekkonda', district: 'Warangal', cropName: 'Onion', variety: 'Nasik Red', packaging: 'Jute Bags', batchCount: 20, quantityKg: 2000, tempRegime: 'cool', tempLabel: '10–15°C Cool', depositWindow: '26 Oct–2 Nov 2026', estRevenue: 9000, moisturePct: 65, grade: 'A Grade', arrivalDate: '25 Oct 2026', chamberTemp: '12°C', chamberHumidity: '70% RH' },
+];
+
+const spChambers = [
+  { id: 'CH-A1', label: 'Chamber A1 · Chilled 0–4°C', capacity: '5 MT available', temp: '2°C', humidity: '90% RH' },
+  { id: 'CH-B2', label: 'Chamber B2 · Cool 10–15°C', capacity: '12 MT available', temp: '12°C', humidity: '85% RH' },
+  { id: 'CH-C3', label: 'Chamber C3 · Controlled Atmosphere', capacity: '8 MT available', temp: '14°C', humidity: '92% RH' },
+];
+
+const spCurrentApprovals: SpEnwrReceipt[] = [
+  { enwrId: 'eNWR-TS-WRG-1027', gatePassNo: 'GP-2026-04821', farmerName: 'Ramesh Kumar', village: 'Pembarthy', district: 'Warangal', cropName: 'Tomato', variety: 'Hybrid F1', netWeightKg: 480, bagCount: 24, grade: 'A Grade', chamber: 'CH-A1', bay: 'B3/R7', temp: '3–5°C', humidity: '90% RH', insuranceValue: 12000, valuation: 14400, depositDate: '15 Oct 2026', status: 'in-vault' },
+  { enwrId: 'eNWR-TS-WRG-1031', gatePassNo: 'GP-2026-04835', farmerName: 'Lakshmi Devi', village: 'Hasanparthy', district: 'Warangal', cropName: 'Potato', variety: 'Kufri Jyoti', netWeightKg: 960, bagCount: 20, grade: 'A Grade', chamber: 'CH-B2', bay: 'B1/R3', temp: '10–12°C', humidity: '85% RH', insuranceValue: 19200, valuation: 23040, depositDate: '18 Oct 2026', status: 'in-vault' },
+];
+
+const spPreviousApprovals: SpEnwrReceipt[] = [
+  { enwrId: 'eNWR-TS-WRG-0982', gatePassNo: 'GP-2026-04715', farmerName: 'Warangal Farmers FPO', village: 'Nekkonda', district: 'Warangal', cropName: 'Onion', variety: 'Nasik Red', netWeightKg: 1850, bagCount: 37, grade: 'A Grade', chamber: 'CH-B2', bay: 'B2/R5', temp: '10–12°C', humidity: '70% RH', insuranceValue: 46250, valuation: 55500, depositDate: '26 Sep 2026', releaseDate: '10 Oct 2026', status: 'released', finalEarnings: 8325 },
+];
+
+function SpEnwrModal({ receipt, onClose, notify }: { receipt: SpEnwrReceipt; onClose: () => void; notify: (msg: string) => void }) {
+  return <div className="modal-backdrop" onClick={onClose}>
+    <div className="sp-enwr-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="sp-enwr-header">
+        <div>
+          <h2>Krishna Cold Storage</h2>
+          <div className="sp-enwr-accred"><ShieldCheck size={12} /> WDRA Accredited · License #WDRA-2026-AP09</div>
+          <div className="sp-enwr-no">{receipt.enwrId}</div>
+        </div>
+        <div className="sp-enwr-qr"><QrCode size={40} /></div>
+        <button className="icon-button" onClick={onClose} style={{ position: 'absolute', top: 16, right: 16 }}><X size={20} /></button>
+      </div>
+      <div className="sp-enwr-section">
+        <h3>Depositor / Farmer Details</h3>
+        <div className="sp-enwr-grid">
+          <Detail label="Farmer Name" value={receipt.farmerName} />
+          <Detail label="Village" value={receipt.village} />
+          <Detail label="District" value={receipt.district} />
+          <Detail label="Gate Pass No" value={receipt.gatePassNo} />
+        </div>
+      </div>
+      <div className="sp-enwr-section">
+        <h3>Commodity Details</h3>
+        <div className="sp-enwr-grid">
+          <Detail label="Crop" value={receipt.cropName} />
+          <Detail label="Variety" value={receipt.variety} />
+          <Detail label="Net Weight" value={formatKg(receipt.netWeightKg)} />
+          <Detail label="Bag / Crate Count" value={String(receipt.bagCount)} />
+          <Detail label="Grade" value={receipt.grade} />
+          <Detail label="Deposit Date" value={receipt.depositDate} />
+        </div>
+      </div>
+      <div className="sp-enwr-section">
+        <h3>Storage Conditions & Location</h3>
+        <div className="sp-enwr-grid">
+          <Detail label="Chamber" value={receipt.chamber} />
+          <Detail label="Bay / Rack" value={receipt.bay} />
+          <Detail label="Temperature" value={receipt.temp} />
+          <Detail label="Humidity" value={receipt.humidity} />
+        </div>
+      </div>
+      <div className="sp-enwr-section">
+        <h3>Insurance & Valuation</h3>
+        <div className="sp-enwr-grid">
+          <Detail label="Insured Value" value={formatRupee(receipt.insuranceValue)} />
+          <Detail label="Declared Valuation" value={formatRupee(receipt.valuation)} />
+          {receipt.releaseDate && <Detail label="Release Date" value={receipt.releaseDate} />}
+          {receipt.finalEarnings != null && <Detail label="Final Earnings" value={formatRupee(receipt.finalEarnings)} />}
+        </div>
+      </div>
+      <div className="sp-enwr-actions">
+        <Button variant="outline" icon={Printer} onClick={() => notify('Gate Pass printed successfully.')} wide>Print Gate Pass</Button>
+        <Button icon={Download} onClick={() => notify('Certified e-NWR PDF downloaded.')} wide>Download e-NWR PDF</Button>
+      </div>
+    </div>
+  </div>;
+}
+
+function SpReviewModal({ request, selectedChamber, onSelectChamber, onClose, onDecline, onApprove }: {
+  request: SpStorageRequest;
+  selectedChamber: number;
+  onSelectChamber: (i: number) => void;
+  onClose: () => void;
+  onDecline: () => void;
+  onApprove: () => void;
+}) {
+  return <div className="modal-backdrop" onClick={onClose}>
+    <div className="sp-review-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="sp-review-header">
+        <div>
+          <span className="eyebrow">LOT INSPECTION & INTAKE</span>
+          <h2>{request.farmerName} · {request.cropName}</h2>
+        </div>
+        <button className="icon-button" onClick={onClose}><X size={22} /></button>
+      </div>
+      <div className="sp-review-section">
+        <h3>Lot Details</h3>
+        <div className="sp-review-grid">
+          <Detail label="Moisture" value={`${request.moisturePct}%`} />
+          <Detail label="Grade" value={request.grade} />
+          <Detail label="Arrival Date" value={request.arrivalDate} />
+          <Detail label="Chamber Temp" value={request.chamberTemp} />
+          <Detail label="Humidity" value={request.chamberHumidity} />
+          <Detail label="Quantity" value={formatKg(request.quantityKg)} />
+        </div>
+      </div>
+      <div className="sp-review-section">
+        <h3>Chamber Allotment</h3>
+        <div className="sp-chamber-select">
+          {spChambers.map((c, i) => <div key={c.id} className={`sp-chamber-option${selectedChamber === i ? ' selected' : ''}`} onClick={() => onSelectChamber(i)}>
+            <div className="sp-chamber-radio" />
+            <div>
+              <div>{c.label}</div>
+              <small style={{ fontWeight: 600, color: '#78716C', fontSize: 11 }}>{c.capacity}</small>
+            </div>
+          </div>)}
+        </div>
+      </div>
+      <div className="sp-review-section">
+        <h3>Bay & Rack Assignment</h3>
+        <div className="sp-review-grid">
+          <Detail label="Bay" value={`B${(hashStr(request.id + 'bay') % 50) + 1}`} />
+          <Detail label="Rack" value={`R${(hashStr(request.id + 'rack') % 20) + 1}`} />
+        </div>
+      </div>
+      <div className="sp-review-actions">
+        <Button variant="outline" icon={X} onClick={onDecline} wide>Decline / Capacity Full</Button>
+        <Button icon={ShieldCheck} onClick={onApprove} wide>Approve & Issue Gate Pass</Button>
+      </div>
+    </div>
+  </div>;
+}
+
 function StorageView({ role, open, notify, t }: { role: Role; open: (view: View) => void; notify: (message: string) => void; t: T }) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedFacility, setSelectedFacility] = useState<typeof storageFacilities[number] | null>(null);
@@ -2306,6 +2486,11 @@ function StorageView({ role, open, notify, t }: { role: Role; open: (view: View)
   const [quantityKg, setQuantityKg] = useState('');
   const [durationDays, setDurationDays] = useState('');
   const [consignmentStage, setConsignmentStage] = useState(0);
+  const [spSearch, setSpSearch] = useState('');
+  const [spFilter, setSpFilter] = useState<'all' | SpTempRegime>('all');
+  const [spReviewItem, setSpReviewItem] = useState<SpStorageRequest | null>(null);
+  const [spSelectedChamber, setSpSelectedChamber] = useState(0);
+  const [spEnwrModal, setSpEnwrModal] = useState<SpEnwrReceipt | null>(null);
 
   useEffect(() => {
     if (step !== 2 || listings.length > 0) return;
@@ -2318,7 +2503,85 @@ function StorageView({ role, open, notify, t }: { role: Role; open: (view: View)
     })();
   }, [step, listings.length]);
 
-  if (role === 'Storage Provider') return <Page title={t('storage.requestsTitle')} body={t('storage.requestsBody')} back={() => open('home')} t={t}><div className="storage-list">{[['Ramesh Kumar', 'Tomato', '500 kg', '18–25 October 2026', '4–8°C'], ['Warangal Farmers FPO', 'Onion', '1,000 kg', '26 October–2 November 2026', '10–15°C']].map(([farmer, crop, quantity, dates, temp]) => <Card className="storage-row" key={farmer}><Illustration label={t('storage.incomingRequest')} color="amber" icon={Warehouse} /><div><div className="row"><Badge tone="blue">{t('storage.incomingRequest')}</Badge><strong>{quantity}</strong></div><h3>{farmer}</h3><p>{crop} · {dates}</p><small>{temp} · {t('storage.storageRequirement')}</small></div><Button variant="soft" onClick={() => notify(t('storage.requestOpened', { farmer }))}>{t('storage.reviewRequest')}</Button></Card>)}</div></Page>;
+  if (role === 'Storage Provider') {
+    const filteredRequests = spRequestsSeed.filter((r) => {
+      if (spFilter !== 'all' && r.tempRegime !== spFilter) return false;
+      if (spSearch.trim()) {
+        const q = spSearch.toLowerCase();
+        return r.farmerName.toLowerCase().includes(q) || r.cropName.toLowerCase().includes(q) || r.village.toLowerCase().includes(q);
+      }
+      return true;
+    });
+    const filterChips: { key: 'all' | SpTempRegime; label: string; icon?: IconType }[] = [
+      { key: 'all', label: 'All' },
+      { key: 'chilled', label: 'Chilled 0–4°C', icon: Snowflake },
+      { key: 'cool', label: 'Cool 10–15°C', icon: Thermometer },
+      { key: 'ca', label: 'Controlled Atmosphere', icon: Droplet },
+    ];
+    return <main className="dedicated-page">
+      <div className="sp-workspace">
+        <div className="sp-topbar">
+          <button className="back-button" onClick={() => open('home')}><ArrowLeft size={18} /> Back to Home</button>
+        </div>
+        <div className="sp-breadcrumb"><span><Building2 size={12} /> Storage Provider</span> <ChevronRight size={12} /> <span>Storage Requests</span></div>
+        <div className="sp-facility-bar">
+          <div className="sp-facility-icon"><Warehouse size={24} /></div>
+          <div>
+            <h2>Krishna Cold Storage</h2>
+            <p>Warangal, Telangana</p>
+          </div>
+          <div className="sp-facility-license">
+            <small>WDRA License</small>
+            <strong>#WDRA-2026-AP09</strong>
+          </div>
+        </div>
+        <div className="sp-subtabs">
+          <button className="selected"><Package size={15} /> Storage Requests <span className="sp-tab-badge">{spRequestsSeed.length}</span></button>
+          <button onClick={() => open('approvals')}><FileCheck2 size={15} /> My Approvals</button>
+        </div>
+        <div className="sp-search-row">
+          <div className="sp-search-wrap">
+            <Search size={16} />
+            <input type="text" placeholder="Search farmer, crop, or village..." value={spSearch} onChange={(e) => setSpSearch(e.target.value)} />
+          </div>
+        </div>
+        <div className="sp-filter-chips">
+          {filterChips.map((c) => <button key={c.key} className={spFilter === c.key ? 'selected' : ''} onClick={() => setSpFilter(c.key)}>{c.icon && <c.icon size={13} />}{c.label}</button>)}
+        </div>
+        {filteredRequests.length === 0 && <p className="sp-empty">No requests match your search.</p>}
+        {filteredRequests.map((r) => <div className="sp-req-card" key={r.id}>
+          <div className="sp-req-card-top">
+            <div className="sp-req-thumb-wrap">
+              <img src={cropPhotoFor(r.cropName)} alt={r.cropName} loading="lazy" />
+              <div className="sp-req-thumb-overlay">
+                <span className="sp-req-thumb-pill">{r.tempLabel}</span>
+                <span className="sp-req-thumb-pill">{r.depositWindow}</span>
+              </div>
+            </div>
+            <div className="sp-req-card-info">
+              <div className="sp-req-card-header">
+                <Badge tone="amber">Pending Review</Badge>
+              </div>
+              <p className="sp-req-farmer">{r.farmerName}</p>
+              <p className="sp-req-origin">{r.village}, {r.district}</p>
+              <p className="sp-req-crop-line">{r.cropName} · {r.variety}</p>
+              <p className="sp-req-pkg-line">{r.packaging} · {r.batchCount} batches</p>
+              <div className="sp-req-qty-row">
+                <span className="sp-req-qty">{r.quantityKg.toLocaleString('en-IN')}</span>
+                <span className="sp-req-qty-unit">kg</span>
+                <span className="sp-req-revenue">Est. {formatRupee(r.estRevenue)}</span>
+              </div>
+            </div>
+          </div>
+          <div className="sp-req-action-row">
+            <Button variant="soft" icon={Eye} onClick={() => { setSpReviewItem(r); setSpSelectedChamber(0); }}>Review request</Button>
+          </div>
+        </div>)}
+      </div>
+      {spReviewItem && <SpReviewModal request={spReviewItem} selectedChamber={spSelectedChamber} onSelectChamber={setSpSelectedChamber} onClose={() => setSpReviewItem(null)} onDecline={() => { notify('Request declined — capacity full.'); setSpReviewItem(null); }} onApprove={() => { notify('Gate Pass issued. Produce admitted to chamber.'); setSpReviewItem(null); }} />}
+      {spEnwrModal && <SpEnwrModal receipt={spEnwrModal} onClose={() => setSpEnwrModal(null)} notify={notify} />}
+    </main>;
+  }
 
   const stepLabels = ['Storage Options', 'Book Space', 'My Stored Produce'];
   const stepIndicator = <div style={{ marginBottom: 24 }}><div className="step-indicator">{[1, 2, 3].map((s) => <span key={s} className={`step-dot ${s === step ? 'active' : ''} ${s < step ? 'done' : ''}`} />)}</div><div style={{ display: 'flex', gap: '6px' }}>{stepLabels.map((label, i) => <span key={label} style={{ flex: 1, fontSize: '11px', fontWeight: 700, color: i + 1 === step ? '#047857' : '#a8a29e' }}>{label}</span>)}</div></div>;
@@ -2501,7 +2764,72 @@ function StorageView({ role, open, notify, t }: { role: Role; open: (view: View)
   return <Page title={t('storage.title')} body={t('storage.body')} back={() => open('home')} t={t}>{stepIndicator}<div className="storage-list">{storageFacilities.map((f) => <Card className="storage-row-card" key={f.name}><div className="storage-row-thumb"><img src={f.photo} alt={f.name} loading="lazy" /><span className="storage-row-temp">{f.tempLabel}</span></div><div className="storage-row-info"><div className="storage-row-top"><span className={'storage-row-status ' + f.status}><span className="storage-row-dot"></span>{f.status === 'available' ? 'Available Space' : 'Occupied'}</span><span className="storage-row-distance">{f.distance}</span></div><h3 className="storage-row-name">{f.name}</h3><p className="storage-row-detail">{f.tempRange} · {f.capacity} capacity</p><p className="storage-row-detail">{f.location} · Ideal for {f.crops}</p></div><div className="storage-row-right"><strong className="storage-row-rate">{f.rateKg}</strong><small className="storage-row-rate-sub">{f.rateQtl}</small></div></Card>)}</div></Page>;
 }
 
-function ApprovalsView({ open, t }: { open: (view: View) => void; t: T }) { const [group, setGroup] = useState<'Current' | 'Previous'>('Current'); const current = [['Ramesh Kumar', 'Tomato', '500 kg', '18–25 October 2026', 'Approved on 15 October 2026']]; const previous = [['Warangal Farmers FPO', 'Onion', '1,000 kg', '26 October–2 November 2026', 'Completed on 2 November 2025']]; const approvals = group === 'Current' ? current : previous; return <Page title={t('approvals.title')} body={t('approvals.body')} back={() => open('home')} t={t}><div className="filter-row"><button className={group === 'Current' ? 'selected' : ''} onClick={() => setGroup('Current')}>{t('approvals.current')}</button><button className={group === 'Previous' ? 'selected' : ''} onClick={() => setGroup('Previous')}>{t('approvals.previous')}</button></div><div className="storage-list">{approvals.map(([name, crop, quantity, dates, status]) => <Card className="storage-row" key={name}><Illustration label={group === 'Current' ? t('approvals.activeStorage') : t('approvals.completedStorage')} color="teal" icon={FileCheck2} /><div><div className="row"><Badge tone={group === 'Current' ? 'green' : 'blue'}>{group === 'Current' ? t('approvals.approved') : t('approvals.completed')}</Badge><strong>{quantity}</strong></div><h3>{name}</h3><p>{crop} · {dates}</p><small>{status}</small></div></Card>)}</div></Page>; }
+function ApprovalsView({ open, notify, t }: { open: (view: View) => void; notify: (message: string) => void; t: T }) {
+  const [group, setGroup] = useState<'Current' | 'Previous'>('Current');
+  const [enwrModal, setEnwrModal] = useState<SpEnwrReceipt | null>(null);
+  const current = spCurrentApprovals;
+  const previous = spPreviousApprovals;
+  const approvals = group === 'Current' ? current : previous;
+  return <main className="dedicated-page">
+    <div className="sp-workspace">
+      <div className="sp-topbar">
+        <button className="back-button" onClick={() => open('home')}><ArrowLeft size={18} /> Back to Home</button>
+      </div>
+      <div className="sp-breadcrumb"><span><Building2 size={12} /> Storage Provider</span> <ChevronRight size={12} /> <span>My Approvals</span></div>
+      <div className="sp-facility-bar">
+        <div className="sp-facility-icon"><Warehouse size={24} /></div>
+        <div>
+          <h2>Krishna Cold Storage</h2>
+          <p>Warangal, Telangana</p>
+        </div>
+        <div className="sp-facility-license">
+          <small>Active Vaults</small>
+          <strong>{current.length}</strong>
+        </div>
+      </div>
+      <div className="sp-subtabs">
+        <button onClick={() => open('storage')}><Package size={15} /> Storage Requests</button>
+        <button className="selected"><FileCheck2 size={15} /> My Approvals <span className="sp-tab-badge">{current.length}</span></button>
+      </div>
+      <div className="sp-segmented">
+        <button className={group === 'Current' ? 'selected' : ''} onClick={() => setGroup('Current')}><Warehouse size={15} /> Current · {current.length}</button>
+        <button className={group === 'Previous' ? 'selected' : ''} onClick={() => setGroup('Previous')}><CheckCircle2 size={15} /> Previous · {previous.length}</button>
+      </div>
+      {approvals.length === 0 && <p className="sp-empty">{group === 'Current' ? 'No active vault entries.' : 'No previous approvals.'}</p>}
+      {approvals.map((a) => <div className="sp-approval-card" key={a.enwrId}>
+        <div className="sp-approval-top">
+          <div>
+            <div className="row" style={{ marginBottom: 6 }}>
+              <Badge tone={a.status === 'in-vault' ? 'green' : 'blue'}>{a.status === 'in-vault' ? 'In Vault' : 'Released & Settled'}</Badge>
+            </div>
+            <p className="sp-approval-farmer">{a.farmerName}</p>
+            <p className="sp-approval-crop">{a.cropName} · {a.variety}</p>
+          </div>
+        </div>
+        <div className="sp-approval-meta">
+          <Detail label="Deposit Date" value={a.depositDate} />
+          <Detail label="Chamber / Bay" value={`${a.chamber} · ${a.bay}`} />
+          {a.status === 'in-vault' ? <>
+            <Detail label="Cold-Chain" value={`${a.temp} · ${a.humidity}`} />
+            <Detail label="Gate Pass No" value={a.gatePassNo} />
+            <Detail label="e-NWR ID" value={a.enwrId} />
+            <Detail label="Net Weight" value={formatKg(a.netWeightKg)} />
+          </> : <>
+            <Detail label="Release Date" value={a.releaseDate ?? '—'} />
+            <Detail label="Total Weight" value={formatKg(a.netWeightKg)} />
+            <Detail label="Gate Exit Pass" value={a.gatePassNo} />
+            <Detail label="Final Earnings" value={formatRupee(a.finalEarnings ?? 0)} />
+          </>}
+        </div>
+        {a.status === 'in-vault' && <div className="sp-approval-chain"><Snowflake size={14} /> <span>{a.temp} · {a.humidity} — Climate-controlled vault active</span></div>}
+        <div className="sp-approval-actions">
+          <Button variant="soft" icon={FileCheck2} onClick={() => setEnwrModal(a)}>{a.status === 'in-vault' ? 'e-Receipt / Gate Pass' : 'View Gate Pass'}</Button>
+        </div>
+      </div>)}
+    </div>
+    {enwrModal && <SpEnwrModal receipt={enwrModal} onClose={() => setEnwrModal(null)} notify={notify} />}
+  </main>;
+}
 
 function FpoView({ open, notify, t }: { open: (view: View) => void; notify: (message: string) => void; t: T }) { return <Page title={t('fpo.title')} body={t('fpo.body')} back={() => open('home')} t={t}><div className="fpo-list"><Card className="fpo-row"><Illustration label={t('role.FPO')} color="teal" icon={Users} /><div><Badge tone="green">{t('transport.demoVerified')}</Badge><h3>Warangal Farmers FPO</h3><p>{t('fpo.cooperative')}</p><Button variant="soft" onClick={() => notify(t('fpo.connectOpened'))}>{t('fpo.viewFpo')}</Button></div></Card><Card className="fpo-row"><Illustration label={t('role.FPO')} color="blue" icon={Users} /><div><Badge tone="blue">{t('fpo.sampleProfile')}</Badge><h3>Hanamkonda Growers FPO</h3><p>{t('fpo.society')}</p><Button variant="soft" onClick={() => notify(t('fpo.connectOpened'))}>{t('fpo.viewFpo')}</Button></div></Card></div></Page>; }
 
@@ -3571,5 +3899,5 @@ function FarmEyeDetailView({ crop, open, t, backView = 'crop-detail' }: { crop: 
   </Page>;
 }
 
-function App() { const { role: authRole, profile, signInWithRole, signOut: authSignOut, updateLanguage, loading, signingIn, authError, clearError } = useAuth(); const [view, setView] = useState<View>('home'); const [loginRole, setLoginRole] = useState<Role | null>(null); const [voice, setVoice] = useState(false); const [notifications, setNotifications] = useState(false); const [language, setLanguageState] = useState<Language>('English'); const [toast, setToast] = useState(''); const [notifItems, setNotifItems] = useState<NotificationRow[]>([]); const [notifLoading, setNotifLoading] = useState(false); const [notifError, setNotifError] = useState<string | null>(null); const [selectedCrop, setSelectedCrop] = useState<CropListing | null>(null); const [selectedJourneyConsignment, setSelectedJourneyConsignment] = useState<TpConsignment | null>(null); const [formDraft, setFormDraftState] = useState<Record<string, string>>({}); const [loginStep, setLoginStep] = useState(0); const [loginMobile, setLoginMobile] = useState('+91 98765 43210'); const [loginOtp, setLoginOtp] = useState(''); const [loginBuyerCat, setLoginBuyerCat] = useState('Normal Buyer'); const [pendingDestinationView, setPendingDestinationView] = useState<string | null>(null); const role = (authRole && (allRoles as string[]).includes(authRole)) ? (authRole as Role) : null; const buyerCategory = profile?.buyer_category ?? 'Normal Buyer'; const appSpeakingRef = useRef(false); const pendingNarrationRef = useRef<string | null>(null); const narratedTabsRef = useRef<Set<string>>(new Set()); const autoVoiceConsentRef = useRef<'pending' | 'granted' | 'declined'>('pending'); const prefetchedAudioRef = useRef<{ text: string; promise: Promise<Blob | null> } | null>(null); const speakNarrationOnly = useCallback(async (text: string) => { if (appSpeakingRef.current) { pendingNarrationRef.current = text; return; } appSpeakingRef.current = true; const prefetched = prefetchedAudioRef.current; const audio = prefetched && prefetched.text === text ? (await prefetched.promise) : await speakTextViaSarvam(text, language); if (prefetched && prefetched.text === text) prefetchedAudioRef.current = null; if (!audio) { speak(text, language, () => { appSpeakingRef.current = false; const pending = pendingNarrationRef.current; if (pending) { pendingNarrationRef.current = null; speakNarrationOnly(pending); } }); return; } playAudioBlob(audio, () => { appSpeakingRef.current = false; const pending = pendingNarrationRef.current; if (pending) { pendingNarrationRef.current = null; speakNarrationOnly(pending); } }); }, [language]); useEffect(() => { if (!role || voice) return; if (autoVoiceConsentRef.current !== 'granted') return; if (narratedTabsRef.current.has(view)) return; const tr = makeT(language); const narration = getTabNarration(view, tr); if (!narration) return; const promptKey = `voice.tabActionPrompt.${view}`; const prompt = tr(promptKey); const full = prompt !== promptKey ? `${narration} ${prompt}` : narration; narratedTabsRef.current.add(view); if (appSpeakingRef.current) { pendingNarrationRef.current = full; return; } speakNarrationOnly(full); }, [view, role, voice, language, speakNarrationOnly]); useEffect(() => { if (profile?.language) setLanguageState(languageFromCode(profile.language)); }, [profile?.language]); const setLanguage = (lang: Language) => { setLanguageState(lang); updateLanguage(codeFromLanguage(lang)); }; const t = makeT(language); const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(''), 2300); }; const open = (next: View) => { stopAudio(); stopSpeaking(); appSpeakingRef.current = false; pendingNarrationRef.current = null; prefetchedAudioRef.current = null; const tr = makeT(language); const narration = getTabNarration(next, tr); const promptKey = `voice.tabActionPrompt.${next}`; const prompt = tr(promptKey); const full = prompt !== promptKey ? `${narration} ${prompt}` : narration; if (full) prefetchedAudioRef.current = { text: full, promise: speakTextViaSarvam(full, language) }; setView(next); window.scrollTo({ top: 0, behavior: 'smooth' }); }; useEffect(() => { if (loginRole) setVoice(true); }, [loginRole]); const setFormDraft = useCallback((field: string, value: string) => { setFormDraftState((prev) => ({ ...prev, [field]: value })); }, []); const setLoginFieldVoice = useCallback((field: 'mobile' | 'otp' | 'buyerCategory', value: string) => { if (field === 'mobile') { setLoginMobile(value); setLoginStep(1); } else if (field === 'otp') { setLoginOtp(value); setLoginStep(2); } else if (field === 'buyerCategory') setLoginBuyerCat(value); }, []); const submitLoginVoice = useCallback(async () => { if (!loginRole || signingIn) return; try { await signInWithRole(loginRole, loginRole === 'Farmer' ? rameshEmail : demoEmails[loginRole], 'Demo1234!', loginBuyerCat); const dest = pendingDestinationView; setLoginRole(null); setLoginStep(0); setLoginMobile('+91 98765 43210'); setLoginOtp(''); setPendingDestinationView(null); setVoice(false); setView((dest ? (dest as View) : 'home')); } catch { } }, [loginRole, signingIn, loginBuyerCat, pendingDestinationView]); const autoRouteToDestination = useCallback((destinationView: string, requiredRole: string) => { setLoginRole(requiredRole as Role); setLoginStep(0); setLoginMobile('+91 98765 43210'); setLoginOtp(''); setLoginBuyerCat('Normal Buyer'); setPendingDestinationView(destinationView); }, []); const loadNotifications = useCallback(async () => { if (!role) return; setNotifLoading(true); setNotifError(null); try { await seedDemoNotificationsIfNeeded(); setNotifItems(await fetchNotifications()); } catch { setNotifError(t('notifications.loadError')); } finally { setNotifLoading(false); } }, [role, t]); useEffect(() => { loadNotifications(); }, [loadNotifications]); const handleMarkRead = async (id: string) => { try { await markNotificationRead(id); setNotifItems((prev) => prev.map((n) => n.id === id ? { ...n, read_at: new Date().toISOString() } : n)); } catch { } }; const handleMarkAllRead = async () => { try { await markAllNotificationsRead(); setNotifItems((prev) => prev.map((n) => ({ ...n, read_at: n.read_at ?? new Date().toISOString() }))); } catch { } }; const unreadCount = notifItems.filter((n) => !n.read_at).length; const signOut = () => { stopAudio(); stopSpeaking(); appSpeakingRef.current = false; pendingNarrationRef.current = null; narratedTabsRef.current.clear(); authSignOut(); setView('home'); }; const addAccount = () => { stopAudio(); stopSpeaking(); appSpeakingRef.current = false; pendingNarrationRef.current = null; narratedTabsRef.current.clear(); authSignOut(); setView('home'); }; if (loading) return <main className="login-screen"><div className="login-brand" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{ display: 'grid', placeItems: 'center', width: '31px', height: '31px', borderRadius: '9px', color: '#fff', background: '#2c823b' }}><Sprout size={27} /></span><strong>{t('app.name')}</strong></div></main>; if (!role && loginRole) return <><LoginFlow role={loginRole} t={t} step={loginStep} setStep={setLoginStep} mobile={loginMobile} setMobile={setLoginMobile} otp={loginOtp} setOtp={setLoginOtp} buyerCat={loginBuyerCat} setBuyerCat={setLoginBuyerCat} done={async (email, password, buyerCategory) => { if (signingIn) return; try { await signInWithRole(loginRole, email, password, buyerCategory); setLoginRole(null); setLoginStep(0); setVoice(false); setView('home'); } catch { } }} back={() => { clearError(); setLoginRole(null); setVoice(false); }} authError={authError} clearError={clearError} signingIn={signingIn} /><VoiceButton onClick={() => { warmupSpeech(); setVoice(true); }} t={t} />{voice && <VoiceModal close={() => setVoice(false)} t={t} language={language} currentView={loginStep === 0 ? (loginRole === 'Farmer' ? 'login-farmer' : loginRole === 'FPO' ? 'login-fpo' : 'login-mobile') : loginStep === 1 ? 'login-otp' : (loginRole === 'Buyer' ? 'login-category' : 'login-verify')} loginRole={loginRole} isLoggedIn={!!role} autoRouteToDestination={autoRouteToDestination} selectRole={(r) => setLoginRole(r as Role)} setLoginStep={setLoginStep} setLoginField={setLoginFieldVoice} submitLogin={submitLoginVoice} appSpeakingRef={appSpeakingRef} appPendingNarrationRef={pendingNarrationRef} speakNarrationOnly={speakNarrationOnly} narratedTabsRef={narratedTabsRef} autoVoiceConsentRef={autoVoiceConsentRef} />}{toast && <div className="toast"><AlertTriangle size={17} />{toast}</div>}</>; if (!role) return <><Login onRole={setLoginRole} voiceOpen={() => { warmupSpeech(); setVoice(true); }} t={t} language={language} />{voice && <VoiceModal close={() => setVoice(false)} t={t} language={language} currentView={loginRole ? (loginRole === 'Farmer' ? 'login-farmer' : loginRole === 'FPO' ? 'login-fpo' : 'login-mobile') : 'login'} isLoggedIn={!!role} autoRouteToDestination={autoRouteToDestination} selectRole={(r) => setLoginRole(r as Role)} setLoginStep={setLoginStep} setLoginField={setLoginFieldVoice} submitLogin={submitLoginVoice} appSpeakingRef={appSpeakingRef} appPendingNarrationRef={pendingNarrationRef} speakNarrationOnly={speakNarrationOnly} narratedTabsRef={narratedTabsRef} autoVoiceConsentRef={autoVoiceConsentRef} />}</>; return <div className="logged-in">{view === 'home' && <main className="long-scroll"><RoleHome role={role} open={open} profile={() => open('profile')} notifications={() => setNotifications(true)} t={t} profileData={profile} /></main>}{view === 'crops' && <CropView open={open} selectCrop={setSelectedCrop} t={t} role={role} notify={notify} currentUserId={profile?.id} />}{view === 'crop-detail' && selectedCrop && <CropDetail open={open} crop={selectedCrop} t={t} role={role} onEdit={() => open('crop-edit')} onMarkHarvested={async () => { try { await markAsHarvested(selectedCrop.id, new Date().toISOString()); notify(t('crops.markedHarvested')); setSelectedCrop({ ...selectedCrop, status: 'Harvested', harvested_at: new Date().toISOString() }); open('crops'); } catch { notify(t('crops.createError')); } }} />}{view === 'buyer-crop-detail' && selectedCrop && <BuyerCropDetail crop={selectedCrop} open={open} t={t} />}{view === 'buyer-payment' && selectedCrop && <BuyerPaymentView crop={selectedCrop} open={open} notify={notify} t={t} />}{view === 'farmeye-detail' && selectedCrop && <FarmEyeDetailView crop={selectedCrop} open={open} t={t} backView={role === 'Buyer' ? 'buyer-crop-detail' : 'crop-detail'} />}{view === 'crop-create' && <CropFormView open={open} notify={notify} t={t} voiceFill={formDraft} formDraft={formDraft} />}{view === 'crop-edit' && selectedCrop && <CropFormView open={open} notify={notify} t={t} editing={selectedCrop} voiceFill={formDraft} formDraft={formDraft} />}{view === 'market' && <MarketView role={role} open={open} notify={notify} t={t} selectCrop={setSelectedCrop} />}{view === 'calendar' && <CalendarView open={open} t={t} profileData={profile} />}{view === 'transport-options' && <TransportOptions role={role} open={open} notify={notify} t={t} profileData={profile} />}{view === 'transport-detail' && <TransportDetail open={open} notify={notify} t={t} />}{view === 'journey' && <JourneyView open={open} notify={notify} t={t} consignment={selectedJourneyConsignment} />}{view === 'storage' && <StorageView role={role} open={open} notify={notify} t={t} />}{view === 'approvals' && <ApprovalsView open={open} t={t} />}{view === 'fpo' && <FpoView open={open} notify={notify} t={t} />}{view === 'tutorials' && <TutorialsView role={role} open={open} t={t} language={language} voiceOpen={() => { warmupSpeech(); setVoice(true); }} />}{view === 'help' && <HelpView open={open} notify={notify} t={t} />}{view === 'dispute' && <DisputeView open={open} notify={notify} t={t} />}{view === 'profile' && <ProfileView role={role} open={open} language={language} setLanguage={setLanguage} buyerCategory={buyerCategory} signOut={signOut} addAccount={addAccount} t={t} profileData={profile} />}{view === 'settings' && <SettingsView open={open} language={language} setLanguage={setLanguage} t={t} />}{view === 'orders' && <OrdersView role={role} open={open} notify={notify} t={t} />}{view === 'deals' && <DealsView open={open} notify={notify} t={t} />}{view === 'features' && <FeatureView role={role} open={open} notify={notify} t={t} profile={() => open('profile')} onNotifications={() => setNotifications(true)} onOpenJourney={(c) => { setSelectedJourneyConsignment(c); open('journey'); }} />}<div className="floating-tools"><button onClick={() => open('profile')} aria-label={t('profile.title')}><UserRound size={24} /></button><button onClick={() => setNotifications(true)} aria-label={t('notifications.title')}><Bell size={24} />{unreadCount > 0 && <i>{unreadCount}</i>}</button></div><VoiceButton onClick={() => { warmupSpeech(); setVoice(true); }} t={t} />{voice && <VoiceModal close={() => setVoice(false)} t={t} language={language} open={open} currentView={view} isLoggedIn={!!role} autoRouteToDestination={autoRouteToDestination} setFormDraft={setFormDraft} formDraft={formDraft} setLanguage={setLanguage} selectRole={(r) => { authSignOut(); setLoginRole(r as Role); }} appSpeakingRef={appSpeakingRef} appPendingNarrationRef={pendingNarrationRef} speakNarrationOnly={speakNarrationOnly} narratedTabsRef={narratedTabsRef} autoVoiceConsentRef={autoVoiceConsentRef} />}{notifications && <Notifications close={() => setNotifications(false)} t={t} items={notifItems} loading={notifLoading} error={notifError} onMarkRead={handleMarkRead} onMarkAllRead={handleMarkAllRead} />}{toast && <div className="toast"><Check size={17} />{toast}</div>}</div>; }
+function App() { const { role: authRole, profile, signInWithRole, signOut: authSignOut, updateLanguage, loading, signingIn, authError, clearError } = useAuth(); const [view, setView] = useState<View>('home'); const [loginRole, setLoginRole] = useState<Role | null>(null); const [voice, setVoice] = useState(false); const [notifications, setNotifications] = useState(false); const [language, setLanguageState] = useState<Language>('English'); const [toast, setToast] = useState(''); const [notifItems, setNotifItems] = useState<NotificationRow[]>([]); const [notifLoading, setNotifLoading] = useState(false); const [notifError, setNotifError] = useState<string | null>(null); const [selectedCrop, setSelectedCrop] = useState<CropListing | null>(null); const [selectedJourneyConsignment, setSelectedJourneyConsignment] = useState<TpConsignment | null>(null); const [formDraft, setFormDraftState] = useState<Record<string, string>>({}); const [loginStep, setLoginStep] = useState(0); const [loginMobile, setLoginMobile] = useState('+91 98765 43210'); const [loginOtp, setLoginOtp] = useState(''); const [loginBuyerCat, setLoginBuyerCat] = useState('Normal Buyer'); const [pendingDestinationView, setPendingDestinationView] = useState<string | null>(null); const role = (authRole && (allRoles as string[]).includes(authRole)) ? (authRole as Role) : null; const buyerCategory = profile?.buyer_category ?? 'Normal Buyer'; const appSpeakingRef = useRef(false); const pendingNarrationRef = useRef<string | null>(null); const narratedTabsRef = useRef<Set<string>>(new Set()); const autoVoiceConsentRef = useRef<'pending' | 'granted' | 'declined'>('pending'); const prefetchedAudioRef = useRef<{ text: string; promise: Promise<Blob | null> } | null>(null); const speakNarrationOnly = useCallback(async (text: string) => { if (appSpeakingRef.current) { pendingNarrationRef.current = text; return; } appSpeakingRef.current = true; const prefetched = prefetchedAudioRef.current; const audio = prefetched && prefetched.text === text ? (await prefetched.promise) : await speakTextViaSarvam(text, language); if (prefetched && prefetched.text === text) prefetchedAudioRef.current = null; if (!audio) { speak(text, language, () => { appSpeakingRef.current = false; const pending = pendingNarrationRef.current; if (pending) { pendingNarrationRef.current = null; speakNarrationOnly(pending); } }); return; } playAudioBlob(audio, () => { appSpeakingRef.current = false; const pending = pendingNarrationRef.current; if (pending) { pendingNarrationRef.current = null; speakNarrationOnly(pending); } }); }, [language]); useEffect(() => { if (!role || voice) return; if (autoVoiceConsentRef.current !== 'granted') return; if (narratedTabsRef.current.has(view)) return; const tr = makeT(language); const narration = getTabNarration(view, tr); if (!narration) return; const promptKey = `voice.tabActionPrompt.${view}`; const prompt = tr(promptKey); const full = prompt !== promptKey ? `${narration} ${prompt}` : narration; narratedTabsRef.current.add(view); if (appSpeakingRef.current) { pendingNarrationRef.current = full; return; } speakNarrationOnly(full); }, [view, role, voice, language, speakNarrationOnly]); useEffect(() => { if (profile?.language) setLanguageState(languageFromCode(profile.language)); }, [profile?.language]); const setLanguage = (lang: Language) => { setLanguageState(lang); updateLanguage(codeFromLanguage(lang)); }; const t = makeT(language); const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(''), 2300); }; const open = (next: View) => { stopAudio(); stopSpeaking(); appSpeakingRef.current = false; pendingNarrationRef.current = null; prefetchedAudioRef.current = null; const tr = makeT(language); const narration = getTabNarration(next, tr); const promptKey = `voice.tabActionPrompt.${next}`; const prompt = tr(promptKey); const full = prompt !== promptKey ? `${narration} ${prompt}` : narration; if (full) prefetchedAudioRef.current = { text: full, promise: speakTextViaSarvam(full, language) }; setView(next); window.scrollTo({ top: 0, behavior: 'smooth' }); }; useEffect(() => { if (loginRole) setVoice(true); }, [loginRole]); const setFormDraft = useCallback((field: string, value: string) => { setFormDraftState((prev) => ({ ...prev, [field]: value })); }, []); const setLoginFieldVoice = useCallback((field: 'mobile' | 'otp' | 'buyerCategory', value: string) => { if (field === 'mobile') { setLoginMobile(value); setLoginStep(1); } else if (field === 'otp') { setLoginOtp(value); setLoginStep(2); } else if (field === 'buyerCategory') setLoginBuyerCat(value); }, []); const submitLoginVoice = useCallback(async () => { if (!loginRole || signingIn) return; try { await signInWithRole(loginRole, loginRole === 'Farmer' ? rameshEmail : demoEmails[loginRole], 'Demo1234!', loginBuyerCat); const dest = pendingDestinationView; setLoginRole(null); setLoginStep(0); setLoginMobile('+91 98765 43210'); setLoginOtp(''); setPendingDestinationView(null); setVoice(false); setView((dest ? (dest as View) : 'home')); } catch { } }, [loginRole, signingIn, loginBuyerCat, pendingDestinationView]); const autoRouteToDestination = useCallback((destinationView: string, requiredRole: string) => { setLoginRole(requiredRole as Role); setLoginStep(0); setLoginMobile('+91 98765 43210'); setLoginOtp(''); setLoginBuyerCat('Normal Buyer'); setPendingDestinationView(destinationView); }, []); const loadNotifications = useCallback(async () => { if (!role) return; setNotifLoading(true); setNotifError(null); try { await seedDemoNotificationsIfNeeded(); setNotifItems(await fetchNotifications()); } catch { setNotifError(t('notifications.loadError')); } finally { setNotifLoading(false); } }, [role, t]); useEffect(() => { loadNotifications(); }, [loadNotifications]); const handleMarkRead = async (id: string) => { try { await markNotificationRead(id); setNotifItems((prev) => prev.map((n) => n.id === id ? { ...n, read_at: new Date().toISOString() } : n)); } catch { } }; const handleMarkAllRead = async () => { try { await markAllNotificationsRead(); setNotifItems((prev) => prev.map((n) => ({ ...n, read_at: n.read_at ?? new Date().toISOString() }))); } catch { } }; const unreadCount = notifItems.filter((n) => !n.read_at).length; const signOut = () => { stopAudio(); stopSpeaking(); appSpeakingRef.current = false; pendingNarrationRef.current = null; narratedTabsRef.current.clear(); authSignOut(); setView('home'); }; const addAccount = () => { stopAudio(); stopSpeaking(); appSpeakingRef.current = false; pendingNarrationRef.current = null; narratedTabsRef.current.clear(); authSignOut(); setView('home'); }; if (loading) return <main className="login-screen"><div className="login-brand" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{ display: 'grid', placeItems: 'center', width: '31px', height: '31px', borderRadius: '9px', color: '#fff', background: '#2c823b' }}><Sprout size={27} /></span><strong>{t('app.name')}</strong></div></main>; if (!role && loginRole) return <><LoginFlow role={loginRole} t={t} step={loginStep} setStep={setLoginStep} mobile={loginMobile} setMobile={setLoginMobile} otp={loginOtp} setOtp={setLoginOtp} buyerCat={loginBuyerCat} setBuyerCat={setLoginBuyerCat} done={async (email, password, buyerCategory) => { if (signingIn) return; try { await signInWithRole(loginRole, email, password, buyerCategory); setLoginRole(null); setLoginStep(0); setVoice(false); setView('home'); } catch { } }} back={() => { clearError(); setLoginRole(null); setVoice(false); }} authError={authError} clearError={clearError} signingIn={signingIn} /><VoiceButton onClick={() => { warmupSpeech(); setVoice(true); }} t={t} />{voice && <VoiceModal close={() => setVoice(false)} t={t} language={language} currentView={loginStep === 0 ? (loginRole === 'Farmer' ? 'login-farmer' : loginRole === 'FPO' ? 'login-fpo' : 'login-mobile') : loginStep === 1 ? 'login-otp' : (loginRole === 'Buyer' ? 'login-category' : 'login-verify')} loginRole={loginRole} isLoggedIn={!!role} autoRouteToDestination={autoRouteToDestination} selectRole={(r) => setLoginRole(r as Role)} setLoginStep={setLoginStep} setLoginField={setLoginFieldVoice} submitLogin={submitLoginVoice} appSpeakingRef={appSpeakingRef} appPendingNarrationRef={pendingNarrationRef} speakNarrationOnly={speakNarrationOnly} narratedTabsRef={narratedTabsRef} autoVoiceConsentRef={autoVoiceConsentRef} />}{toast && <div className="toast"><AlertTriangle size={17} />{toast}</div>}</>; if (!role) return <><Login onRole={setLoginRole} voiceOpen={() => { warmupSpeech(); setVoice(true); }} t={t} language={language} />{voice && <VoiceModal close={() => setVoice(false)} t={t} language={language} currentView={loginRole ? (loginRole === 'Farmer' ? 'login-farmer' : loginRole === 'FPO' ? 'login-fpo' : 'login-mobile') : 'login'} isLoggedIn={!!role} autoRouteToDestination={autoRouteToDestination} selectRole={(r) => setLoginRole(r as Role)} setLoginStep={setLoginStep} setLoginField={setLoginFieldVoice} submitLogin={submitLoginVoice} appSpeakingRef={appSpeakingRef} appPendingNarrationRef={pendingNarrationRef} speakNarrationOnly={speakNarrationOnly} narratedTabsRef={narratedTabsRef} autoVoiceConsentRef={autoVoiceConsentRef} />}</>; return <div className="logged-in">{view === 'home' && <main className="long-scroll"><RoleHome role={role} open={open} profile={() => open('profile')} notifications={() => setNotifications(true)} t={t} profileData={profile} /></main>}{view === 'crops' && <CropView open={open} selectCrop={setSelectedCrop} t={t} role={role} notify={notify} currentUserId={profile?.id} />}{view === 'crop-detail' && selectedCrop && <CropDetail open={open} crop={selectedCrop} t={t} role={role} onEdit={() => open('crop-edit')} onMarkHarvested={async () => { try { await markAsHarvested(selectedCrop.id, new Date().toISOString()); notify(t('crops.markedHarvested')); setSelectedCrop({ ...selectedCrop, status: 'Harvested', harvested_at: new Date().toISOString() }); open('crops'); } catch { notify(t('crops.createError')); } }} />}{view === 'buyer-crop-detail' && selectedCrop && <BuyerCropDetail crop={selectedCrop} open={open} t={t} />}{view === 'buyer-payment' && selectedCrop && <BuyerPaymentView crop={selectedCrop} open={open} notify={notify} t={t} />}{view === 'farmeye-detail' && selectedCrop && <FarmEyeDetailView crop={selectedCrop} open={open} t={t} backView={role === 'Buyer' ? 'buyer-crop-detail' : 'crop-detail'} />}{view === 'crop-create' && <CropFormView open={open} notify={notify} t={t} voiceFill={formDraft} formDraft={formDraft} />}{view === 'crop-edit' && selectedCrop && <CropFormView open={open} notify={notify} t={t} editing={selectedCrop} voiceFill={formDraft} formDraft={formDraft} />}{view === 'market' && <MarketView role={role} open={open} notify={notify} t={t} selectCrop={setSelectedCrop} />}{view === 'calendar' && <CalendarView open={open} t={t} profileData={profile} />}{view === 'transport-options' && <TransportOptions role={role} open={open} notify={notify} t={t} profileData={profile} />}{view === 'transport-detail' && <TransportDetail open={open} notify={notify} t={t} />}{view === 'journey' && <JourneyView open={open} notify={notify} t={t} consignment={selectedJourneyConsignment} />}{view === 'storage' && <StorageView role={role} open={open} notify={notify} t={t} />}{view === 'approvals' && <ApprovalsView open={open} notify={notify} t={t} />}{view === 'fpo' && <FpoView open={open} notify={notify} t={t} />}{view === 'tutorials' && <TutorialsView role={role} open={open} t={t} language={language} voiceOpen={() => { warmupSpeech(); setVoice(true); }} />}{view === 'help' && <HelpView open={open} notify={notify} t={t} />}{view === 'dispute' && <DisputeView open={open} notify={notify} t={t} />}{view === 'profile' && <ProfileView role={role} open={open} language={language} setLanguage={setLanguage} buyerCategory={buyerCategory} signOut={signOut} addAccount={addAccount} t={t} profileData={profile} />}{view === 'settings' && <SettingsView open={open} language={language} setLanguage={setLanguage} t={t} />}{view === 'orders' && <OrdersView role={role} open={open} notify={notify} t={t} />}{view === 'deals' && <DealsView open={open} notify={notify} t={t} />}{view === 'features' && <FeatureView role={role} open={open} notify={notify} t={t} profile={() => open('profile')} onNotifications={() => setNotifications(true)} onOpenJourney={(c) => { setSelectedJourneyConsignment(c); open('journey'); }} />}<div className="floating-tools"><button onClick={() => open('profile')} aria-label={t('profile.title')}><UserRound size={24} /></button><button onClick={() => setNotifications(true)} aria-label={t('notifications.title')}><Bell size={24} />{unreadCount > 0 && <i>{unreadCount}</i>}</button></div><VoiceButton onClick={() => { warmupSpeech(); setVoice(true); }} t={t} />{voice && <VoiceModal close={() => setVoice(false)} t={t} language={language} open={open} currentView={view} isLoggedIn={!!role} autoRouteToDestination={autoRouteToDestination} setFormDraft={setFormDraft} formDraft={formDraft} setLanguage={setLanguage} selectRole={(r) => { authSignOut(); setLoginRole(r as Role); }} appSpeakingRef={appSpeakingRef} appPendingNarrationRef={pendingNarrationRef} speakNarrationOnly={speakNarrationOnly} narratedTabsRef={narratedTabsRef} autoVoiceConsentRef={autoVoiceConsentRef} />}{notifications && <Notifications close={() => setNotifications(false)} t={t} items={notifItems} loading={notifLoading} error={notifError} onMarkRead={handleMarkRead} onMarkAllRead={handleMarkAllRead} />}{toast && <div className="toast"><Check size={17} />{toast}</div>}</div>; }
 export default App;
