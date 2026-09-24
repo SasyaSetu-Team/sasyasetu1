@@ -345,6 +345,17 @@
 .tp-req-pay-detail{font:600 12px 'BR Omega','Outfit',sans-serif;color:#78716C;margin-left:auto;text-align:right}
 .tp-req-accept-btn{width:100%;padding:14px 28px;border:0;border-radius:16px;background:#16382b;color:#fff;font:800 14px 'BR Omega','Outfit',sans-serif;cursor:pointer;transition:background .18s}
 .tp-req-accept-btn:hover{background:#102a20}
+.tp-segmented-control{display:flex;gap:8px;margin-bottom:20px}
+.tp-segmented-control button{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border:1px solid #E7E5E4;border-radius:12px;background:#fff;color:#44403C;font:700 13px 'BR Omega','Outfit',sans-serif;cursor:pointer;transition:all .18s;white-space:nowrap}
+.tp-segmented-control button.selected{background:#16382b;border-color:#16382b;color:#fff}
+.tp-order-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 16px;background:#F5F5F4;border-radius:14px}
+.tp-order-vehicle-info{display:flex;flex-direction:column;gap:2px}
+.tp-order-vehicle-reg{font:800 15px 'BR Omega','Outfit',sans-serif;color:#16382b;letter-spacing:0.02em}
+.tp-order-driver-name{font:600 13px 'BR Omega','Outfit',sans-serif;color:#57534E}
+.tp-order-action-btn{width:auto;padding:12px 24px}
+.tp-order-footer-completed{flex-direction:column;align-items:stretch}
+.tp-order-pay-stats{display:flex;gap:20px;flex-wrap:wrap}
+.tp-order-completed-ts{font:700 13px 'BR Omega','Outfit',sans-serif;color:#57534E}
 .tp-card-actions{display:flex;gap:8px;flex-wrap:wrap;padding:0 0 12px;margin-top:-4px}
 .tp-card-actions .button{font:700 12px 'BR Omega','Outfit',sans-serif;padding:8px 14px;white-space:nowrap}
 .journey-shipment-info{display:flex;flex-direction:column;gap:6px;padding:12px 0;border-top:1px solid #E7E5E4;border-bottom:1px solid #E7E5E4;margin:12px 0}

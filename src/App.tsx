@@ -2922,6 +2922,123 @@ function TpRequestCard({ c, t, onClick }: { c: TpConsignment; t: T; onClick?: ()
   </div>;
 }
 
+function TpActiveOrderCard({ c, t, onOpenJourney }: { c: TpConsignment; t: T; onOpenJourney: (c: TpConsignment) => void }) {
+  const cropPhoto = cropPhotoFor(c.cropName);
+  const vehicle = tpVehicleForConsignment(c);
+  return <div className="tp-req-card">
+    <div className="tp-req-card-top">
+      <div className="tp-req-thumb-wrap">
+        <img className="tp-req-thumb" src={cropPhoto} alt={c.cropName} loading="lazy" />
+        <div className="tp-req-thumb-overlay" />
+      </div>
+      <div className="tp-req-card-info">
+        <div className="tp-req-card-header">
+          <Badge tone="green">{c.status === 'Loading' ? 'Loading' : 'In Transit'}</Badge>
+          <span className="tp-req-lr">LR {c.lrNumber}</span>
+        </div>
+        <h3 className="tp-req-title">{c.farmerName} · {c.cropName}</h3>
+        <div className="tp-req-meta-row">
+          <span><Thermometer size={12} /> {c.tempReq}</span>
+          <span><Truck size={12} /> {c.vehicleType}</span>
+          <span><Package size={12} /> {c.unitCount} {c.unitType}</span>
+        </div>
+      </div>
+      <div className="tp-req-weight-badge">
+        <span className="tp-req-weight-label">Weight</span>
+        <span className="tp-req-weight-value">{c.quantityKg.toLocaleString('en-IN')} kg</span>
+      </div>
+    </div>
+    <div className="tp-req-route-section">
+      <div className="tp-req-waypoint">
+        <div className="tp-req-node tp-req-node-from"><span className="tp-req-node-dot" /></div>
+        <div className="tp-req-waypoint-body">
+          <span className="tp-req-waypoint-label tp-req-label-from">FROM</span>
+          <span className="tp-req-waypoint-address">{c.routeFrom}</span>
+        </div>
+      </div>
+      <div className="tp-req-connector" />
+      <div className="tp-req-waypoint">
+        <div className="tp-req-node tp-req-node-to"><MapPin size={12} /></div>
+        <div className="tp-req-waypoint-body">
+          <span className="tp-req-waypoint-label tp-req-label-to">TO</span>
+          <span className="tp-req-waypoint-address">{c.routeTo}</span>
+        </div>
+      </div>
+    </div>
+    <div className="tp-order-footer">
+      <div className="tp-order-vehicle-info">
+        <span className="tp-order-vehicle-reg">{vehicle.regNumber}</span>
+        <span className="tp-order-driver-name">{vehicle.driverName}</span>
+      </div>
+      <button className="tp-req-accept-btn tp-order-action-btn" onClick={() => onOpenJourney(c)}>Open Live Journey</button>
+    </div>
+  </div>;
+}
+
+function TpCompletedOrderCard({ c, t, onViewWaybill }: { c: TpConsignment; t: T; onViewWaybill: () => void }) {
+  const cropPhoto = cropPhotoFor(c.cropName);
+  const freight = tpFreightPayout(c);
+  const completedTs = new Date(Date.now() - (hashStr(c.id) % 7) * 86400000).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return <div className="tp-req-card">
+    <div className="tp-req-card-top">
+      <div className="tp-req-thumb-wrap">
+        <img className="tp-req-thumb" src={cropPhoto} alt={c.cropName} loading="lazy" />
+        <div className="tp-req-thumb-overlay" />
+      </div>
+      <div className="tp-req-card-info">
+        <div className="tp-req-card-header">
+          <Badge tone="blue">Delivered &amp; Settled</Badge>
+          <span className="tp-req-lr">LR {c.lrNumber}</span>
+        </div>
+        <h3 className="tp-req-title">{c.farmerName} · {c.cropName}</h3>
+        <div className="tp-req-meta-row">
+          <span><Thermometer size={12} /> {c.tempReq}</span>
+          <span><Truck size={12} /> {c.vehicleType}</span>
+          <span><Package size={12} /> {c.unitCount} {c.unitType}</span>
+        </div>
+      </div>
+      <div className="tp-req-weight-badge">
+        <span className="tp-req-weight-label">Weight</span>
+        <span className="tp-req-weight-value">{c.quantityKg.toLocaleString('en-IN')} kg</span>
+      </div>
+    </div>
+    <div className="tp-req-route-section">
+      <div className="tp-req-waypoint">
+        <div className="tp-req-node tp-req-node-from"><span className="tp-req-node-dot" /></div>
+        <div className="tp-req-waypoint-body">
+          <span className="tp-req-waypoint-label tp-req-label-from">FROM</span>
+          <span className="tp-req-waypoint-address">{c.routeFrom}</span>
+        </div>
+      </div>
+      <div className="tp-req-connector" />
+      <div className="tp-req-waypoint">
+        <div className="tp-req-node tp-req-node-to"><MapPin size={12} /></div>
+        <div className="tp-req-waypoint-body">
+          <span className="tp-req-waypoint-label tp-req-label-to">TO</span>
+          <span className="tp-req-waypoint-address">{c.routeTo}</span>
+        </div>
+      </div>
+    </div>
+    <div className="tp-order-footer tp-order-footer-completed">
+      <div className="tp-order-pay-stats">
+        <div className="tp-req-pay-stat">
+          <span className="tp-req-pay-label">Amount Paid</span>
+          <span className="tp-req-pay-value">{formatRupee(freight)}</span>
+        </div>
+        <div className="tp-req-pay-stat">
+          <span className="tp-req-pay-label">Distance</span>
+          <span className="tp-req-pay-value">{c.distanceKm} km</span>
+        </div>
+        <div className="tp-req-pay-stat">
+          <span className="tp-req-pay-label">Completed</span>
+          <span className="tp-req-pay-value tp-order-completed-ts">{completedTs}</span>
+        </div>
+      </div>
+      <button className="tp-req-accept-btn tp-order-action-btn" onClick={onViewWaybill}>View e-Waybill</button>
+    </div>
+  </div>;
+}
+
 function TpConsignmentCard({ c, t, onClick }: { c: TpConsignment; t: T; onClick?: () => void }) {
   const cropPhoto = cropPhotoFor(c.cropName);
   const freight = tpFreightPayout(c);
@@ -3105,6 +3222,7 @@ function FeatureView({ role, open, notify, t, profile, onNotifications, onOpenJo
   const [reviewConsignment, setReviewConsignment] = useState<TpConsignment | null>(null);
   const [accepting, setAccepting] = useState(false);
   const [docsConsignment, setDocsConsignment] = useState<TpConsignment | null>(null);
+  const [ordersSegment, setOrdersSegment] = useState<'active' | 'completed'>('active');
 
   if (role !== 'Transport Provider') {
     const request = t('feature.Main Summary');
@@ -3180,20 +3298,37 @@ function FeatureView({ role, open, notify, t, profile, onNotifications, onOpenJo
       <button className={subTab === 'my-orders' ? 'selected' : ''} onClick={() => setSubTab('my-orders')}>{t('feature.My Orders')}</button>
     </div>
     {kpis}
-    <div className="tp-card-list">
+    {subTab === 'my-orders' && (() => {
+      const active = myOrderConsignments.filter((c) => c.status === 'In Transit' || c.status === 'Loading');
+      const completed = myOrderConsignments.filter((c) => c.status === 'Delivered');
+      const segmentList = ordersSegment === 'active' ? active : completed;
+      return <>
+        <div className="tp-segmented-control">
+          <button className={ordersSegment === 'active' ? 'selected' : ''} onClick={() => setOrdersSegment('active')}><Zap size={15} /> Active Dispatches ({active.length})</button>
+          <button className={ordersSegment === 'completed' ? 'selected' : ''} onClick={() => setOrdersSegment('completed')}><CheckCircle2 size={15} /> Previous &amp; Completed ({completed.length})</button>
+        </div>
+        <div className="tp-card-list">
+          {segmentList.length === 0 && <p className="calendar-empty">No {ordersSegment === 'active' ? 'active dispatches' : 'completed orders'}.</p>}
+          {segmentList.map((c) => <div key={c.id}>
+            {ordersSegment === 'active' ? (
+              <TpActiveOrderCard c={c} t={t} onOpenJourney={onOpenJourney} />
+            ) : (
+              <TpCompletedOrderCard c={c} t={t} onViewWaybill={() => {
+                const ewb = tpEwaybill(c);
+                const slip = tpWeighbridgeSlip(c);
+                notify(`e-Waybill ${ewb.ewbNo} and APMC weighbridge slip ${slip.slipNo} downloaded (mock).`);
+              }} />
+            )}
+          </div>)}
+        </div>
+      </>;
+    })()}
+    {subTab !== 'my-orders' && <div className="tp-card-list">
       {consignments.length === 0 && <p className="calendar-empty">No consignments in this tab.</p>}
       {consignments.map((c) => <div key={c.id}>
-        {subTab === 'my-orders' ? (
-          <TpConsignmentCard c={c} t={t} />
-        ) : (
-          <TpRequestCard c={c} t={t} onClick={() => setReviewConsignment(c)} />
-        )}
-        {subTab === 'my-orders' && c.status === 'In Transit' && <div className="tp-card-actions">
-          <Button icon={Map} variant="soft" onClick={() => onOpenJourney(c)}>Track Live Journey</Button>
-          <Button icon={FileCheck2} variant="outline" onClick={() => setDocsConsignment(c)}>Shipment Docs</Button>
-        </div>}
+        <TpRequestCard c={c} t={t} onClick={() => setReviewConsignment(c)} />
       </div>)}
-    </div>
+    </div>}
     {reviewConsignment && <TpConsignmentReviewModal c={reviewConsignment} t={t} onClose={() => setReviewConsignment(null)} onAccept={handleAcceptTrip} accepting={accepting} />}
     {docsConsignment && <TpShipmentDocsModal c={docsConsignment} t={t} onClose={() => setDocsConsignment(null)} />}
   </main>;
