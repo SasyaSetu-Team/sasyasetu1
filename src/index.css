@@ -308,3 +308,19 @@
 .tp-consignment-card[role="button"]{cursor:pointer;transition:transform .15s,box-shadow .15s}
 .tp-consignment-card[role="button"]:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
 .tp-consignment-card[role="button"]:active{transform:translateY(0)}
+.tp-card-actions{display:flex;gap:8px;flex-wrap:wrap;padding:0 0 12px;margin-top:-4px}
+.tp-card-actions .button{font:700 12px 'BR Omega','Outfit',sans-serif;padding:8px 14px;white-space:nowrap}
+.journey-shipment-info{display:flex;flex-direction:column;gap:6px;padding:12px 0;border-top:1px solid #E7E5E4;border-bottom:1px solid #E7E5E4;margin:12px 0}
+.journey-info-row{display:flex;align-items:center;gap:8px;font:600 13px 'BR Omega','Outfit',sans-serif;color:#44403C}
+.journey-info-row svg{color:#78716C;flex-shrink:0}
+.tp-docs-lr-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tp-docs-route{font:700 13px 'BR Omega','Outfit',sans-serif;color:#44403C}
+.tp-doc-card{background:#F5F5F4;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.tp-doc-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.tp-doc-row small{font:700 11px 'BR Omega','Outfit',sans-serif;color:#78716C;letter-spacing:.04em;text-transform:uppercase}
+.tp-doc-row strong{font:800 14px 'BR Omega','Outfit',sans-serif;color:#0C0A09;word-break:break-all;text-align:right}
+.tp-doc-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 12px}
+@media(max-width:420px){.tp-doc-grid{grid-template-columns:1fr 1fr}}
+.tp-ewb-no{font-family:'BR Omega','Outfit',monospace;font-size:15px;letter-spacing:.02em}
+.tp-docs-disclaimer{display:flex;align-items:flex-start;gap:8px;padding:12px 24px;font:600 12px 'BR Omega','Outfit',sans-serif;color:#78716C;line-height:1.5}
+.tp-docs-disclaimer svg{flex-shrink:0;margin-top:2px;color:#78716C}
