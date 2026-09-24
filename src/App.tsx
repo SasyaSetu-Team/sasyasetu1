@@ -9,6 +9,7 @@ import { fetchNotifications, markNotificationRead, markAllNotificationsRead, see
 import { parseCommand, parseStatus, parseNumber, parseLanguageChange, extractValue, isSpeechRecognitionSupported, isSpeechSynthesisSupported, createRecognition, speak, stopSpeaking, warmupSpeech, langCode, captureScreenText, subscribeDebug, getSynthState, emitDebug, isYesCommand, isNoCommand, isYesCommandAnyLang, isNoCommandAnyLang, type VoiceRecognition, type DebugEvent } from '@/lib/voice';
 import { useVoiceSession, speakTextViaSarvam, getTabNarration, type FormField, type SarvamVoiceResult } from '@/lib/useVoiceSession';
 import { playAudioBlob, stopAudio } from '@/lib/playAudio';
+import { supabase } from '@/lib/supabase';
 import { CalendarDayCell, getMockMonthDays, monthHasMockEvents, mockMonthEvents, mockCalendarLegend, stageLegendColor, CalendarLegendIcon, type CalendarDayEvent, type CalendarDayData, type CalendarStage } from '@/components/CalendarDayCell';
 import { CropFlipCard, cropPhotoFor } from '@/components/CropFlipCard';
 
