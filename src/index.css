@@ -284,3 +284,27 @@
 .mycrop-back-actions .button{white-space:nowrap;flex-shrink:0;font:700 12px 'BR Omega','Outfit',sans-serif;padding:8px 12px;background:#044E3B;color:#fff;border:0;border-radius:12px;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
 .mycrop-back-actions .button:hover{background:#065F46}
 .mycrop-back-actions .button svg{flex-shrink:0}
+.tp-review-modal{background:#fff;border-radius:20px;max-width:560px;width:100%;max-height:88vh;overflow-y:auto;padding:0;box-shadow:0 24px 80px rgba(0,0,0,.18);-webkit-overflow-scrolling:touch}
+.tp-review-header{display:flex;align-items:flex-start;justify-content:space-between;padding:20px 24px 12px;border-bottom:1px solid #E7E5E4}
+.tp-review-header .eyebrow{display:block;font:700 12px 'BR Omega','Outfit',sans-serif;color:#78716C;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.tp-review-header h2{font:900 20px 'BR Omega','Outfit',sans-serif;color:#0C0A09;margin:0}
+.tp-review-photo-wrap{position:relative;margin:16px 24px}
+.tp-review-photo-wrap .tp-consignment-photo{width:100%;height:160px;object-fit:cover;border-radius:14px}
+.tp-review-photo-overlay{position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:8px}
+.tp-review-lr{font:700 11px 'BR Omega','Outfit',monospace;color:#fff;background:rgba(0,0,0,.55);padding:4px 10px;border-radius:8px;letter-spacing:.04em}
+.tp-review-section{padding:14px 24px}
+.tp-review-section h3{font:800 14px 'BR Omega','Outfit',sans-serif;color:#1C1917;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.tp-review-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+@media(min-width:480px){.tp-review-grid{grid-template-columns:1fr 1fr 1fr}}
+.tp-review-grid .detail small{font:700 11px 'BR Omega','Outfit',sans-serif;color:#78716C;letter-spacing:.04em;text-transform:uppercase;display:block;margin-bottom:2px}
+.tp-review-grid .detail strong{font:700 14px 'BR Omega','Outfit',sans-serif;color:#0C0A09;display:block;word-break:break-word}
+.tp-review-vehicle{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#F5F5F4;border-radius:12px;margin-bottom:10px}
+.tp-review-vehicle-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:#044E3B;color:#fff;flex-shrink:0}
+.tp-review-vehicle div{display:flex;flex-direction:column;gap:2px}
+.tp-review-vehicle strong{font:800 15px 'BR Omega','Outfit',sans-serif;color:#0C0A09}
+.tp-review-vehicle span{font:600 12px 'BR Omega','Outfit',sans-serif;color:#78716C}
+.tp-review-freight .tp-freight-detail{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font:700 14px 'BR Omega','Outfit',sans-serif;color:#1C1917}
+.tp-review-freight .tp-freight-detail strong{font:900 16px 'BR Omega','Outfit',sans-serif;color:#044E3B}
+.tp-consignment-card[role="button"]{cursor:pointer;transition:transform .15s,box-shadow .15s}
+.tp-consignment-card[role="button"]:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
+.tp-consignment-card[role="button"]:active{transform:translateY(0)}

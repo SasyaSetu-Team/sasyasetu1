@@ -2734,10 +2734,42 @@ const tpColdStoragePhoto = 'https://images.pexels.com/photos/5953713/pexels-phot
 
 type TpSubTab = 'cold-storage' | 'farmer-requests' | 'my-orders';
 
+interface TpVehicle {
+  id: string;
+  regNumber: string;
+  vehicleType: string;
+  capacityKg: number;
+  driverName: string;
+  driverPhone: string;
+}
+
+const tpFleet: TpVehicle[] = [
+  { id: 'veh-1', regNumber: 'TS 09 UV 2468', vehicleType: 'Open Body', capacityKg: 2000, driverName: 'Mallikarjun', driverPhone: '+91 90000 12345' },
+  { id: 'veh-2', regNumber: 'AP 02 TR 7788', vehicleType: 'Reefer', capacityKg: 1000, driverName: 'Venkatesh', driverPhone: '+91 90000 67890' },
+  { id: 'veh-3', regNumber: 'TS 07 PQ 1122', vehicleType: 'Mini Truck', capacityKg: 800, driverName: 'Somaiah', driverPhone: '+91 90000 33445' },
+  { id: 'veh-4', regNumber: 'AP 16 KL 5566', vehicleType: 'Container', capacityKg: 1500, driverName: 'Ravi Kumar', driverPhone: '+91 90000 77889' },
+];
+
+function tpVehicleForConsignment(c: TpConsignment): TpVehicle {
+  return tpFleet.find((v) => v.vehicleType === c.vehicleType) ?? tpFleet[0];
+}
+
+function tpConsignorPhone(name: string): string {
+  const map: Record<string, string> = {
+    'Ramesh Kumar': '+91 98765 43210',
+    'Lakshmi Devi': '+91 98765 12345',
+    'Suresh Reddy': '+91 98765 56789',
+    'Anjali Rao': '+91 98765 67890',
+    'Pochamma': '+91 98765 78901',
+  };
+  return map[name] ?? '+91 98765 00000';
+}
+
 interface TpConsignment {
   id: string;
   lrNumber: string;
   farmerName: string;
+  consignorType: 'Farmer' | 'Cold Storage';
   cropName: string;
   quantityKg: number;
   unitType: 'crates' | 'gunny sacks';
@@ -2754,21 +2786,21 @@ interface TpConsignment {
   perKmRate: number;
 }
 
-const tpColdStorageConsignments: TpConsignment[] = [
-  { id: 'tp-cs-1', lrNumber: 'TS-WGL-LR-4827', farmerName: 'Ramesh Kumar', cropName: 'Tomato', quantityKg: 500, unitType: 'crates', unitCount: 25, vehicleType: 'Reefer', distanceKm: 42, routeFrom: 'Anantapur', routeTo: 'Warangal Cold Storage', estValue: 12500, status: 'Open', daysCold: 7, tempReq: 'Reefer 4–8°C', baseFare: 200, perKmRate: 25 },
-  { id: 'tp-cs-2', lrNumber: 'TS-WGL-LR-4831', farmerName: 'Lakshmi Devi', cropName: 'Chilli', quantityKg: 300, unitType: 'gunny sacks', unitCount: 6, vehicleType: 'Open Body', distanceKm: 28, routeFrom: 'Warangal', routeTo: 'Warangal Cold Storage', estValue: 21000, status: 'Open', daysCold: 14, tempReq: 'Ambient / Tarp Covered', baseFare: 100, perKmRate: 15 },
-  { id: 'tp-cs-3', lrNumber: 'TS-KHM-LR-4833', farmerName: 'Suresh Reddy', cropName: 'Banana', quantityKg: 800, unitType: 'crates', unitCount: 40, vehicleType: 'Mini Truck', distanceKm: 55, routeFrom: 'Khammam', routeTo: 'Warangal Cold Storage', estValue: 16000, status: 'Open', daysCold: 5, tempReq: 'Reefer 13–15°C', baseFare: 100, perKmRate: 15 },
+const tpColdStorageConsignmentsSeed: TpConsignment[] = [
+  { id: 'tp-cs-1', lrNumber: 'TS-WGL-LR-4827', farmerName: 'Ramesh Kumar', consignorType: 'Cold Storage', cropName: 'Tomato', quantityKg: 500, unitType: 'crates', unitCount: 25, vehicleType: 'Reefer', distanceKm: 42, routeFrom: 'Anantapur', routeTo: 'Warangal Cold Storage', estValue: 12500, status: 'Open', daysCold: 7, tempReq: 'Reefer 4–8°C', baseFare: 200, perKmRate: 25 },
+  { id: 'tp-cs-2', lrNumber: 'TS-WGL-LR-4831', farmerName: 'Lakshmi Devi', consignorType: 'Cold Storage', cropName: 'Chilli', quantityKg: 300, unitType: 'gunny sacks', unitCount: 6, vehicleType: 'Open Body', distanceKm: 28, routeFrom: 'Warangal', routeTo: 'Warangal Cold Storage', estValue: 21000, status: 'Open', daysCold: 14, tempReq: 'Ambient / Tarp Covered', baseFare: 100, perKmRate: 15 },
+  { id: 'tp-cs-3', lrNumber: 'TS-KHM-LR-4833', farmerName: 'Suresh Reddy', consignorType: 'Cold Storage', cropName: 'Banana', quantityKg: 800, unitType: 'crates', unitCount: 40, vehicleType: 'Mini Truck', distanceKm: 55, routeFrom: 'Khammam', routeTo: 'Warangal Cold Storage', estValue: 16000, status: 'Open', daysCold: 5, tempReq: 'Reefer 13–15°C', baseFare: 100, perKmRate: 15 },
 ];
 
-const tpFarmerRequestConsignments: TpConsignment[] = [
-  { id: 'tp-fr-1', lrNumber: 'AP-ANT-LR-4912', farmerName: 'Ramesh Kumar', cropName: 'Tomato', quantityKg: 500, unitType: 'crates', unitCount: 25, vehicleType: 'Open Body', distanceKm: 42, routeFrom: 'Anantapur', routeTo: 'Warangal Mandi', estValue: 12500, status: 'Open', daysCold: 0, tempReq: 'Ambient / Tarp Covered', baseFare: 200, perKmRate: 25 },
-  { id: 'tp-fr-2', lrNumber: 'TS-NZB-LR-4918', farmerName: 'Anjali Rao', cropName: 'Onion', quantityKg: 1200, unitType: 'gunny sacks', unitCount: 24, vehicleType: 'Container', distanceKm: 67, routeFrom: 'Nizamabad', routeTo: 'Warangal Mandi', estValue: 36000, status: 'Open', daysCold: 0, tempReq: 'Ambient / Tarp Covered', baseFare: 200, perKmRate: 25 },
-  { id: 'tp-fr-3', lrNumber: 'TS-WGL-LR-4920', farmerName: 'Pochamma', cropName: 'Cotton', quantityKg: 2000, unitType: 'gunny sacks', unitCount: 40, vehicleType: 'Open Body', distanceKm: 35, routeFrom: 'Warangal', routeTo: 'Warangal Mandi', estValue: 90000, status: 'Open', daysCold: 0, tempReq: 'Ambient / Tarp Covered', baseFare: 200, perKmRate: 25 },
+const tpFarmerRequestConsignmentsSeed: TpConsignment[] = [
+  { id: 'tp-fr-1', lrNumber: 'AP-ANT-LR-4912', farmerName: 'Ramesh Kumar', consignorType: 'Farmer', cropName: 'Tomato', quantityKg: 500, unitType: 'crates', unitCount: 25, vehicleType: 'Open Body', distanceKm: 42, routeFrom: 'Anantapur', routeTo: 'Warangal Mandi', estValue: 12500, status: 'Open', daysCold: 0, tempReq: 'Ambient / Tarp Covered', baseFare: 200, perKmRate: 25 },
+  { id: 'tp-fr-2', lrNumber: 'TS-NZB-LR-4918', farmerName: 'Anjali Rao', consignorType: 'Farmer', cropName: 'Onion', quantityKg: 1200, unitType: 'gunny sacks', unitCount: 24, vehicleType: 'Container', distanceKm: 67, routeFrom: 'Nizamabad', routeTo: 'Warangal Mandi', estValue: 36000, status: 'Open', daysCold: 0, tempReq: 'Ambient / Tarp Covered', baseFare: 200, perKmRate: 25 },
+  { id: 'tp-fr-3', lrNumber: 'TS-WGL-LR-4920', farmerName: 'Pochamma', consignorType: 'Farmer', cropName: 'Cotton', quantityKg: 2000, unitType: 'gunny sacks', unitCount: 40, vehicleType: 'Open Body', distanceKm: 35, routeFrom: 'Warangal', routeTo: 'Warangal Mandi', estValue: 90000, status: 'Open', daysCold: 0, tempReq: 'Ambient / Tarp Covered', baseFare: 200, perKmRate: 25 },
 ];
 
-const tpMyOrderConsignments: TpConsignment[] = [
-  { id: 'tp-mo-1', lrNumber: 'AP-ANT-LR-4912', farmerName: 'Ramesh Kumar', cropName: 'Tomato', quantityKg: 500, unitType: 'crates', unitCount: 25, vehicleType: 'Reefer', distanceKm: 42, routeFrom: 'Anantapur', routeTo: 'Warangal Mandi', estValue: 12500, status: 'In Transit', daysCold: 0, tempReq: 'Reefer 4–8°C', baseFare: 200, perKmRate: 25 },
-  { id: 'tp-mo-2', lrNumber: 'TS-WGL-LR-4935', farmerName: 'Lakshmi Devi', cropName: 'Chilli', quantityKg: 300, unitType: 'gunny sacks', unitCount: 6, vehicleType: 'Open Body', distanceKm: 28, routeFrom: 'Warangal', routeTo: 'Hyderabad Mandi', estValue: 21000, status: 'Delivered', daysCold: 0, tempReq: 'Ambient / Tarp Covered', baseFare: 100, perKmRate: 15 },
+const tpMyOrderConsignmentsSeed: TpConsignment[] = [
+  { id: 'tp-mo-1', lrNumber: 'AP-ANT-LR-4912', farmerName: 'Ramesh Kumar', consignorType: 'Farmer', cropName: 'Tomato', quantityKg: 500, unitType: 'crates', unitCount: 25, vehicleType: 'Reefer', distanceKm: 42, routeFrom: 'Anantapur', routeTo: 'Warangal Mandi', estValue: 12500, status: 'In Transit', daysCold: 0, tempReq: 'Reefer 4–8°C', baseFare: 200, perKmRate: 25 },
+  { id: 'tp-mo-2', lrNumber: 'TS-WGL-LR-4935', farmerName: 'Lakshmi Devi', consignorType: 'Farmer', cropName: 'Chilli', quantityKg: 300, unitType: 'gunny sacks', unitCount: 6, vehicleType: 'Open Body', distanceKm: 28, routeFrom: 'Warangal', routeTo: 'Hyderabad Mandi', estValue: 21000, status: 'Delivered', daysCold: 0, tempReq: 'Ambient / Tarp Covered', baseFare: 100, perKmRate: 15 },
 ];
 
 function tpConsignmentPhoto(c: TpConsignment): string {
@@ -2783,10 +2815,10 @@ function TpKpiCard({ icon: Icon, value, label, tone }: { icon: IconType; value: 
 
 function tpFreightPayout(c: TpConsignment): number { return round2(c.baseFare + c.perKmRate * c.distanceKm); }
 
-function TpConsignmentCard({ c, t }: { c: TpConsignment; t: T }) {
+function TpConsignmentCard({ c, t, onClick }: { c: TpConsignment; t: T; onClick?: () => void }) {
   const cropPhoto = cropPhotoFor(c.cropName);
   const freight = tpFreightPayout(c);
-  return <div className="tp-consignment-card">
+  return <div className="tp-consignment-card" onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } } }>
     <img className="tp-consignment-photo" src={cropPhoto} alt={c.cropName} loading="lazy" />
     <div className="tp-consignment-body">
       <div className="tp-consignment-top">
@@ -2812,8 +2844,87 @@ function TpConsignmentCard({ c, t }: { c: TpConsignment; t: T }) {
   </div>;
 }
 
+function TpConsignmentReviewModal({ c, t, onClose, onAccept, accepting }: { c: TpConsignment; t: T; onClose: () => void; onAccept: () => void; accepting: boolean }) {
+  const freight = tpFreightPayout(c);
+  const vehicle = tpVehicleForConsignment(c);
+  const phone = tpConsignorPhone(c.farmerName);
+  const cropPhoto = cropPhotoFor(c.cropName);
+  return <div className="modal-backdrop" onClick={onClose}>
+    <div className="tp-review-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="tp-review-header">
+        <div>
+          <span className="eyebrow">Consignment Review</span>
+          <h2>{c.farmerName} · {c.cropName}</h2>
+        </div>
+        <button className="icon-button" onClick={onClose} aria-label={t('common.close')}><X size={22} /></button>
+      </div>
+      <div className="tp-review-photo-wrap">
+        <img className="tp-consignment-photo" src={cropPhoto} alt={c.cropName} loading="lazy" />
+        <div className="tp-review-photo-overlay">
+          <Badge tone={c.status === 'Delivered' ? 'blue' : 'green'}>{c.status}</Badge>
+          <span className="tp-review-lr">LR {c.lrNumber}</span>
+        </div>
+      </div>
+      <div className="tp-review-section">
+        <h3>Consignor Details</h3>
+        <div className="tp-review-grid">
+          <div className="detail"><small>Name</small><strong>{c.farmerName}</strong></div>
+          <div className="detail"><small>Type</small><strong>{c.consignorType}</strong></div>
+          <div className="detail"><small>Phone</small><strong>{phone}</strong></div>
+        </div>
+      </div>
+      <div className="tp-review-section">
+        <h3>Vehicle Assignment <Demo>Sample</Demo></h3>
+        <div className="tp-review-vehicle">
+          <span className="tp-review-vehicle-icon"><Truck size={20} /></span>
+          <div>
+            <strong>{vehicle.regNumber}</strong>
+            <span>{vehicle.vehicleType} · {formatKg(vehicle.capacityKg)} capacity</span>
+          </div>
+        </div>
+        <div className="tp-review-grid">
+          <div className="detail"><small>Driver</small><strong>{vehicle.driverName}</strong></div>
+          <div className="detail"><small>Driver Phone</small><strong>{vehicle.driverPhone}</strong></div>
+        </div>
+      </div>
+      <div className="tp-review-section">
+        <h3>Logistics Details</h3>
+        <div className="tp-review-grid">
+          <div className="detail"><small>Crop</small><strong>{c.cropName}</strong></div>
+          <div className="detail"><small>Quantity</small><strong>{formatKg(c.quantityKg)}</strong></div>
+          <div className="detail"><small>Packaging</small><strong>{c.unitCount} {c.unitType}</strong></div>
+          <div className="detail"><small>Vehicle Type</small><strong>{c.vehicleType}</strong></div>
+          <div className="detail"><small>Temperature</small><strong>{c.tempReq}</strong></div>
+          <div className="detail"><small>Distance</small><strong>{c.distanceKm} km</strong></div>
+          <div className="detail"><small>From</small><strong>{c.routeFrom}</strong></div>
+          <div className="detail"><small>To</small><strong>{c.routeTo}</strong></div>
+          {c.daysCold > 0 && <div className="detail"><small>Cold Storage</small><strong>{c.daysCold} days</strong></div>}
+          <div className="detail"><small>Est. Value</small><strong>{formatRupee(c.estValue)}</strong></div>
+        </div>
+      </div>
+      <div className="tp-review-section tp-review-freight">
+        <h3>Freight Payout <Demo>Sample</Demo></h3>
+        <div className="tp-freight-detail">
+          <span>Base ₹{c.baseFare}</span>
+          <span>+ ₹{c.perKmRate}/km × {c.distanceKm} km</span>
+          <strong>= {formatRupee(freight)}</strong>
+        </div>
+      </div>
+      <div className="row">
+        <Button icon={Check} onClick={onAccept} disabled={accepting} wide>{accepting ? 'Accepting…' : 'Accept Trip'}</Button>
+        <Button variant="outline" onClick={onClose} disabled={accepting}>Close</Button>
+      </div>
+    </div>
+  </div>;
+}
+
 function FeatureView({ role, open, notify, t, profile, onNotifications }: { role: Role; open: (view: View) => void; notify: (message: string) => void; t: T; profile: () => void; onNotifications: () => void }) {
   const [subTab, setSubTab] = useState<TpSubTab>('cold-storage');
+  const [coldStorageConsignments, setColdStorageConsignments] = useState<TpConsignment[]>(tpColdStorageConsignmentsSeed);
+  const [farmerRequestConsignments, setFarmerRequestConsignments] = useState<TpConsignment[]>(tpFarmerRequestConsignmentsSeed);
+  const [myOrderConsignments, setMyOrderConsignments] = useState<TpConsignment[]>(tpMyOrderConsignmentsSeed);
+  const [reviewConsignment, setReviewConsignment] = useState<TpConsignment | null>(null);
+  const [accepting, setAccepting] = useState(false);
 
   if (role !== 'Transport Provider') {
     const request = t('feature.Main Summary');
@@ -2823,29 +2934,56 @@ function FeatureView({ role, open, notify, t, profile, onNotifications }: { role
     </Page>;
   }
 
-  const consignments = subTab === 'cold-storage' ? tpColdStorageConsignments : subTab === 'farmer-requests' ? tpFarmerRequestConsignments : tpMyOrderConsignments;
+  const consignments = subTab === 'cold-storage' ? coldStorageConsignments : subTab === 'farmer-requests' ? farmerRequestConsignments : myOrderConsignments;
 
   const kpis = subTab === 'cold-storage' ? (
     <div className="tp-kpi-grid">
-      <TpKpiCard icon={Package} value={String(tpColdStorageConsignments.length)} label="Open Requests" tone="green" />
-      <TpKpiCard icon={Banknote} value={formatRupee(tpColdStorageConsignments.reduce((s, c) => s + c.estValue, 0))} label="Pending Value" tone="amber" />
-      <TpKpiCard icon={MapPin} value={`${Math.round(tpColdStorageConsignments.reduce((s, c) => s + c.distanceKm, 0) / tpColdStorageConsignments.length)} km`} label="Avg Distance" tone="blue" />
+      <TpKpiCard icon={Package} value={String(coldStorageConsignments.length)} label="Open Requests" tone="green" />
+      <TpKpiCard icon={Banknote} value={formatRupee(coldStorageConsignments.reduce((s, c) => s + c.estValue, 0))} label="Pending Value" tone="amber" />
+      <TpKpiCard icon={MapPin} value={coldStorageConsignments.length > 0 ? `${Math.round(coldStorageConsignments.reduce((s, c) => s + c.distanceKm, 0) / coldStorageConsignments.length)} km` : '0 km'} label="Avg Distance" tone="blue" />
     </div>
   ) : subTab === 'farmer-requests' ? (
     <div className="tp-kpi-grid">
-      <TpKpiCard icon={Sprout} value={String(tpFarmerRequestConsignments.length)} label="Farmer Requests" tone="green" />
-      <TpKpiCard icon={Banknote} value={formatRupee(tpFarmerRequestConsignments.reduce((s, c) => s + c.estValue, 0))} label="Total Value" tone="amber" />
-      <TpKpiCard icon={Truck} value={String(new Set(tpFarmerRequestConsignments.map((c) => c.vehicleType)).size)} label="Vehicle Types" tone="teal" />
+      <TpKpiCard icon={Sprout} value={String(farmerRequestConsignments.length)} label="Farmer Requests" tone="green" />
+      <TpKpiCard icon={Banknote} value={formatRupee(farmerRequestConsignments.reduce((s, c) => s + c.estValue, 0))} label="Total Value" tone="amber" />
+      <TpKpiCard icon={Truck} value={String(new Set(farmerRequestConsignments.map((c) => c.vehicleType)).size)} label="Vehicle Types" tone="teal" />
     </div>
   ) : (
     <div className="tp-kpi-grid">
-      <TpKpiCard icon={Package} value={String(tpMyOrderConsignments.length)} label="Total Orders" tone="green" />
-      <TpKpiCard icon={Check} value={String(tpMyOrderConsignments.filter((c) => c.status === 'Delivered').length)} label="Delivered" tone="blue" />
-      <TpKpiCard icon={Banknote} value={formatRupee(tpMyOrderConsignments.reduce((s, c) => s + c.estValue, 0))} label="Order Value" tone="amber" />
+      <TpKpiCard icon={Package} value={String(myOrderConsignments.length)} label="Total Orders" tone="green" />
+      <TpKpiCard icon={Check} value={String(myOrderConsignments.filter((c) => c.status === 'Delivered').length)} label="Delivered" tone="blue" />
+      <TpKpiCard icon={Banknote} value={formatRupee(myOrderConsignments.reduce((s, c) => s + c.estValue, 0))} label="Order Value" tone="amber" />
     </div>
   );
 
   const tabLabel = subTab === 'cold-storage' ? t('feature.Cold Storage Requests') : subTab === 'farmer-requests' ? t('feature.Farmer Requests') : t('feature.My Orders');
+
+  const handleAcceptTrip = async () => {
+    if (!reviewConsignment) return;
+    const c = reviewConsignment;
+    setAccepting(true);
+    try {
+      const freight = tpFreightPayout(c);
+      await supabase.from('transport_bookings').insert({
+        pickup_location: c.routeFrom,
+        destination: c.routeTo,
+        quantity_kg: c.quantityKg,
+        estimated_price: freight,
+        status: 'Accepted',
+      });
+      const accepted: TpConsignment = { ...c, status: 'In Transit' };
+      setMyOrderConsignments((prev) => [accepted, ...prev]);
+      setColdStorageConsignments((prev) => prev.filter((item) => item.id !== c.id));
+      setFarmerRequestConsignments((prev) => prev.filter((item) => item.id !== c.id));
+      setReviewConsignment(null);
+      setSubTab('my-orders');
+      notify(`Trip accepted — ${c.cropName} moved to My Orders`);
+    } catch {
+      notify('Could not accept trip. Please try again.');
+    } finally {
+      setAccepting(false);
+    }
+  };
 
   return <main className="dedicated-page">
     <div className="tp-unified-nav" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -2863,8 +3001,10 @@ function FeatureView({ role, open, notify, t, profile, onNotifications }: { role
     </div>
     {kpis}
     <div className="tp-card-list">
-      {consignments.map((c) => <TpConsignmentCard key={c.id} c={c} t={t} />)}
+      {consignments.length === 0 && <p className="calendar-empty">No consignments in this tab.</p>}
+      {consignments.map((c) => <TpConsignmentCard key={c.id} c={c} t={t} onClick={subTab !== 'my-orders' ? () => setReviewConsignment(c) : undefined} />)}
     </div>
+    {reviewConsignment && <TpConsignmentReviewModal c={reviewConsignment} t={t} onClose={() => setReviewConsignment(null)} onAccept={handleAcceptTrip} accepting={accepting} />}
   </main>;
 }
 function Notice({ children, tone = 'warning' }: { children: ReactNode; tone?: string }) { return <div className={`notice ${tone}`}>{children}</div>; }
