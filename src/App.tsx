@@ -95,6 +95,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
   const languageRef = useRef(language);
   const convStateRef = useRef<'IDLE' | 'SPEAKING' | 'WAIT_FOR_SPEECH' | 'TRANSCRIBING' | 'VALIDATING' | 'CONFIRMING'>('IDLE');
   const drainRef = useRef<() => void>(() => {});
+  const lastSpokenRef = useRef<{ text: string; contextKey: string } | null>(null);
 
   useEffect(() => { languageRef.current = language; }, [language]);
   const currentViewRef = useRef(currentView);
@@ -241,6 +242,21 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
 
   const speakSarvamAndListenRef = useRef(async (_text: string, _postDelay = 400) => {});
   const speakSarvamAndListen = useCallback(async (text: string, postDelay = 400) => {
+    const ctxKey = `${currentViewRef.current}:${stateRef.current.step ?? 'none'}:${stateRef.current.awaitingConfirmation ? 'c' : 'n'}`;
+    if (lastSpokenRef.current && lastSpokenRef.current.text === text && lastSpokenRef.current.contextKey === ctxKey) {
+      emitDebug('speakSarvam', `SKIP duplicate: "${text.slice(0, 40)}" already spoken in ${ctxKey}`);
+      speakingRef.current = false;
+      if (appSpeakingRef) appSpeakingRef.current = false;
+      if (sessionRef.current) {
+        setConv('WAIT_FOR_SPEECH');
+        setTimeout(() => {
+          if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
+        }, postDelay);
+      }
+      drainRef.current();
+      return;
+    }
+    lastSpokenRef.current = { text, contextKey: ctxKey };
     speakingRef.current = true;
     if (appSpeakingRef) appSpeakingRef.current = true;
     recognitionRef.current?.stop();
@@ -255,6 +271,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         const isLoginV = currentViewRef.current.startsWith('login-');
         const stepAfter = stateRef.current.step;
         if (isLoginV && stepAfter && stepAfter !== stepBeforeSpeak) {
+          lastSpokenRef.current = null;
           const nKey = `${currentViewRef.current}:${stepAfter}`;
           if (narratedTabsRef?.current.has(nKey)) {
             emitDebug('speakSarvam', `step advanced ${stepBeforeSpeak} → ${stepAfter}, but already narrated ${nKey} — skipping`);
@@ -341,6 +358,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
   const narrationQueuedRef = useRef(false);
   useEffect(() => {
     if (currentView !== lastNarrationViewRef.current && lastNarrationViewRef.current !== '') {
+      lastSpokenRef.current = null;
       if (speakingRef.current) {
         emitDebug('narration effect', `view changed ${lastNarrationViewRef.current} → ${currentView} — speaking, will not cancel`);
       } else {
