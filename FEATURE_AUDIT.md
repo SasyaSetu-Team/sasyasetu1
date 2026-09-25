@@ -247,4 +247,196 @@
 
 ---
 
-> Remaining roles (FPO, Storage Provider, Transport Provider) and cross-cutting features to be added in a follow-up pass.
+## 5. FPO Role
+
+> **Login status:** FPO is still hidden from the login screen. The `Login` component filters it out via `visibleRoles = allRoles.filter(r => r !== 'FPO')`, and the voice assistant blocks it via `HIDDEN_ROLES = ['FPO']`. However, the FPO role exists in `allRoles`, has full translations, a demo email (`demoEmails.FPO`), and a complete `RoleHome` feature grid. It is reachable only via voice navigation's `autoRouteToDestination` or by manually signing in with the FPO demo credentials. The login step 3 screen shows hardcoded FPO verification fields: FPO Name ("Warangal Farmers FPO"), Registration Number ("TG-FPO-2019-0452"), Org Verification ("Demo Verified").
+
+### 5.1 Member Crops
+- **Status:** Real
+- **What it does:** Same `CropView` component as Farmer. Shows crop listings with Upcoming/Harvested/Cluster tabs. Since the FPO demo account owns listings in the DB (seeded by migrations), these tabs show real data — upcoming crops, harvested crops with price clock, and cluster invites/memberships.
+- **Key data:** `crop_listings` (read via `fetchMyListings`), `crop_clusters` (read), `crop_cluster_members` (read), `dismissed_cluster_invites` (read/insert), `join_cluster` RPC.
+- **Known issues:** The FPO role is subject to the same cluster membership restriction as farmers (`enforce_farmer_only_cluster_membership` migration). If the FPO demo account doesn't own listings, the tabs will be empty except for the demo buffer card. The FPO's own listings are seeded, but the cluster membership enforcement may prevent the FPO from joining clusters.
+
+### 5.2 Market (FPO view)
+- **Status:** Partial
+- **What it does:** Same `MarketView` component as Farmer. Shows market compare calculator, public listings, and clusters. The FPO-specific translation key `feature.Market FPO.body` is used for the feature card description. The FPO also sees a transport provider card on the transport search page (`role === 'FPO'` check in `TransportOptions`).
+- **Key data (real):** `crop_listings` (read via `fetchPublicListings`), `crop_clusters` (read via `fetchClusters`).
+- **Key data (mock):** Same hardcoded mandi prices, distant markets, and vehicles as Farmer.
+- **Known issues:** Same as Farmer Market — mandi benchmark prices are hardcoded. The FPO-specific transport provider card ("Warangal FPO Transport") on the transport search page is cosmetic.
+
+### 5.3 Harvest Calendar (FPO view)
+- **Status:** Partial
+- **What it does:** Same `CalendarView` as Farmer. Shows the FPO's real listings overlaid on hardcoded mock calendar events. Uses `feature.Member Calendar.body` translation key.
+- **Key data (real):** `crop_listings` (read via `fetchMyListings`).
+- **Key data (mock):** `mockMonthEvents` in `CalendarDayCell.tsx`.
+- **Known issues:** Same as Farmer calendar — mock events with hardcoded 2026 month offsets.
+
+### 5.4 Transport Provider (FPO view)
+- **Status:** Mock
+- **What it does:** Same `TransportOptions` component as Farmer, but with an additional FPO-specific provider card shown on both the search and results screens. The card shows "Warangal FPO Transport" with an "Update Availability" button that only shows a notification. The FPO feature card label is `feature.Transport Provider` (not "Transport").
+- **Key data:** None. No transport tables queried.
+- **Known issues:** Fully simulated. The FPO transport provider card is cosmetic — "Update Availability" only shows a notification. The transport search, vehicle selection, and booking confirmation are all local state with no persistence.
+
+### 5.5 Storage (FPO view)
+- **Status:** Mock
+- **What it does:** Same `StorageView` component as Farmer (the non-Storage-Provider branch). Shows the 3-step storage booking flow with hardcoded facilities. Uses `feature.Storage FPO.body` translation key.
+- **Key data:** None for the FPO-specific path. The `fetchMyListings` call in step 2 fetches the FPO's real listings for crop selection, but the booking itself is not persisted.
+- **Known issues:** Same as Farmer Storage — fully simulated booking with no persistence. "Demo reservation — no real booking made" disclaimer shown.
+
+### 5.6 Tutorials (FPO)
+- **Status:** Mock
+- **What it does:** Same `TutorialsView` component, with FPO-specific tutorial data from `tutorialData['Farmer']` (the FPO tutorials role key maps to the Farmer tutorial set). Uses `feature.FPO Tutorials.body` translation key.
+- **Key data:** None.
+- **Known issues:** FPO tutorials reuse the Farmer tutorial content — no FPO-specific tutorial videos or guides. "Guidance Only" disclaimer.
+
+### 5.7 Help & Dispute (FPO)
+- **Status:** Mock
+- **What it does:** Same `HelpView`/`DisputeView` as Farmer. Uses `feature.FPO Help.body` translation key.
+- **Key data:** None.
+- **Known issues:** Same as Farmer — dispute form does not persist. "Dispute submitted in the prototype."
+
+### 5.8 Profile (FPO)
+- **Status:** Partial
+- **What it does:** Same `ProfileView` component. Shows profile with display name and home location from `profiles` table. The FPO-specific verification section would show FPO registration details, but these are hardcoded in the login flow, not in the profile view. Language picker and sign-out.
+- **Key data (real):** `profiles.display_name`, `profiles.home_location`, `profiles.language`.
+- **Key data (mock):** Same hardcoded profile details as Farmer (land ownership, crops cultivated, rating).
+- **Known issues:** Profile view is shared across all roles — no FPO-specific fields (registration number, member count, crop focus) are displayed.
+
+---
+
+## 6. Storage Provider Role
+
+### 6.1 Storage Requests
+- **Status:** Mock
+- **What it does:** The `StorageView` component branches on `role === 'Storage Provider'` to show a dedicated storage provider workspace. Displays a facility header ("Krishna Cold Storage, Warangal, Telangana" with WDRA License #WDRA-2026-AP09). Shows 4 hardcoded incoming storage requests (`spRequestsSeed`) from farmers and FPOs, each with crop photo, temperature regime (Chilled/Cool/Controlled Atmosphere), deposit window, farmer name, village, district, crop variety, packaging, batch count, quantity, and estimated revenue. Search bar filters by farmer/crop/village. Filter chips filter by temperature regime. "Review request" button opens a review modal (`SpReviewModal`) showing lot details (moisture, grade, arrival date, chamber temp/humidity), chamber allotment (3 chambers: CH-A1, CH-B2, CH-C3), and bay/rack assignment (hash-derived). Approve button shows "Gate Pass issued" notification; Decline shows "Capacity full" notification. Neither action persists.
+- **Key data:** None. All 4 requests are hardcoded in `spRequestsSeed`. No `storage_requests` table is queried.
+- **Known issues:** All requests are static seed data — no new requests ever appear. Approve/Decline are local state only with no DB persistence. Chamber allotment is cosmetic — selecting a chamber doesn't reserve it. Bay/rack assignments are hash-derived from the request ID, not from any real inventory system. The sub-tab navigation links to "My Approvals" but the Storage Requests tab has no badge for pending count beyond the seed array length.
+
+### 6.2 My Approvals
+- **Status:** Mock
+- **What it does:** The `ApprovalsView` component shows two segments: Current (2 hardcoded "in-vault" approvals) and Previous (1 hardcoded "released" approval). Each approval card shows farmer name, crop, variety, deposit date, chamber/bay, cold-chain temp/humidity, gate pass number, e-NWR ID, and net weight. For released approvals, shows release date, final earnings, and gate exit pass. "e-Receipt / Gate Pass" button opens `SpEnwrModal` showing a full e-NWR receipt with WDRA accreditation, QR code placeholder, depositor details, commodity details, storage conditions, insurance & valuation, and print/download buttons (notifications only).
+- **Key data:** None. All approvals are hardcoded in `spCurrentApprovals` (2 entries) and `spPreviousApprovals` (1 entry).
+- **Known issues:** No `storage_approvals` or `eNWR` table exists. All data is static seed. Print and download buttons only show notifications — no actual PDF or print is generated. The e-NWR IDs, gate pass numbers, and chamber assignments are hardcoded strings. No way to release an in-vault approval or create a new approval from the Storage Requests tab (the approve action in Storage Requests only shows a notification, it doesn't move a request into the Current approvals list).
+
+### 6.3 Storage Listings (Storage Provider view)
+- **Status:** Mock
+- **What it does:** The Storage Provider does NOT have a separate "Storage Listings" tab on their home screen. The Storage Provider home screen shows: Storage Requests, My Approvals, Tutorials, Help & Dispute. The `storageFacilities` array (3 facilities: Storage A/B/C) is used only in the Farmer/FPO/Buyer storage booking flow, not in the Storage Provider's own views.
+- **Key data:** None.
+- **Known issues:** The Storage Provider has no way to manage their own facility listings, capacity, pricing, or availability. The facility details shown in the Storage Requests header (Krishna Cold Storage, WDRA license) are hardcoded in the component, not editable.
+
+### 6.4 Transport (Storage Provider view)
+- **Status:** Mock
+- **What it does:** The Storage Provider does NOT have a Transport tab on their home screen. The home screen shows only: Storage Requests, My Approvals, Tutorials, Help & Dispute. However, the `StorageView` step 3 (My Stored Produce) has a "Dispatch to APMC Mandi via Truck" button that opens the `journey` view, which is the same `JourneyView` used by the Transport Provider.
+- **Key data:** None.
+- **Known issues:** The dispatch button in step 3 is part of the Farmer/FPO storage booking flow, not the Storage Provider's own views. The Storage Provider has no transport management capability.
+
+### 6.5 Tutorials (Storage Provider)
+- **Status:** Mock
+- **What it does:** Same `TutorialsView` component, with storage-specific tutorial data from `tutorialData['Storage Provider']`. Uses `feature.Storage Tutorials.body` translation key.
+- **Key data:** None.
+- **Known issues:** "Guidance Only" — no interactive content or progress tracking.
+
+### 6.6 Help & Dispute (Storage Provider)
+- **Status:** Mock
+- **What it does:** Same `HelpView`/`DisputeView` as Farmer. Uses `feature.Provider Help.body` translation key.
+- **Key data:** None.
+- **Known issues:** Same as Farmer — dispute form does not persist.
+
+### 6.7 Profile (Storage Provider)
+- **Status:** Partial
+- **What it does:** Same `ProfileView` component. Login step 3 shows hardcoded "Krishna Cold Storage" as provider name, "AP-CS-2021-0093" as permit number, "Demo Verified" as permit review.
+- **Key data (real):** `profiles.display_name`, `profiles.language`.
+- **Key data (mock):** Provider name, permit number, license — all hardcoded in login flow.
+- **Known issues:** Profile view is shared — no Storage Provider-specific fields (WDRA license, facility capacity, chamber count) are displayed.
+
+---
+
+## 7. Transport Provider Role
+
+### 7.1 Farmer Requests
+- **Status:** Partial (real DB write on accept, mock seed data)
+- **What it does:** The `FeatureView` component (view = `features`) is the Transport Provider's main workspace. Shows two sub-tabs: "Farmer Requests" and "My Orders." The Farmer Requests tab displays KPI cards (request count, total value, vehicle types) and a list of 3 hardcoded consignment requests (`tpFarmerRequestConsignmentsSeed`). Each request card (`TpRequestCard`) shows crop photo, status badge, LR number, farmer name, crop name, temperature requirement, vehicle type, packaging (crates/gunny sacks), weight, route (from → to with waypoint UI), driver pay (freight = baseFare + perKmRate × distanceKm), and an "Accept Haul" button. Tapping a request opens `TpConsignmentReviewModal` showing consignor details, vehicle assignment (from `tpFleet`), logistics details, freight payout, and an "Accept Trip" button. Accepting a trip calls `supabase.from('transport_bookings').insert(...)` to persist the booking, then moves the consignment from Farmer Requests to My Orders with status "In Transit."
+- **Key data (real):** `transport_bookings` (insert on accept — `pickup_location`, `destination`, `quantity_kg`, `estimated_price`, `status: 'Accepted'`).
+- **Key data (mock):** `tpFarmerRequestConsignmentsSeed` (3 hardcoded requests), `tpFleet` (4 hardcoded vehicles), `tpConsignorPhone` (hardcoded phone map).
+- **Known issues:** The 3 farmer requests are static seed data — no new requests ever arrive. The `transport_bookings` table insert is the only real DB write, but the inserted row is never read back or displayed — the UI state is managed entirely in React `useState`. The `transport_bookings` table exists in the schema migration but has no RLS policies visible in the frontend code. Vehicle assignment is hardcoded per vehicle type, not based on availability or capacity. The `consignorType` field includes 'Cold Storage' as an option, but all 3 seed requests have `consignorType: 'Farmer'` — no Cold Storage consignor requests exist.
+
+### 7.2 My Orders
+- **Status:** Partial (mock seed data, no DB read)
+- **What it does:** The My Orders sub-tab within `FeatureView` shows active and completed dispatches in a segmented control. Active dispatches show consignments with status "In Transit" or "Loading" using `TpActiveOrderCard` — displays crop photo, status, LR number, farmer/crop, temp requirement, vehicle type, packaging, weight, route, vehicle reg number, driver name, and an "Open Live Journey" button that opens `JourneyView`. Completed dispatches show consignments with status "Delivered" using `TpCompletedOrderCard` — displays freight amount, distance, completion timestamp (hash-derived), and a "View e-Waybill" button that generates mock e-Waybill and weighbridge slip numbers and shows a "downloaded (mock)" notification.
+- **Key data:** None read from DB. `myOrderConsignments` initialized from `tpMyOrderConsignmentsSeed` (2 hardcoded orders). When a trip is accepted in Farmer Requests, it's prepended to this list in local state.
+- **Known issues:** No DB read — the `transport_bookings` rows written on accept are never fetched back. The My Orders list is entirely local state initialized from seed data. Completed orders show hash-derived timestamps, not real delivery times. The e-Waybill and weighbridge slip numbers are hash-derived from the consignment ID — not real regulatory documents. "Mock documentation for demo purposes only" disclaimer shown.
+
+### 7.3 Fleet Management
+- **Status:** Mock
+- **What it does:** The `tpFleet` array defines 4 vehicles with reg numbers, vehicle types (Open Body, Reefer, Mini Truck, Container), capacity (kg), driver name, and driver phone. The fleet is used implicitly in `tpVehicleForConsignment()` to match a vehicle to a consignment by vehicle type. There is no dedicated Fleet Management UI — no way to add, edit, or remove vehicles, and no way to view vehicle availability or maintenance status.
+- **Key data:** None. `tpFleet` is a hardcoded constant.
+- **Known issues:** No Fleet Management tab or view exists on the Transport Provider home screen. The home screen shows: Requests, Live Journey, Tutorials, Help & Dispute. Vehicle data is hardcoded and not editable. No `vehicles` or `fleet` table is queried.
+
+### 7.4 Live Journey / GPS Telemetry
+- **Status:** Mock
+- **What it does:** The `JourneyView` component shows a full-screen journey tracker with a mock map (CSS animation with route lines and map markers), a start/started toggle, route label, estimated travel time, distance, journey status, and shipment info (temp requirement, weight/packaging, vehicle reg/type, driver name/phone, freight amount). A "Start Journey" button toggles the started state and shows a notification. A "Shipment Docs" button opens `TpShipmentDocsModal` showing mock weighbridge slip and e-Waybill. The journey is accessible from: (a) the Transport Provider home screen "Live Journey" feature card (opens with no consignment — shows default "Tomato 500kg" data), (b) the My Orders active dispatch "Open Live Journey" button (opens with the specific consignment).
+- **Key data:** None. No `journeys` table is queried, despite the schema migration defining one.
+- **Known issues:** No live GPS — the map is a CSS animation with "Not Live GPS" disclaimer. No real telemetry (speed, location, ETA) — travel time is a static calculation from distance. The "Start Journey" button only toggles local state; it doesn't persist to any `journeys` table. The `journeys` table exists in the schema but is never read or written by the frontend. Shipment docs are mock-generated from hash values.
+
+### 7.5 Rate Card Calculator
+- **Status:** Mock
+- **What it does:** There is no dedicated Rate Card Calculator tab or view. The freight calculation (`tpFreightPayout`) is embedded in the consignment review modal and order cards — it computes `baseFare + perKmRate × distanceKm` from the consignment's hardcoded fields. The Transport Provider home screen does not include a Rate Card Calculator feature card.
+- **Key data:** None.
+- **Known issues:** No standalone rate card calculator exists. The freight formula is hardcoded per-consignment (`baseFare` and `perKmRate` are fields on `TpConsignment`). The Transport Provider cannot set or edit their own rates.
+
+### 7.6 Cold Storage Requests (Removed)
+- **Status:** Removed (confirmed clean)
+- **What it does:** This feature was reportedly removed from the Transport Provider role. Investigation confirms: (a) The Transport Provider home screen shows only Requests, Live Journey, Tutorials, Help & Dispute — no Cold Storage Requests tab. (b) The `TpConsignment` interface still has `consignorType: 'Farmer' | 'Cold Storage'` and `daysCold: number` fields, but all seed data (`tpFarmerRequestConsignmentsSeed` and `tpMyOrderConsignmentsSeed`) uses `consignorType: 'Farmer'` and `daysCold: 0`. (c) The `TpConsignmentReviewModal` conditionally renders a "Cold Storage" detail row only when `c.daysCold > 0` — since all seeds have `daysCold: 0`, this row never appears. (d) The `loginFlowPhotos` map still has a `'Cold Storage Requests'` key pointing to a Pexels image URL, but this key is not referenced by any role's feature grid or view routing. (e) No `cold_storage_requests` table is queried anywhere in the frontend.
+- **Key data:** None.
+- **Known issues:** The removal is mostly clean — no dead UI references, no lingering storage data leaking into Transport's views. However, the `TpConsignment` type definition still carries the `consignorType: 'Cold Storage'` union member and `daysCold` field, which are dead code paths. The `loginFlowPhotos['Cold Storage Requests']` entry is also dead code. These are type-level remnants, not user-visible leaks.
+
+### 7.7 Tutorials (Transport Provider)
+- **Status:** Mock
+- **What it does:** Same `TutorialsView` component, with transport-specific tutorial data from `tutorialData['Transport Provider']`. Uses `feature.Transport Tutorials.body` translation key.
+- **Key data:** None.
+- **Known issues:** "Guidance Only" — no interactive content or progress tracking.
+
+### 7.8 Help & Dispute (Transport Provider)
+- **Status:** Mock
+- **What it does:** Same `HelpView`/`DisputeView` as Farmer. Uses `feature.Provider Help.body` translation key.
+- **Key data:** None.
+- **Known issues:** Same as Farmer — dispute form does not persist.
+
+### 7.9 Profile (Transport Provider)
+- **Status:** Partial
+- **What it does:** Same `ProfileView` component. Login step 3 shows hardcoded "Suresh Transport Services" as provider name, "TG-TP-2018-1271" as permit number, "Demo Verified" as permit review.
+- **Key data (real):** `profiles.display_name`, `profiles.language`.
+- **Key data (mock):** Provider name, permit number — all hardcoded in login flow.
+- **Known issues:** Profile view is shared — no Transport Provider-specific fields (vehicle fleet, route coverage, rate card) are displayed.
+
+### 7.10 Orders (Transport Provider view)
+- **Status:** Mock
+- **What it does:** The `OrdersView` component has a `role === 'Transport Provider'` branch that shows a minimal page with just a "Open Live Journey" button (opens `journey` view). This is a separate entry point from the My Orders sub-tab within `FeatureView`. The Transport Provider home screen does not link to `orders` — it links to `features` (which contains the Farmer Requests / My Orders sub-tabs).
+- **Key data:** None.
+- **Known issues:** The `OrdersView` Transport Provider branch is likely a dead route — not reachable from the home screen. The home screen's "Requests" card opens `features`, not `orders`. The `orders` view is only reachable via voice navigation or direct view routing.
+
+---
+
+## Summary (Stage 2)
+
+**Feature count for this stage:**
+- FPO: 8 features (2 real, 5 mock, 1 partial)
+- Storage Provider: 7 features (0 real, 6 mock, 1 partial)
+- Transport Provider: 10 features (0 real, 7 mock, 3 partial)
+- **Stage 2 total: 25 features — 2 real, 18 mock, 5 partial**
+
+**Combined totals (Stage 1 + Stage 2):**
+- **59 features total — 20 real, 28 mock, 11 partial**
+- **Real: ~34%, Mock: ~47%, Partial: ~19%**
+
+**Key findings for Stage 2:**
+
+1. **FPO is still hidden from login** — confirmed. It exists in code with full translations and a demo account, but is filtered out of the login screen and blocked by the voice assistant. It's only reachable via voice navigation's `autoRouteToDestination` or by knowing the demo credentials.
+
+2. **Storage Provider is entirely mock** — all 6 features are mock or partial. The Storage Requests workspace (4 seed requests, review modal, chamber allotment) and My Approvals (3 seed approvals, e-NWR receipts) are fully hardcoded with no DB backing. No `storage_requests` or `storage_approvals` tables are queried. The approve/decline actions only show notifications.
+
+3. **Transport Provider has one real DB write but no DB read** — accepting a farmer request inserts into `transport_bookings`, but the My Orders list is entirely local state from seed data. The `transport_bookings` rows are never fetched back. The `journeys` table exists in the schema but is never read or written.
+
+4. **Cold Storage Requests removal is clean** — no dead UI references or lingering storage data in Transport's views. The only remnants are type-level: `consignorType: 'Cold Storage'` in the `TpConsignment` interface and `daysCold: number` field (always 0 in seeds), plus an unused `loginFlowPhotos['Cold Storage Requests']` entry. These are dead code paths, not user-visible leaks.
+
+5. **Biggest demo risk for these roles:** The Storage Provider and Transport Provider experiences are entirely static mockups. A demo attendee tapping through Storage Requests will see 4 hardcoded requests that never change, and approving one only shows a notification — the request doesn't move to My Approvals. For Transport Provider, accepting a trip moves it to My Orders in local state, but refreshing the page resets everything to seed data.
