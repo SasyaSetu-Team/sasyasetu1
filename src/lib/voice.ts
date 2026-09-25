@@ -719,6 +719,8 @@ export async function recordWithAutoStop(
           const blob = new Blob(chunks, { type: mimeType });
 
           if (!speechDetected || speechDurationMs < MIN_SPEECH_DURATION_MS) {
+            const NOISE_FLOOR_THRESHOLD = 0.02;
+            const hasRealAudio = maxRms > NOISE_FLOOR_THRESHOLD;
             console.log('[voice] recordWithAutoStop VAD says insufficient speech', {
               speechDetected,
               speechDurationMs: speechDurationMs.toFixed(0),
@@ -726,19 +728,21 @@ export async function recordWithAutoStop(
               blobSize: blob.size,
               chunks: chunks.length,
               totalDurationMs: totalDurationMs.toFixed(0),
+              hasRealAudio,
             });
-            emitDebug('mic', `VAD miss — blobSize=${blob.size} chunks=${chunks.length} maxRms=${maxRms.toFixed(4)}`);
-            if (blob.size >= MIN_BLOB_SIZE_BYTES) {
-              console.log('[voice] recordWithAutoStop SAVING — blob has data despite VAD miss, sending to STT', {
+            emitDebug('mic', `VAD miss — blobSize=${blob.size} chunks=${chunks.length} maxRms=${maxRms.toFixed(4)} hasRealAudio=${hasRealAudio}`);
+            if (hasRealAudio) {
+              console.log('[voice] recordWithAutoStop SAVING — maxRms above noise floor, sending to STT', {
                 blobSize: blob.size,
                 blobType: blob.type,
+                maxRms: maxRms.toFixed(4),
               });
-              emitDebug('mic', `SAVING blob despite VAD miss — size=${blob.size} sending to STT`);
+              emitDebug('mic', `SAVING — maxRms=${maxRms.toFixed(4)} above noise floor, sending to STT`);
               resolve(blob);
               return;
             }
-            console.log('[voice] recordWithAutoStop DISCARDED — blob too small, likely true silence');
-            emitDebug('mic', `DISCARDED — blob too small (${blob.size} bytes), likely true silence`);
+            console.log('[voice] recordWithAutoStop DISCARDED — true silence (maxRms below noise floor)');
+            emitDebug('mic', `DISCARDED — true silence (maxRms=${maxRms.toFixed(4)} < ${NOISE_FLOOR_THRESHOLD}, blobSize=${blob.size} bytes)`);
             resolve(null);
             return;
           }

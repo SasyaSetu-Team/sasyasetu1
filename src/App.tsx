@@ -297,14 +297,10 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
   useEffect(() => {
     if (currentView !== lastNarrationViewRef.current && lastNarrationViewRef.current !== '') {
       lastSpokenRef.current = null;
-      if (speakingRef.current) {
-        emitDebug('narration effect', `view changed ${lastNarrationViewRef.current} → ${currentView} — speaking, will not cancel`);
-      } else {
-        stopAudio(); stopSpeaking(); speakingRef.current = false;
-        if (appSpeakingRef) { appSpeakingRef.current = false; if (appPendingNarrationRef) appPendingNarrationRef.current = null; }
-        narrationQueuedRef.current = false;
-        emitDebug('narration effect', `view changed ${lastNarrationViewRef.current} → ${currentView} — cancelled speech`);
-      }
+      stopAudio(); stopSpeaking(); speakingRef.current = false;
+      if (appSpeakingRef) { appSpeakingRef.current = false; if (appPendingNarrationRef) appPendingNarrationRef.current = null; }
+      narrationQueuedRef.current = false;
+      emitDebug('narration effect', `view changed ${lastNarrationViewRef.current} → ${currentView} — cancelled speech`);
       const prevView = lastNarrationViewRef.current;
       narratedTabsRef?.current.forEach((key) => {
         if (key.startsWith(prevView + ':') || key === prevView) narratedTabsRef?.current.delete(key);
@@ -454,6 +450,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     setConv('IDLE');
     setDebugStep('none');
     recognitionRef.current?.stop();
+    stopAudio();
     stopSpeaking();
     speakingRef.current = false;
     if (appSpeakingRef) appSpeakingRef.current = false;
@@ -461,7 +458,20 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
   }, [setConv, appPendingNarrationRef, appSpeakingRef, autoVoiceConsentRef]);
 
   useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        stopAudio();
+        stopSpeaking();
+        speakingRef.current = false;
+        if (appSpeakingRef) appSpeakingRef.current = false;
+        if (appPendingNarrationRef) appPendingNarrationRef.current = null;
+        narrationQueuedRef.current = false;
+        emitDebug('narration effect', 'document hidden — stopped all audio');
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
     return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       recognitionRef.current?.stop();
     };
   }, []);
