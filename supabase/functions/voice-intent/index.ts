@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-// v3: speech_reply field added to Gemini prompt + rule-based fallback
+// v4: role-aware Gemini prompt + complete view list + speech_reply fallback
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
