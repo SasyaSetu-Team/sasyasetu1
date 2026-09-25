@@ -206,7 +206,9 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     const s = stateRef.current;
     setDebugStep(s.step ?? 'none');
     if (s.awaitingConfirmation) setConv('CONFIRMING'); else setConv('SPEAKING');
-    playAudioBlob(result.replyAudio, () => {
+
+    const ctxKey = `${currentViewRef.current}:${s.step ?? 'none'}:${s.awaitingConfirmation ? 'c' : 'n'}`;
+    const onReplyEnded = () => {
       speakingRef.current = false;
       if (appSpeakingRef) appSpeakingRef.current = false;
       if (sessionRef.current) {
@@ -216,7 +218,18 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         }, 400);
       }
       drainRef.current();
-    });
+    };
+
+    if (result.replyText && lastSpokenRef.current && lastSpokenRef.current.text === result.replyText && lastSpokenRef.current.contextKey === ctxKey) {
+      emitDebug('sarvam turn', `SKIP duplicate reply: "${result.replyText.slice(0, 40)}" — asking to repeat`);
+      const repeatText = t('voice.pleaseRepeat');
+      const repeatAudio = await speakTextViaSarvam(repeatText, languageRef.current);
+      lastSpokenRef.current = { text: repeatText, contextKey: ctxKey };
+      if (repeatAudio) { playAudioBlob(repeatAudio, onReplyEnded); return; }
+    }
+
+    lastSpokenRef.current = { text: result.replyText, contextKey: ctxKey };
+    playAudioBlob(result.replyAudio, onReplyEnded);
   }, [processSarvamVoiceTurn, narrateScreen, setConv, t]);
 
   const speakSarvamAndListenRef = useRef(async (_text: string, _postDelay = 400) => {});
