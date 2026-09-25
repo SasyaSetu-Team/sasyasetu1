@@ -213,17 +213,21 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         const stepAfterPlay = stateRef.current.step;
         const isLoginView = currentViewRef.current.startsWith('login-');
         if (isLoginView && stepAfterPlay && stepAfterPlay !== stepBeforePlay) {
+          const nKey = `${currentViewRef.current}:${stepAfterPlay}`;
+          if (narratedTabsRef?.current.has(nKey)) {
+            emitDebug('sarvam turn', `step advanced ${stepBeforePlay} → ${stepAfterPlay}, but already narrated ${nKey} — skipping`);
+          } else {
           emitDebug('sarvam turn', `step advanced ${stepBeforePlay} → ${stepAfterPlay}, narrating new step`);
           if (appPendingNarrationRef) appPendingNarrationRef.current = null;
           narrationQueuedRef.current = false;
           const narration = narrateScreen(currentViewRef.current, stepAfterPlay);
           if (narration) {
-            const nKey = `${currentViewRef.current}:${stepAfterPlay}`;
             narratedTabsRef?.current.add(nKey);
             lastNarrationKeyRef.current = nKey;
             lastNarrationViewRef.current = currentViewRef.current;
             speakSarvamAndListenRef.current(narration);
             return;
+          }
           }
         }
         setConv('WAIT_FOR_SPEECH');
@@ -251,17 +255,21 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         const isLoginV = currentViewRef.current.startsWith('login-');
         const stepAfter = stateRef.current.step;
         if (isLoginV && stepAfter && stepAfter !== stepBeforeSpeak) {
+          const nKey = `${currentViewRef.current}:${stepAfter}`;
+          if (narratedTabsRef?.current.has(nKey)) {
+            emitDebug('speakSarvam', `step advanced ${stepBeforeSpeak} → ${stepAfter}, but already narrated ${nKey} — skipping`);
+          } else {
           emitDebug('speakSarvam', `step advanced ${stepBeforeSpeak} → ${stepAfter}, narrating new step`);
           if (appPendingNarrationRef) appPendingNarrationRef.current = null;
           narrationQueuedRef.current = false;
           const narration = narrateScreen(currentViewRef.current, stepAfter);
           if (narration) {
-            const nKey = `${currentViewRef.current}:${stepAfter}`;
             narratedTabsRef?.current.add(nKey);
             lastNarrationKeyRef.current = nKey;
             lastNarrationViewRef.current = currentViewRef.current;
             speakSarvamAndListenRef.current(narration);
             return;
+          }
           }
         }
         setConv('WAIT_FOR_SPEECH');
@@ -283,16 +291,20 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
           const isLoginV = currentViewRef.current.startsWith('login-');
           const stepAfter = stateRef.current.step;
           if (isLoginV && stepAfter && stepAfter !== stepBeforeSpeak) {
+            const nKey = `${currentViewRef.current}:${stepAfter}`;
+            if (narratedTabsRef?.current.has(nKey)) {
+              emitDebug('speakSarvam', `step advanced ${stepBeforeSpeak} → ${stepAfter}, but already narrated ${nKey} — skipping`);
+            } else {
             if (appPendingNarrationRef) appPendingNarrationRef.current = null;
             narrationQueuedRef.current = false;
             const narration = narrateScreen(currentViewRef.current, stepAfter);
             if (narration) {
-              const nKey = `${currentViewRef.current}:${stepAfter}`;
               narratedTabsRef?.current.add(nKey);
               lastNarrationKeyRef.current = nKey;
               lastNarrationViewRef.current = currentViewRef.current;
               speakSarvamAndListenRef.current(narration);
               return;
+            }
             }
           }
           setConv('WAIT_FOR_SPEECH');
@@ -337,6 +349,10 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         narrationQueuedRef.current = false;
         emitDebug('narration effect', `view changed ${lastNarrationViewRef.current} → ${currentView} — cancelled speech`);
       }
+      const prevView = lastNarrationViewRef.current;
+      narratedTabsRef?.current.forEach((key) => {
+        if (key.startsWith(prevView + ':') || key === prevView) narratedTabsRef?.current.delete(key);
+      });
     }
     if (speakingRef.current) {
       if (narrationQueuedRef.current) { emitDebug('narration effect', `SKIP: already queued for ${currentView}`); return; }
