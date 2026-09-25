@@ -46,6 +46,7 @@ export interface IntentRequest {
   slots?: Record<string, string>;
   awaitingConfirmation?: boolean;
   screenContext?: string;
+  role?: string | null;
 }
 
 const UNAVAILABLE_INTENTS = new Set(['post_demand', 'start_journey', 'open_map', 'pay_balance']);
@@ -60,6 +61,7 @@ export async function fetchIntent(
     slots?: Record<string, string>;
     awaitingConfirmation?: boolean;
     screenContext?: string;
+    role?: string | null;
   } = {},
 ): Promise<IntentResult | null> {
   const code = langCode(language);
@@ -69,6 +71,7 @@ export async function fetchIntent(
   if (context.step !== undefined) voiceSession.step = context.step;
   if (context.awaitingConfirmation !== undefined) voiceSession.awaitingConfirmation = context.awaitingConfirmation;
   if (context.slots) voiceSession.slots = context.slots;
+  if (context.role) voiceSession.role = context.role;
 
   const body = {
     transcript,
@@ -78,6 +81,7 @@ export async function fetchIntent(
     voiceSession: Object.keys(voiceSession).length > 0 ? voiceSession : null,
     language: code,
     screenContent: context.screenContext ?? null,
+    role: context.role ?? null,
   };
 
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-intent`;

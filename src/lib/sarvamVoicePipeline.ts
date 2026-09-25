@@ -250,7 +250,7 @@ async function callSarvamSTT(audioBlob: Blob, language: SarvamLang, mode?: 'tran
 async function callVoiceIntent(
   transcript: string,
   lang: SarvamLang,
-  context?: { currentPage?: string; voiceSession?: Record<string, unknown> | null; screenContent?: string | null },
+  context?: { currentPage?: string; voiceSession?: Record<string, unknown> | null; screenContent?: string | null; role?: string | null },
 ): Promise<VoiceIntentResponse> {
   const t0 = performance.now();
   const body = {
@@ -261,6 +261,7 @@ async function callVoiceIntent(
     voiceSession: context?.voiceSession ?? null,
     language: langCodeForSarvam(lang),
     screenContent: context?.screenContent ?? null,
+    role: context?.role ?? null,
   };
 
   const controller = new AbortController();
@@ -373,7 +374,7 @@ export async function speakWithSarvam(
 export async function runSarvamVoiceTurn(
   audioBlob: Blob,
   languageCode: SarvamLang,
-  context?: { currentPage?: string; voiceSession?: Record<string, unknown> | null; screenContent?: string | null },
+  context?: { currentPage?: string; voiceSession?: Record<string, unknown> | null; screenContent?: string | null; role?: string | null },
   mode?: 'transcribe' | 'verbatim',
 ): Promise<SarvamVoiceTurnResult> {
   const t0 = performance.now();

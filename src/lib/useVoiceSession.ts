@@ -171,6 +171,7 @@ export interface VoiceSessionCallbacks {
   setLoginField?: (field: 'mobile' | 'otp' | 'buyerCategory', value: string) => void;
   submitLogin?: () => void;
   isLoggedIn?: boolean;
+  role?: string | null;
   autoRouteToDestination?: (destinationView: string, role: string) => void;
 }
 
@@ -907,6 +908,7 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
       slots: s.slots,
       awaitingConfirmation: s.awaitingConfirmation,
       screenContext,
+      role: cbRef.current.role ?? null,
     });
 
     if (!result) {
@@ -937,6 +939,7 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
     if (s.step !== null) voiceSession.step = s.step;
     if (s.awaitingConfirmation) voiceSession.awaitingConfirmation = true;
     if (Object.keys(s.slots).length > 0) voiceSession.slots = s.slots;
+    if (cbRef.current.role) voiceSession.role = cbRef.current.role;
 
     const isDigitStep = s.step === 'awaiting_mobile' || s.step === 'awaiting_otp';
     const silenceDelay = isDigitStep ? 2500 : 1300;
@@ -957,6 +960,7 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
       const turn: SarvamVoiceTurnResult = await runSarvamVoiceTurn(audioBlob, sarvamLang as 'en-IN' | 'hi-IN' | 'te-IN', {
         currentPage: cbRef.current.currentView,
         voiceSession: Object.keys(voiceSession).length > 0 ? voiceSession : null,
+        role: cbRef.current.role ?? null,
       }, sttMode);
       if (!turn.ok || !turn.transcript || !turn.intentData || !turn.replyAudio) {
         if (turn.error === 'no_speech_detected') {

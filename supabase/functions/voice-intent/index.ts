@@ -17,6 +17,7 @@ interface IntentRequest {
   voiceSession: object | null;
   language: string;
   screenContent: string | null;
+  role: string | null;
 }
 
 interface LlmIntentResult {
@@ -57,8 +58,13 @@ function buildSystemPrompt(): string {
     "  voice_login, login_mobile, login_otp, login_category, unknown",
     "",
     "AVAILABLE TABS / ROUTES (use these exact strings for sub_target when intent is 'navigate'):",
+    "  The user's role is provided in the context. Prioritize routes available to that role.",
     "  Farmer role:",
     "    crops           — My Crops (farmer's own crop listings, upcoming & harvested)",
+    "    crop-create     — Add a new crop listing",
+    "    crop-edit       — Edit an existing crop listing",
+    "    crop-detail     — View details of a specific crop",
+    "    farmeye-detail  — View satellite/verification details for a crop",
     "    market          — Market / Explore Crops (browse crops for sale)",
     "    calendar        — Harvest Calendar (see harvest dates and timing)",
     "    transport-options — Transport options (book or view transport)",
@@ -66,17 +72,16 @@ function buildSystemPrompt(): string {
     "    fpo             — FPO Network (farmer producer organization network)",
     "    tutorials       — Tutorials (learn how to use the app)",
     "    help            — Help & Dispute (get help or resolve disputes)",
-    "    crop-create     — Add a new crop listing",
-    "    crop-detail     — View details of a specific crop",
-    "    farmeye-detail  — View satellite/verification details for a crop",
+    "    dispute         — Dispute resolution page",
     "  Buyer role:",
     "    market          — Explore Crops (browse and buy crops)",
-    "    orders          — My Orders (track purchases)",
     "    buyer-crop-detail — View details of a crop to buy",
     "    buyer-payment   — Payment / checkout for a crop purchase",
+    "    orders          — My Orders (track purchases)",
     "    deals           — Deals and special offers",
     "    tutorials       — Tutorials",
     "    help            — Help & Dispute",
+    "    dispute         — Dispute resolution page",
     "  FPO role:",
     "    crops           — Member Crops (crops from FPO members)",
     "    market          — Market",
@@ -85,21 +90,25 @@ function buildSystemPrompt(): string {
     "    storage         — Storage",
     "    tutorials       — Tutorials",
     "    help            — Help & Dispute",
+    "    dispute         — Dispute resolution page",
     "  Storage Provider role:",
     "    storage         — Storage Requests (manage incoming requests)",
     "    approvals       — My Approvals (approve or reject storage requests)",
     "    tutorials       — Tutorials",
     "    help            — Help & Dispute",
+    "    dispute         — Dispute resolution page",
     "  Transport Provider role:",
     "    features        — Requests (view transport requests)",
     "    journey         — Live Journey (track active trips)",
+    "    transport-detail — View details of a specific transport trip",
     "    tutorials       — Tutorials",
     "    help            — Help & Dispute",
+    "    dispute         — Dispute resolution page",
     "  All roles:",
     "    home            — Home screen",
     "    profile         — User profile",
     "    settings        — Settings",
-    "    dispute         — Dispute resolution",
+    "    features        — Requests (general)",
     "",
     "NAVIGATION GUIDELINES:",
     "  Map natural-language requests to the correct tab even if the user doesn't use the exact tab name.",
@@ -144,6 +153,7 @@ function buildUserPrompt(req: IntentRequest): string {
     `Transcript: "${req.transcript}"`,
     `Current page: ${req.currentPage}`,
   ];
+  if (req.role) context.push(`User role: ${req.role}`);
   if (req.activeTab) context.push(`Active tab: ${req.activeTab}`);
   if (req.visibleData) context.push(`Visible data: ${JSON.stringify(req.visibleData)}`);
   if (req.screenContent) context.push(`Screen content: ${req.screenContent.slice(0, 1500)}`);
@@ -809,6 +819,7 @@ Deno.serve(async (req: Request) => {
       voiceSession: body.voiceSession ?? null,
       language: body.language ?? "en",
       screenContent: body.screenContent ?? null,
+      role: body.role ?? null,
     };
 
     // Try Gemini LLM first, fall back to rule-based parser only if Gemini fails entirely
