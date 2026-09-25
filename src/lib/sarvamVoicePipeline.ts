@@ -81,7 +81,42 @@ async function blobToWav(audioBlob: Blob): Promise<Blob> {
       offset += 2;
     }
 
-    const wavBlob = new Blob([buffer], { type: 'audio/wav' });
+    // Compute RMS energy of the resampled audio to confirm real speech exists
+    let maxSample = 0;
+    let sumSq = 0;
+    for (let i = 0; i < numFrames; i++) {
+      const a = Math.abs(resampled[i]);
+      if (a > maxSample) maxSample = a;
+      sumSq += resampled[i] * resampled[i];
+    }
+    const rms = Math.sqrt(sumSq / numFrames);
+    const outputDurationMs = (numFrames / sampleRate) * 1000;
+
+    // Pad audio shorter than 1s with trailing silence — Sarvam STT can return
+    // empty transcripts for sub-second clips even when speech is present.
+    const MIN_DURATION_MS = 1000;
+    let finalBuffer = buffer;
+    let finalFrames = numFrames;
+    if (outputDurationMs < MIN_DURATION_MS) {
+      const padFrames = Math.round((MIN_DURATION_MS / 1000) * sampleRate) - numFrames;
+      if (padFrames > 0) {
+        const paddedSize = 44 + (numFrames + padFrames) * bytesPerSample;
+        finalBuffer = new ArrayBuffer(paddedSize);
+        const paddedView = new DataView(finalBuffer);
+        const srcView = new DataView(buffer);
+        for (let b = 0; b < buffer.byteLength; b++) paddedView.setUint8(b, srcView.getUint8(b));
+        paddedView.setUint32(4, 36 + (numFrames + padFrames) * bytesPerSample, true);
+        paddedView.setUint32(40, (numFrames + padFrames) * bytesPerSample, true);
+        finalFrames = numFrames + padFrames;
+        console.log('[sarvam] blobToWav: padded short audio', {
+          originalMs: outputDurationMs.toFixed(0),
+          paddedMs: ((finalFrames / sampleRate) * 1000).toFixed(0),
+          padFrames,
+        });
+      }
+    }
+
+    const wavBlob = new Blob([finalBuffer], { type: 'audio/wav' });
     console.log('[sarvam] blobToWav:', {
       wavMs: (performance.now() - t0).toFixed(0),
       inputType: audioBlob.type,
@@ -93,9 +128,12 @@ async function blobToWav(audioBlob: Blob): Promise<Blob> {
       outputSize: wavBlob.size,
       outputSampleRate: sampleRate,
       outputChannels: numChannels,
-      outputDurationMs: ((numFrames / sampleRate) * 1000).toFixed(0),
+      outputDurationMs: ((finalFrames / sampleRate) * 1000).toFixed(0),
+      outputRms: rms.toFixed(5),
+      outputMaxSample: maxSample.toFixed(5),
+      padded: finalFrames > numFrames,
     });
-    emitDebug('blobToWav', `in=${sourceRate}Hz/${sourceChannels}ch → out=${sampleRate}Hz/1ch size=${wavBlob.size} dur=${((numFrames / sampleRate) * 1000).toFixed(0)}ms`);
+    emitDebug('blobToWav', `in=${sourceRate}Hz/${sourceChannels}ch → out=${sampleRate}Hz/1ch size=${wavBlob.size} dur=${((finalFrames / sampleRate) * 1000).toFixed(0)}ms rms=${rms.toFixed(4)} max=${maxSample.toFixed(4)}`);
     return wavBlob;
   } finally {
     if (audioContext.state !== 'closed') audioContext.close().catch(() => {});
@@ -169,20 +207,21 @@ function buildReplyText(data: VoiceIntentResponse, lang: SarvamLang): string {
   return langReplies[data.intent] ?? langReplies.unknown;
 }
 
-async function callSarvamSTT(audioBlob: Blob, language: SarvamLang): Promise<string> {
+async function callSarvamSTT(audioBlob: Blob, language: SarvamLang, mode?: 'transcribe' | 'verbatim'): Promise<string> {
   const t0 = performance.now();
   const wavBlob = await blobToWav(audioBlob);
   const formData = new FormData();
   formData.append('file', wavBlob, 'audio.wav');
   formData.append('language', language);
+  if (mode) formData.append('stt_mode', mode);
 
   const res = await fetch(`${SUPABASE_URL}/functions/v1/sarvam-stt`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
     body: formData,
   });
-  console.log('[sarvam] STT fetch done', { sttMs: (performance.now() - t0).toFixed(0), status: res.status });
-  emitDebug('sarvam STT done', `${(performance.now() - t0).toFixed(0)}ms status=${res.status}`);
+  console.log('[sarvam] STT fetch done', { sttMs: (performance.now() - t0).toFixed(0), status: res.status, mode: mode ?? 'default' });
+  emitDebug('sarvam STT done', `${(performance.now() - t0).toFixed(0)}ms status=${res.status} mode=${mode ?? 'default'}`);
 
   if (!res.ok) {
     const errBody = await res.text();
@@ -282,9 +321,10 @@ async function callSarvamTTS(text: string, lang: SarvamLang): Promise<Blob> {
 export async function transcribeViaSarvam(
   audioBlob: Blob,
   languageCode: SarvamLang,
+  mode?: 'transcribe' | 'verbatim',
 ): Promise<string | null> {
   try {
-    return await callSarvamSTT(audioBlob, languageCode);
+    return await callSarvamSTT(audioBlob, languageCode, mode);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[sarvam] transcribeViaSarvam failed:', message);
@@ -310,10 +350,11 @@ export async function runSarvamVoiceTurn(
   audioBlob: Blob,
   languageCode: SarvamLang,
   context?: { currentPage?: string; voiceSession?: Record<string, unknown> | null; screenContent?: string | null },
+  mode?: 'transcribe' | 'verbatim',
 ): Promise<SarvamVoiceTurnResult> {
   const t0 = performance.now();
   try {
-    const transcript = await callSarvamSTT(audioBlob, languageCode);
+    const transcript = await callSarvamSTT(audioBlob, languageCode, mode);
     if (!transcript || !transcript.trim()) {
       emitDebug('sarvam turn', 'STT returned empty transcript — no speech detected, skipping intent');
       return { ok: false, error: 'no_speech_detected' };

@@ -37,6 +37,7 @@ Deno.serve(async (req: Request) => {
     const formData = await req.formData();
     const file = formData.get("file");
     const language = (formData.get("language") as string) ?? "en-IN";
+    const sttMode = (formData.get("stt_mode") as string) ?? "transcribe";
 
     if (!file || !(file instanceof File)) {
       return new Response(
@@ -58,7 +59,7 @@ Deno.serve(async (req: Request) => {
     const sarvamForm = new FormData();
     sarvamForm.append("file", file, file.name || "audio.wav");
     sarvamForm.append("model", "saaras:v4");
-    sarvamForm.append("mode", "transcribe");
+    sarvamForm.append("mode", sttMode);
     sarvamForm.append("language_code", language);
 
     const controller = new AbortController();

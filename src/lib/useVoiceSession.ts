@@ -938,9 +938,13 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
     if (s.awaitingConfirmation) voiceSession.awaitingConfirmation = true;
     if (Object.keys(s.slots).length > 0) voiceSession.slots = s.slots;
 
+    const isDigitStep = s.step === 'awaiting_mobile' || s.step === 'awaiting_otp';
+    const silenceDelay = isDigitStep ? 2500 : 1300;
+    const sttMode = isDigitStep ? 'verbatim' : undefined;
+
     try {
       const recStart = performance.now();
-      const audioBlob = await recordWithAutoStop();
+      const audioBlob = await recordWithAutoStop({ silenceDelayMs: silenceDelay });
       const recMs = performance.now() - recStart;
       console.log('[voice] processSarvamVoiceTurn — recording done', { recMs: recMs.toFixed(0), captured: !!audioBlob, blobSize: audioBlob?.size, blobType: audioBlob?.type });
       emitDebug('recording done', `${recMs.toFixed(0)}ms captured=${!!audioBlob} size=${audioBlob?.size ?? 0}`);
@@ -953,7 +957,7 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
       const turn: SarvamVoiceTurnResult = await runSarvamVoiceTurn(audioBlob, sarvamLang as 'en-IN' | 'hi-IN' | 'te-IN', {
         currentPage: cbRef.current.currentView,
         voiceSession: Object.keys(voiceSession).length > 0 ? voiceSession : null,
-      });
+      }, sttMode);
       if (!turn.ok || !turn.transcript || !turn.intentData || !turn.replyAudio) {
         if (turn.error === 'no_speech_detected') {
           emitDebug('sarvam turn', 'empty transcript — asking user to repeat');
@@ -1003,13 +1007,17 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
     const lang = cbRef.current.language;
     const code = langCode(lang);
     const sarvamLang = code === 'te' ? 'te-IN' : code === 'hi' ? 'hi-IN' : 'en-IN';
+    const s = stateRef.current;
+    const isDigitStep = s.step === 'awaiting_mobile' || s.step === 'awaiting_otp';
+    const silenceDelay = isDigitStep ? 2500 : 1300;
+    const sttMode = isDigitStep ? 'verbatim' : undefined;
     try {
       const recStart = performance.now();
-      const audioBlob = await recordWithAutoStop();
+      const audioBlob = await recordWithAutoStop({ silenceDelayMs: silenceDelay });
       const recMs = performance.now() - recStart;
       emitDebug('consent transcribe', `recording done ${recMs.toFixed(0)}ms captured=${!!audioBlob}`);
       if (!audioBlob) return null;
-      const transcript = await transcribeViaSarvam(audioBlob, sarvamLang as 'en-IN' | 'hi-IN' | 'te-IN');
+      const transcript = await transcribeViaSarvam(audioBlob, sarvamLang as 'en-IN' | 'hi-IN' | 'te-IN', sttMode);
       emitDebug('consent transcribe', `transcript="${transcript?.slice(0, 60) ?? 'null'}"`);
       return transcript;
     } catch (err) {

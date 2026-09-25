@@ -613,12 +613,14 @@ export function createRecognition(
   };
 }
 
-export async function recordWithAutoStop(): Promise<Blob | null> {
+export async function recordWithAutoStop(
+  opts?: { silenceDelayMs?: number; maxRecordingMs?: number },
+): Promise<Blob | null> {
   // After-speech silence: how long to wait after the farmer stops talking
-  // before we stop recording. 5s was far too long — 1.3s allows natural
-  // mid-sentence pauses without a dead 5-second wait.
-  const SILENCE_DELAY_MS = 1300;
-  const MAX_RECORDING_MS = 15000;
+  // before we stop recording. 1.3s is good for sentences; digit sequences
+  // (phone numbers, OTPs) need ~2.5s because inter-digit pauses are longer.
+  const SILENCE_DELAY_MS = opts?.silenceDelayMs ?? 1300;
+  const MAX_RECORDING_MS = opts?.maxRecordingMs ?? 15000;
   // Tuned to separate real speech from background noise (fans, AC, traffic).
   // 0.06 was too low — ambient noise routinely exceeded it. May need further
   // real-world tuning depending on microphone gain and environment.
@@ -816,6 +818,7 @@ export async function recordWithAutoStop(): Promise<Blob | null> {
       SILENCE_DELAY_MS,
       SPEECH_THRESHOLD,
       MAX_RECORDING_MS,
+      customSilence: opts?.silenceDelayMs != null,
     });
     emitDebug('mic', `listening started — recorder.state=${recorder.state} threshold=${SPEECH_THRESHOLD}`);
     monitorId = requestAnimationFrame(monitor);
