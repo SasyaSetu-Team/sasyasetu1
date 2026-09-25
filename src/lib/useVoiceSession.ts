@@ -634,7 +634,14 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
     }
 
     if (result.readScreen) {
-      return result.description ?? t('voice.readScreenPrompt');
+      if (result.description) return result.description;
+      const view = cbRef.current.currentView || 'home';
+      const tr = makeT(lang);
+      const base = getTabNarration(view, tr, s.step ?? undefined);
+      if (!base) return t('voice.readScreenPrompt');
+      const promptKey = `voice.tabActionPrompt.${view}`;
+      const prompt = tr(promptKey);
+      return prompt !== promptKey ? `${base} ${prompt}` : base;
     }
 
     if (result.goBack) {
