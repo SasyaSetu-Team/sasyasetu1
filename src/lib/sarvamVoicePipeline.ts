@@ -10,25 +10,49 @@ async function blobToWav(audioBlob: Blob): Promise<Blob> {
   const audioContext = new AudioCtx();
   try {
     const decoded = await audioContext.decodeAudioData(arrayBuffer);
-    const numChannels = decoded.numberOfChannels;
-    const sampleRate = decoded.sampleRate;
-    const numFrames = decoded.length;
 
-    // Interleave channels
-    const channels: Float32Array[] = [];
-    for (let c = 0; c < numChannels; c++) {
-      channels.push(decoded.getChannelData(c));
+    // Sarvam STT expects 16kHz, 16-bit, mono WAV.
+    // Browser AudioContext typically decodes at 48kHz stereo — we must resample.
+    const TARGET_SAMPLE_RATE = 16000;
+    const sourceRate = decoded.sampleRate;
+    const sourceChannels = decoded.numberOfChannels;
+    const sourceFrames = decoded.length;
+    const sourceDurationMs = (sourceFrames / sourceRate) * 1000;
+
+    // Downmix to mono
+    const monoData = new Float32Array(sourceFrames);
+    for (let i = 0; i < sourceFrames; i++) {
+      let sum = 0;
+      for (let c = 0; c < sourceChannels; c++) {
+        sum += decoded.getChannelData(c)[i];
+      }
+      monoData[i] = sum / sourceChannels;
     }
-    const interleaved = new Float32Array(numFrames * numChannels);
-    for (let i = 0; i < numFrames; i++) {
-      for (let c = 0; c < numChannels; c++) {
-        interleaved[i * numChannels + c] = channels[c][i];
+
+    // Resample to 16kHz using linear interpolation
+    let resampled: Float32Array;
+    if (sourceRate === TARGET_SAMPLE_RATE) {
+      resampled = monoData;
+    } else {
+      const ratio = TARGET_SAMPLE_RATE / sourceRate;
+      const targetFrames = Math.round(sourceFrames * ratio);
+      resampled = new Float32Array(targetFrames);
+      for (let i = 0; i < targetFrames; i++) {
+        const srcIdx = i / ratio;
+        const idx0 = Math.floor(srcIdx);
+        const idx1 = Math.min(idx0 + 1, sourceFrames - 1);
+        const frac = srcIdx - idx0;
+        resampled[i] = monoData[idx0] * (1 - frac) + monoData[idx1] * frac;
       }
     }
 
+    const numChannels = 1;
+    const sampleRate = TARGET_SAMPLE_RATE;
+    const numFrames = resampled.length;
+
     // 16-bit PCM WAV
     const bytesPerSample = 2;
-    const dataSize = interleaved.length * bytesPerSample;
+    const dataSize = numFrames * bytesPerSample;
     const buffer = new ArrayBuffer(44 + dataSize);
     const view = new DataView(buffer);
 
@@ -51,8 +75,8 @@ async function blobToWav(audioBlob: Blob): Promise<Blob> {
     view.setUint32(40, dataSize, true);
 
     let offset = 44;
-    for (let i = 0; i < interleaved.length; i++) {
-      const s = Math.max(-1, Math.min(1, interleaved[i]));
+    for (let i = 0; i < numFrames; i++) {
+      const s = Math.max(-1, Math.min(1, resampled[i]));
       view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
       offset += 2;
     }
@@ -62,12 +86,16 @@ async function blobToWav(audioBlob: Blob): Promise<Blob> {
       wavMs: (performance.now() - t0).toFixed(0),
       inputType: audioBlob.type,
       inputSize: audioBlob.size,
+      inputSampleRate: sourceRate,
+      inputChannels: sourceChannels,
+      inputDurationMs: sourceDurationMs.toFixed(0),
       outputType: wavBlob.type,
       outputSize: wavBlob.size,
-      sampleRate,
-      numChannels,
-      durationMs: ((numFrames / sampleRate) * 1000).toFixed(0),
+      outputSampleRate: sampleRate,
+      outputChannels: numChannels,
+      outputDurationMs: ((numFrames / sampleRate) * 1000).toFixed(0),
     });
+    emitDebug('blobToWav', `in=${sourceRate}Hz/${sourceChannels}ch → out=${sampleRate}Hz/1ch size=${wavBlob.size} dur=${((numFrames / sampleRate) * 1000).toFixed(0)}ms`);
     return wavBlob;
   } finally {
     if (audioContext.state !== 'closed') audioContext.close().catch(() => {});

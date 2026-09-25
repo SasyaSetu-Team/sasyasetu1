@@ -948,15 +948,18 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
         voiceSession: Object.keys(voiceSession).length > 0 ? voiceSession : null,
       });
       if (!turn.ok || !turn.transcript || !turn.intentData || !turn.replyAudio) {
+        if (turn.error === 'no_speech_detected') {
+          emitDebug('sarvam turn', 'empty transcript — asking user to repeat');
+          const repeatText = t('voice.pleaseRepeat');
+          const repeatAudio = await speakWithSarvam(repeatText, sarvamLang as 'en-IN' | 'hi-IN' | 'te-IN');
+          if (repeatAudio) return { transcript: '', replyText: repeatText, replyAudio: repeatAudio };
+          return null;
+        }
         const reason = !turn.ok
           ? `turn.error=${turn.error ?? 'unknown'}`
           : `missing field: ${!turn.transcript ? 'transcript' : !turn.intentData ? 'intentData' : 'replyAudio'}`;
-        if (turn.error === 'no_speech_detected') {
-          emitDebug('sarvam turn', 'no speech detected — audio captured but STT returned empty transcript');
-        } else {
-          console.error('[voice] processSarvamVoiceTurn — Sarvam turn failed:', reason);
-          emitDebug('sarvam turn failed', reason);
-        }
+        console.error('[voice] processSarvamVoiceTurn — Sarvam turn failed:', reason);
+        emitDebug('sarvam turn failed', reason);
         return null;
       }
 
