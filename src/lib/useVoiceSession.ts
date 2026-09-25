@@ -732,6 +732,7 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
         }
         return t('voice.confirmNo');
       }
+      if (result.speechReply && result.confidence >= 0.3) return result.speechReply;
       return null;
     }
 
@@ -893,6 +894,8 @@ export function useVoiceSession(callbacks: VoiceSessionCallbacks): VoiceSessionR
       const known = tr(promptKey);
       return known !== promptKey ? known : t('voice.followUp');
     }
+
+    if (result.speechReply && result.confidence >= 0.3) return result.speechReply;
 
     return t('voice.didNotUnderstand');
   }, [t, nextMissingField, nextMissingFieldAfter, summaryOrNext, askFieldPrompt, tryAutoRoute]);
