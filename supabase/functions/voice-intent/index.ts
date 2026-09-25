@@ -30,7 +30,7 @@ interface LlmIntentResult {
 // ── Gemini API call ───────────────────────────────────────────────────────
 
 const GEMINI_MODEL = "gemini-3.6-flash";
-const GEMINI_TIMEOUT_MS = 5000;
+const GEMINI_TIMEOUT_MS = 8000;
 
 function buildSystemPrompt(): string {
   return [

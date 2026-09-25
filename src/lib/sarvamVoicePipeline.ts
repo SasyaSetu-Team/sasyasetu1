@@ -216,7 +216,7 @@ async function callSarvamSTT(audioBlob: Blob, language: SarvamLang, mode?: 'tran
   if (mode) formData.append('stt_mode', mode);
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeout = setTimeout(() => controller.abort(), 8000);
   let res: Response;
   try {
     res = await fetch(`${SUPABASE_URL}/functions/v1/sarvam-stt`, {
@@ -264,7 +264,7 @@ async function callVoiceIntent(
   };
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeout = setTimeout(() => controller.abort(), 8000);
   let res: Response;
   try {
     res = await fetch(`${SUPABASE_URL}/functions/v1/voice-intent`, {
@@ -305,7 +305,7 @@ async function callSarvamTTS(text: string, lang: SarvamLang): Promise<Blob> {
   }
   const t0 = performance.now();
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeout = setTimeout(() => controller.abort(), 8000);
   let res: Response;
   try {
     res = await fetch(`${SUPABASE_URL}/functions/v1/sarvam-tts`, {
