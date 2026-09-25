@@ -613,6 +613,60 @@ export function createRecognition(
   };
 }
 
+function computeSpeechLikelihood(
+  rmsValues: number[],
+  zcrValues: number[],
+): { score: number; ampCv: number; meanZcr: number; zcrStd: number; activeRatio: number } {
+  if (rmsValues.length < 5) {
+    return { score: 0.5, ampCv: 0, meanZcr: 0, zcrStd: 0, activeRatio: 0 };
+  }
+
+  const SIGNAL_FLOOR = 0.01;
+  const activeIndices: number[] = [];
+  for (let i = 0; i < rmsValues.length; i++) {
+    if (rmsValues[i] > SIGNAL_FLOOR) activeIndices.push(i);
+  }
+  const activeRatio = activeIndices.length / rmsValues.length;
+
+  if (activeIndices.length < 3) {
+    return { score: 0.3, ampCv: 0, meanZcr: 0, zcrStd: 0, activeRatio };
+  }
+
+  const activeRms = activeIndices.map((i) => rmsValues[i]);
+  const activeZcr = activeIndices.map((i) => zcrValues[i]);
+
+  const meanRms = activeRms.reduce((a, b) => a + b, 0) / activeRms.length;
+  const varRms = activeRms.reduce((a, b) => a + (b - meanRms) ** 2, 0) / activeRms.length;
+  const stdRms = Math.sqrt(varRms);
+  const ampCv = meanRms > 0 ? stdRms / meanRms : 0;
+
+  const meanZcr = activeZcr.reduce((a, b) => a + b, 0) / activeZcr.length;
+  const varZcr = activeZcr.reduce((a, b) => a + (b - meanZcr) ** 2, 0) / activeZcr.length;
+  const zcrStd = Math.sqrt(varZcr);
+
+  let score = 0;
+
+  // 1. Amplitude variation (0-0.35): speech has moderate-to-high CV (bursts and pauses)
+  if (ampCv > 0.3) score += 0.35;
+  else if (ampCv > 0.15) score += 0.15;
+
+  // 2. ZCR range (0-0.25): speech typically 0.05-0.40
+  if (meanZcr >= 0.05 && meanZcr <= 0.40) score += 0.25;
+  else if (meanZcr >= 0.03 && meanZcr <= 0.45) score += 0.10;
+
+  // 3. ZCR variance (0-0.2): speech has moderate ZCR variance (different phonemes)
+  if (zcrStd >= 0.02 && zcrStd <= 0.15) score += 0.2;
+  else if (zcrStd > 0.15) score += 0.1;
+  else score += 0.03;
+
+  // 4. Active frame ratio (0-0.2): speech has bursts and pauses (0.2-0.85)
+  if (activeRatio >= 0.2 && activeRatio <= 0.85) score += 0.2;
+  else if (activeRatio < 0.2) score += 0.1;
+  else score += 0.05;
+
+  return { score, ampCv, meanZcr, zcrStd, activeRatio };
+}
+
 export async function recordWithAutoStop(
   opts?: { silenceDelayMs?: number; maxRecordingMs?: number },
 ): Promise<Blob | null> {
@@ -631,6 +685,7 @@ export async function recordWithAutoStop(
   // 200ms was overly conservative — 50ms is enough for the final ondataavailable.
   const TRACK_RELEASE_DELAY_MS = 50;
   const INITIAL_SILENCE_TIMEOUT_MS = 5000;
+  const SPEECH_LIKELIHOOD_THRESHOLD = 0.4;
 
   console.log('[voice] recordWithAutoStop START');
   emitDebug('mic', 'recordWithAutoStop START — requesting getUserMedia');
@@ -674,6 +729,8 @@ export async function recordWithAutoStop(
     let speechDurationMs = 0;
     let silenceStartMs: number | null = null;
     let lastFrameMs = 0;
+    const frameRmsValues: number[] = [];
+    const frameZcrValues: number[] = [];
 
     const cleanupAll = () => {
       if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
@@ -737,7 +794,33 @@ export async function recordWithAutoStop(
                 blobType: blob.type,
                 maxRms: maxRms.toFixed(4),
               });
-              emitDebug('mic', `SAVING — maxRms=${maxRms.toFixed(4)} above noise floor, sending to STT`);
+              emitDebug('mic', `SAVING — maxRms=${maxRms.toFixed(4)} above noise floor, checking speech-likelihood`);
+
+              const speechMetrics = computeSpeechLikelihood(frameRmsValues, frameZcrValues);
+              if (speechMetrics.score < SPEECH_LIKELIHOOD_THRESHOLD) {
+                console.log('[voice] recordWithAutoStop DISCARDED — non-speech audio (score below threshold)', {
+                  score: speechMetrics.score.toFixed(2),
+                  ampCv: speechMetrics.ampCv.toFixed(2),
+                  meanZcr: speechMetrics.meanZcr.toFixed(3),
+                  zcrStd: speechMetrics.zcrStd.toFixed(3),
+                  activeRatio: speechMetrics.activeRatio.toFixed(2),
+                  maxRms: maxRms.toFixed(4),
+                });
+                emitDebug('mic', `DISCARDED — non-speech (score=${speechMetrics.score.toFixed(2)} < ${SPEECH_LIKELIHOOD_THRESHOLD} ampCv=${speechMetrics.ampCv.toFixed(2)} meanZcr=${speechMetrics.meanZcr.toFixed(3)} zcrStd=${speechMetrics.zcrStd.toFixed(3)} activeRatio=${speechMetrics.activeRatio.toFixed(2)})`);
+                resolve(null);
+                return;
+              }
+
+              console.log('[voice] recordWithAutoStop SAVING — passed speech-likelihood check', {
+                score: speechMetrics.score.toFixed(2),
+                ampCv: speechMetrics.ampCv.toFixed(2),
+                meanZcr: speechMetrics.meanZcr.toFixed(3),
+                zcrStd: speechMetrics.zcrStd.toFixed(3),
+                activeRatio: speechMetrics.activeRatio.toFixed(2),
+                blobSize: blob.size,
+                maxRms: maxRms.toFixed(4),
+              });
+              emitDebug('mic', `SAVING — speechLikelihood=${speechMetrics.score.toFixed(2)} (ampCv=${speechMetrics.ampCv.toFixed(2)} meanZcr=${speechMetrics.meanZcr.toFixed(3)} zcrStd=${speechMetrics.zcrStd.toFixed(3)} activeRatio=${speechMetrics.activeRatio.toFixed(2)}) — sending to STT`);
               resolve(blob);
               return;
             }
@@ -747,13 +830,34 @@ export async function recordWithAutoStop(
             return;
           }
 
+          const speechMetrics = computeSpeechLikelihood(frameRmsValues, frameZcrValues);
+          if (speechMetrics.score < SPEECH_LIKELIHOOD_THRESHOLD) {
+            console.log('[voice] recordWithAutoStop DISCARDED — non-speech audio (score below threshold)', {
+              score: speechMetrics.score.toFixed(2),
+              ampCv: speechMetrics.ampCv.toFixed(2),
+              meanZcr: speechMetrics.meanZcr.toFixed(3),
+              zcrStd: speechMetrics.zcrStd.toFixed(3),
+              activeRatio: speechMetrics.activeRatio.toFixed(2),
+              maxRms: maxRms.toFixed(4),
+              speechDurationMs: speechDurationMs.toFixed(0),
+            });
+            emitDebug('mic', `DISCARDED — non-speech (score=${speechMetrics.score.toFixed(2)} < ${SPEECH_LIKELIHOOD_THRESHOLD} ampCv=${speechMetrics.ampCv.toFixed(2)} meanZcr=${speechMetrics.meanZcr.toFixed(3)} zcrStd=${speechMetrics.zcrStd.toFixed(3)} activeRatio=${speechMetrics.activeRatio.toFixed(2)})`);
+            resolve(null);
+            return;
+          }
+
           console.log('[voice] recordWithAutoStop CAPTURED', {
             mimeType: blob.type,
             sizeBytes: blob.size,
             durationMs: totalDurationMs.toFixed(0),
             chunks: chunks.length,
+            speechLikelihood: speechMetrics.score.toFixed(2),
+            ampCv: speechMetrics.ampCv.toFixed(2),
+            meanZcr: speechMetrics.meanZcr.toFixed(3),
+            zcrStd: speechMetrics.zcrStd.toFixed(3),
+            activeRatio: speechMetrics.activeRatio.toFixed(2),
           });
-          emitDebug('mic', `CAPTURED — size=${blob.size} type=${blob.type} duration=${totalDurationMs.toFixed(0)}ms`);
+          emitDebug('mic', `CAPTURED — size=${blob.size} type=${blob.type} duration=${totalDurationMs.toFixed(0)}ms speechLikelihood=${speechMetrics.score.toFixed(2)} (ampCv=${speechMetrics.ampCv.toFixed(2)} meanZcr=${speechMetrics.meanZcr.toFixed(3)} zcrStd=${speechMetrics.zcrStd.toFixed(3)} activeRatio=${speechMetrics.activeRatio.toFixed(2)})`);
           resolve(blob);
         }, TRACK_RELEASE_DELAY_MS);
       };
@@ -790,6 +894,14 @@ export async function recordWithAutoStop(
       const rms = Math.sqrt(sum / bufferLength);
 
       if (rms > maxRms) maxRms = rms;
+
+      let zeroCrossings = 0;
+      for (let i = 1; i < bufferLength; i++) {
+        if ((dataArray[i - 1] >= 128) !== (dataArray[i] >= 128)) zeroCrossings++;
+      }
+      const zcr = zeroCrossings / bufferLength;
+      frameRmsValues.push(rms);
+      frameZcrValues.push(zcr);
 
       if (rms > SPEECH_THRESHOLD) {
         const now = performance.now();
