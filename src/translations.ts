@@ -693,7 +693,7 @@ const en: Dict = {
   'voice.pageHelp': 'You are on Help and Dispute. You can contact support or raise a dispute about an order or transaction.',
   'voice.pageSettings': 'You are on Settings. You can change the language between English, Telugu, and Hindi.',
   'voice.pageFpo': 'You are on the FPO Network. You can connect with nearby FPOs, view member crops, and manage cluster invitations.',
-  'voice.pageFeatures': 'You are on the Requests summary. You can review open requests from farmers, cold storage, and transport.'
+  'voice.pageFeatures': 'You are on the Requests summary. You can review open requests from farmers, cold storage, and transport.',
   'voice.pageLogin': 'You are on the login page. Say the role you want to log in as, such as Farmer, Buyer, FPO, Storage Provider, or Transport Provider.',
   'voice.loginFarmerWelcome': 'Welcome to Farmer login. I will help you log in step by step.',
   'voice.pageLoginFarmer': 'This is the Farmer login screen. Please tell me your mobile number.',

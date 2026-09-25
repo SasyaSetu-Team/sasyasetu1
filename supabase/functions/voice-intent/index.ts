@@ -277,9 +277,9 @@ const CONTINUE_CROP_WORDS: Record<string, string[]> = {
 };
 
 const READ_SCREEN_WORDS: Record<string, string[]> = {
-  en: ["read screen", "what's on screen", "what is on screen", "read page", "what do you see", "describe page", "read aloud", "what's here", "what is here"],
-  te: ["స్క్రీన్ చదవండి", "పేజీ చదవండి", "ఇందులో ఏమి ఉంది", "చదివి వినిపించు"],
-  hi: ["स्क्रीन पढ़ो", "पेज पढ़ो", "यहाँ क्या है", "यहां क्या है", "पढ़कर सुनाओ"],
+  en: ["read screen", "what's on screen", "what is on screen", "read page", "what do you see", "describe page", "read aloud", "what's here", "what is here", "tell me what's here", "tell me what is here", "dictate this page", "dictate the page", "narrate this page", "narrate the page", "what's on this page", "what is on this page"],
+  te: ["స్క్రీన్ చదవండి", "పేజీ చదవండి", "ఇందులో ఏమి ఉంది", "చదివి వినిపించు", "ఇక్కడ ఏమి ఉంది చెప్పండి", "ఈ పేజీ చదివి వినిపించు"],
+  hi: ["स्क्रीन पढ़ो", "पेज पढ़ो", "यहाँ क्या है", "यहां क्या है", "पढ़कर सुनाओ", "बताओ यहाँ क्या है", "यह पेज पढ़कर सुनाओ", "इस पेज को बोलो"],
 };
 
 const ROLE_MAP: { lang: string; patterns: string[]; role: string }[] = [
