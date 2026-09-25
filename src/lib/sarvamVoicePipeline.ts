@@ -215,11 +215,19 @@ async function callSarvamSTT(audioBlob: Blob, language: SarvamLang, mode?: 'tran
   formData.append('language', language);
   if (mode) formData.append('stt_mode', mode);
 
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/sarvam-stt`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
-    body: formData,
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  let res: Response;
+  try {
+    res = await fetch(`${SUPABASE_URL}/functions/v1/sarvam-stt`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      body: formData,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
   console.log('[sarvam] STT fetch done', { sttMs: (performance.now() - t0).toFixed(0), status: res.status, mode: mode ?? 'default' });
   emitDebug('sarvam STT done', `${(performance.now() - t0).toFixed(0)}ms status=${res.status} mode=${mode ?? 'default'}`);
 
@@ -255,14 +263,22 @@ async function callVoiceIntent(
     screenContent: context?.screenContent ?? null,
   };
 
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/voice-intent`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify(body),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  let res: Response;
+  try {
+    res = await fetch(`${SUPABASE_URL}/functions/v1/voice-intent`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
   console.log('[sarvam] intent fetch done', { intentMs: (performance.now() - t0).toFixed(0), status: res.status });
   emitDebug('sarvam intent done', `${(performance.now() - t0).toFixed(0)}ms status=${res.status}`);
 
@@ -288,14 +304,22 @@ async function callSarvamTTS(text: string, lang: SarvamLang): Promise<Blob> {
     return cached;
   }
   const t0 = performance.now();
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/sarvam-tts`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify({ text, target_language_code: lang }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  let res: Response;
+  try {
+    res = await fetch(`${SUPABASE_URL}/functions/v1/sarvam-tts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ text, target_language_code: lang }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!res.ok) {
     const errBody = await res.text();

@@ -82,7 +82,7 @@ export async function fetchIntent(
 
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-intent`;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000);
+  const timeout = setTimeout(() => controller.abort(), 5000);
   try {
     const res = await fetch(url, {
       method: 'POST',

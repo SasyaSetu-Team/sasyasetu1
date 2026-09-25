@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const SARVAM_STT_URL = "https://api.sarvam.ai/speech-to-text";
-const SARVAM_TIMEOUT_MS = 30000;
+const SARVAM_TIMEOUT_MS = 5000;
 
 const VALID_LANGUAGES = new Set(["en-IN", "hi-IN", "te-IN"]);
 
