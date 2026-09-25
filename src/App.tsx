@@ -171,25 +171,26 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         if (retryAudio) {
           playAudioBlob(retryAudio, () => {
             speakingRef.current = false;
-            drainRef.current();
+            if (appSpeakingRef) appSpeakingRef.current = false;
             if (sessionRef.current) {
               setConv('WAIT_FOR_SPEECH');
               setTimeout(() => {
                 if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
               }, 400);
             }
+            drainRef.current();
           });
         } else {
           emitDebug('sarvam turn', 'Sarvam TTS retry also failed — skipping audible reply');
           speakingRef.current = false;
           if (appSpeakingRef) appSpeakingRef.current = false;
-          drainRef.current();
           if (sessionRef.current) {
             setConv('WAIT_FOR_SPEECH');
             setTimeout(() => {
               if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
             }, 400);
           }
+          drainRef.current();
         }
       } else {
         speakingRef.current = false;
@@ -208,7 +209,6 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     playAudioBlob(result.replyAudio, () => {
       speakingRef.current = false;
       if (appSpeakingRef) appSpeakingRef.current = false;
-      drainRef.current();
       if (sessionRef.current) {
         const stepAfterPlay = stateRef.current.step;
         const isLoginView = currentViewRef.current.startsWith('login-');
@@ -231,6 +231,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
           if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
         }, 400);
       }
+      drainRef.current();
     });
   }, [processSarvamVoiceTurn, narrateScreen, setConv, t]);
 
@@ -246,7 +247,6 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     const onAudioEnded = () => {
       speakingRef.current = false;
       if (appSpeakingRef) appSpeakingRef.current = false;
-      drainRef.current();
       if (sessionRef.current) {
         const isLoginV = currentViewRef.current.startsWith('login-');
         const stepAfter = stateRef.current.step;
@@ -269,6 +269,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
           if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
         }, postDelay);
       }
+      drainRef.current();
     };
     const audio = await speakTextViaSarvam(text, languageRef.current);
     if (!audio) {
@@ -278,7 +279,6 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
         emitDebug('speakSarvam', 'Sarvam TTS retry also failed — skipping audible reply');
         speakingRef.current = false;
         if (appSpeakingRef) appSpeakingRef.current = false;
-        drainRef.current();
         if (sessionRef.current) {
           const isLoginV = currentViewRef.current.startsWith('login-');
           const stepAfter = stateRef.current.step;
@@ -300,6 +300,7 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
             if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
           }, postDelay);
         }
+        drainRef.current();
         return;
       }
       playAudioBlob(retryAudio, onAudioEnded);
@@ -314,11 +315,12 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     const pending = appPendingNarrationRef.current;
     if (!pending) return;
     if (appSpeakingRef.current) return;
+    if (speakingRef.current) return;
     appPendingNarrationRef.current = null;
     narrationQueuedRef.current = false;
     emitDebug('narration drain', `draining queued narration: "${pending.slice(0, 50)}"`);
-    if (speakNarrationOnly) speakNarrationOnly(pending);
-  }, [appPendingNarrationRef, appSpeakingRef, speakNarrationOnly]);
+    speakSarvamAndListenRef.current(pending);
+  }, [appPendingNarrationRef, appSpeakingRef]);
 
   useEffect(() => { drainRef.current = drainPendingNarration; }, [drainPendingNarration]);
 
@@ -405,13 +407,13 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
     } else {
       speakingRef.current = false;
       if (appSpeakingRef) appSpeakingRef.current = false;
-      drainRef.current();
       if (sessionRef.current) {
         setConv('WAIT_FOR_SPEECH');
         setTimeout(() => {
           if (sessionRef.current && !speakingRef.current && !appSpeakingRef?.current) startSarvamTurn();
         }, 400);
       }
+      drainRef.current();
     }
   }, [processUtteranceAsync, speakSarvamAndListen, startSarvamTurn, setConv]);
 
