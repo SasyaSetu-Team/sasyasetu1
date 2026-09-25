@@ -81,6 +81,8 @@ export async function fetchIntent(
   };
 
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-intent`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
   try {
     const res = await fetch(url, {
       method: 'POST',
@@ -89,6 +91,7 @@ export async function fetchIntent(
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
       },
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
     if (!res.ok) return null;
     const data = await res.json() as EdgeFunctionResponse;
@@ -99,6 +102,8 @@ export async function fetchIntent(
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[voice] fetchIntent — caught error:', msg);
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -166,8 +171,10 @@ export function translateResponse(data: EdgeFunctionResponse, lang: string): Int
       result.continueCrop = true;
       break;
     case 'read_screen':
+    case 'describe':
       result.readScreen = true;
       if (data.description) result.description = data.description;
+      if (data.speech_reply) result.speechReply = data.speech_reply;
       break;
     case 'field_change':
       result.fieldChange = sub ?? undefined;

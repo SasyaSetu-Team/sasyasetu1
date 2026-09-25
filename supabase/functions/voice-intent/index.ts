@@ -30,13 +30,15 @@ interface LlmIntentResult {
 // ── Gemini API call ───────────────────────────────────────────────────────
 
 const GEMINI_MODEL = "gemini-3.6-flash";
-const GEMINI_TIMEOUT_MS = 12000;
-// v2: updated model + timeout
+const GEMINI_TIMEOUT_MS = 10000;
 
 function buildSystemPrompt(): string {
   return [
     "You are the intent parser for Sasya Setu, a multilingual (English, Telugu, Hindi) agricultural app.",
     "Given a voice transcript and the current app context, determine the user's intent.",
+    "You understand natural, informal, and imperfectly-phrased requests — map them to the closest reasonable action.",
+    "Never return 'unknown' unless you genuinely cannot determine any usable intent (confidence below 0.15).",
+    "Always attempt your best interpretation first, the way a human assistant would infer intent from imperfect phrasing.",
     "",
     "Return ONLY a JSON object with exactly these fields:",
     '{ "intent": string, "sub_target": string | null, "slots": object, "confidence": number, "speech_reply": string }',
@@ -45,19 +47,84 @@ function buildSystemPrompt(): string {
     "  that acknowledges the intent and guides the user on what to do or say next.",
     "  Be context-aware: if the user is on the Crops tab and says 'add crop', tell them to say the crop name.",
     "  If navigating, confirm the destination. If confirming, ask for yes/no.",
+    "  If describing, summarize the key information you see in the screen content.",
     "  Keep it under 2 sentences. Do not repeat the raw transcript.",
     "",
     "Intent values (use the closest match):",
-    "  navigate, add_crop, mark_harvested, post_demand, start_journey,",
-    "  open_map, pay_balance, language, role_select, read_screen,",
+    "  navigate, add_crop, mark_harvested, describe, language, role_select,",
     "  confirm, cancel_confirm, back, stop, undo, redo,",
     "  fill_slot, field_change, cancel_crop, continue_crop,",
     "  voice_login, login_mobile, login_otp, login_category, unknown",
     "",
-    "sub_target: the destination view for navigate (e.g. \"crops\", \"market\", \"storage\",",
-    "  \"transport\", \"calendar\", \"fpo\", \"help\", \"home\", \"profile\", \"tutorials\",",
-    "  \"orders\", \"deals\", \"settings\", \"notifications\"), or the role for role_select",
-    '  (e.g. "Farmer", "Buyer", "FPO", "Storage Provider", "Transport Provider"),',
+    "AVAILABLE TABS / ROUTES (use these exact strings for sub_target when intent is 'navigate'):",
+    "  Farmer role:",
+    "    crops           — My Crops (farmer's own crop listings, upcoming & harvested)",
+    "    market          — Market / Explore Crops (browse crops for sale)",
+    "    calendar        — Harvest Calendar (see harvest dates and timing)",
+    "    transport-options — Transport options (book or view transport)",
+    "    storage         — Storage (find or manage cold storage)",
+    "    fpo             — FPO Network (farmer producer organization network)",
+    "    tutorials       — Tutorials (learn how to use the app)",
+    "    help            — Help & Dispute (get help or resolve disputes)",
+    "    crop-create     — Add a new crop listing",
+    "    crop-detail     — View details of a specific crop",
+    "    farmeye-detail  — View satellite/verification details for a crop",
+    "  Buyer role:",
+    "    market          — Explore Crops (browse and buy crops)",
+    "    orders          — My Orders (track purchases)",
+    "    buyer-crop-detail — View details of a crop to buy",
+    "    buyer-payment   — Payment / checkout for a crop purchase",
+    "    deals           — Deals and special offers",
+    "    tutorials       — Tutorials",
+    "    help            — Help & Dispute",
+    "  FPO role:",
+    "    crops           — Member Crops (crops from FPO members)",
+    "    market          — Market",
+    "    calendar        — Harvest Calendar",
+    "    transport-options — Transport Provider",
+    "    storage         — Storage",
+    "    tutorials       — Tutorials",
+    "    help            — Help & Dispute",
+    "  Storage Provider role:",
+    "    storage         — Storage Requests (manage incoming requests)",
+    "    approvals       — My Approvals (approve or reject storage requests)",
+    "    tutorials       — Tutorials",
+    "    help            — Help & Dispute",
+    "  Transport Provider role:",
+    "    features        — Requests (view transport requests)",
+    "    journey         — Live Journey (track active trips)",
+    "    tutorials       — Tutorials",
+    "    help            — Help & Dispute",
+    "  All roles:",
+    "    home            — Home screen",
+    "    profile         — User profile",
+    "    settings        — Settings",
+    "    dispute         — Dispute resolution",
+    "",
+    "NAVIGATION GUIDELINES:",
+    "  Map natural-language requests to the correct tab even if the user doesn't use the exact tab name.",
+    "  Examples:",
+    '    "I want to buy a crop" (buyer) → navigate, sub_target: "market"',
+    '    "I want to know when tomato was harvested" → describe (if on a crop page) or navigate to "calendar"',
+    '    "take me to storage requests" (storage provider) → navigate, sub_target: "storage"',
+    '    "show me my trips" (transport provider) → navigate, sub_target: "journey"',
+    '    "what orders do I have" (buyer) → navigate, sub_target: "orders"',
+    '    "I want to sell my crop" (farmer) → navigate, sub_target: "crop-create"',
+    '    "show me my field" (farmer) → navigate, sub_target: "crops"',
+    '    "where can I store my produce" → navigate, sub_target: "storage"',
+    "",
+    "DESCRIBE INTENT (new):",
+    "  Use when the user asks for details, summary, status, or 'what is here/about X'.",
+    "  Examples: 'what\'s here', 'tell me about this page', 'give me details about tomato',",
+    "    'when was tomato harvested', 'what\'s the status of my crops', 'summarize this'.",
+    "  When the screen_content is provided, generate speech_reply FROM THE ACTUAL DATA shown.",
+    "  If the user asks about a specific crop and screen_content contains that crop's data (harvest date,",
+    "    quantity, price, status), include the REAL values in speech_reply — do not use generic templates.",
+    "  If the requested information is not on the current screen, set sub_target to the most relevant tab",
+    "    and mention in speech_reply that they should navigate there.",
+    "",
+    "sub_target: the destination view for navigate (use the exact strings from the list above),",
+    "  or the role for role_select (e.g. 'Farmer', 'Buyer', 'FPO', 'Storage Provider', 'Transport Provider'),",
     "  or the field name for field_change, or null if not applicable.",
     "",
     "slots: key-value pairs extracted from the transcript, e.g.",
@@ -65,6 +132,8 @@ function buildSystemPrompt(): string {
     "  Empty object {} if no slots.",
     "",
     "confidence: your confidence from 0.0 to 1.0.",
+    "  Only use 0.0-0.15 if you truly cannot determine any intent.",
+    "  Even vague or imperfect requests should get at least 0.3 if you can make a reasonable guess.",
     "",
     "Respond with ONLY the JSON object. No markdown, no explanation, no code fences.",
   ].join("\n");
@@ -277,9 +346,9 @@ const CONTINUE_CROP_WORDS: Record<string, string[]> = {
 };
 
 const READ_SCREEN_WORDS: Record<string, string[]> = {
-  en: ["read screen", "what's on screen", "what is on screen", "read page", "what do you see", "describe page", "read aloud", "what's here", "what is here", "tell me what's here", "tell me what is here", "dictate this page", "dictate the page", "narrate this page", "narrate the page", "what's on this page", "what is on this page"],
-  te: ["స్క్రీన్ చదవండి", "పేజీ చదవండి", "ఇందులో ఏమి ఉంది", "చదివి వినిపించు", "ఇక్కడ ఏమి ఉంది చెప్పండి", "ఈ పేజీ చదివి వినిపించు"],
-  hi: ["स्क्रीन पढ़ो", "पेज पढ़ो", "यहाँ क्या है", "यहां क्या है", "पढ़कर सुनाओ", "बताओ यहाँ क्या है", "यह पेज पढ़कर सुनाओ", "इस पेज को बोलो"],
+  en: ["read screen", "what's on screen", "what is on screen", "read page", "what do you see", "describe page", "read aloud", "what's here", "what is here", "tell me what's here", "tell me what is here", "dictate this page", "dictate the page", "narrate this page", "narrate the page", "what's on this page", "what is on this page", "give me details", "tell me about", "what's the status", "what is the status", "summarize", "when was", "when is", "tell me about this", "what can you tell me", "give me the details"],
+  te: ["స్క్రీన్ చదవండి", "పేజీ చదవండి", "ఇందులో ఏమి ఉంది", "చదివి వినిపించు", "ఇక్కడ ఏమి ఉంది చెప్పండి", "ఈ పేజీ చదివి వినిపించు", "వివరాలు చెప్పండి", "గురించి చెప్పండి", "స్థితి ఏమిటి"],
+  hi: ["स्क्रीन पढ़ो", "पेज पढ़ो", "यहाँ क्या है", "यहां क्या है", "पढ़कर सुनाओ", "बताओ यहाँ क्या है", "यह पेज पढ़कर सुनाओ", "इस पेज को बोलो", "विवरण दें", "बारे में बताओ", "स्थिति क्या है"],
 };
 
 const ROLE_MAP: { lang: string; patterns: string[]; role: string }[] = [
@@ -512,7 +581,7 @@ function parseIntent(req: IntentRequestLegacy): IntentResponse {
   }
 
   if (matchAny(lower, READ_SCREEN_WORDS[lang] || [])) {
-    return { intent: "read_screen", readScreen: true, confidence: 0.9 };
+    return { intent: "describe", readScreen: true, confidence: 0.9 };
   }
 
   if (matchAny(lower, BACK_WORDS[lang] || [])) {
@@ -742,14 +811,18 @@ Deno.serve(async (req: Request) => {
       screenContent: body.screenContent ?? null,
     };
 
-    // Try Gemini LLM first, fall back to rule-based parser
+    // Try Gemini LLM first, fall back to rule-based parser only if Gemini fails entirely
     const llmResult = await callGemini(reqData);
     const result = llmResult ?? ruleBasedFallback(reqData);
     const source = llmResult ? "gemini" : "rules";
 
     let description: string | null = null;
-    if (result.intent === "read_screen" && reqData.screenContent) {
+    if ((result.intent === "read_screen" || result.intent === "describe") && reqData.screenContent) {
       description = await describeScreen(reqData.screenContent, reqData.language);
+      // If Gemini's speech_reply is empty or generic and we got a real description, use it
+      if (description && result.intent === "describe" && (!result.speech_reply || result.speech_reply.length < 10)) {
+        result.speech_reply = description;
+      }
     }
 
     return new Response(
