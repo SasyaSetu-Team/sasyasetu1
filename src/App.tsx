@@ -536,23 +536,25 @@ function VoiceModal({ close, t, language, open, currentView, setFormDraft, formD
             ))}
           </div>
         )}
-        {sessionActive && (
+        {import.meta.env.DEV && sessionActive && (
           <div style={{ padding: '4px 12px 8px', fontSize: '10px', fontFamily: 'monospace', color: '#888', borderTop: '1px solid #eee' }}>
             [DEBUG] conv: {convState} | step: {debugStep} | intent: {state.activeIntent ?? 'none'}{state.awaitingConfirmation ? ' | awaitingConfirm' : ''}
           </div>
         )}
-        <div style={{ padding: '6px 12px 10px', fontSize: '11px', fontFamily: 'monospace', color: '#333', background: '#fffaeb', borderTop: '2px solid #f59e0b', maxHeight: '240px', overflowY: 'auto' }}>
-          <div style={{ fontWeight: 700, marginBottom: '4px', color: '#b45309' }}>VOICE DEBUG PANEL</div>
-          <div style={{ marginBottom: '4px', color: '#92400e' }}>Synth: {synthSnapshot || '(no events yet)'}</div>
-          {debugEvents.length === 0 && <div style={{ color: '#aaa' }}>No events yet. Tap a role card to start.</div>}
-          {debugEvents.map((e, i) => (
-            <div key={i} style={{ borderBottom: '1px dotted #ddd', paddingBottom: '2px', marginBottom: '2px' }}>
-              <span style={{ color: '#666' }}>{e.time}</span>{' '}
-              <strong style={{ color: e.label.includes('error') || e.label.includes('threw') ? '#dc2626' : '#065f46' }}>{e.label}</strong>{' '}
-              <span style={{ color: '#444' }}>{e.detail}</span>
-            </div>
-          ))}
-        </div>
+        {import.meta.env.DEV && (
+          <div style={{ padding: '6px 12px 10px', fontSize: '11px', fontFamily: 'monospace', color: '#333', background: '#fffaeb', borderTop: '2px solid #f59e0b', maxHeight: '240px', overflowY: 'auto' }}>
+            <div style={{ fontWeight: 700, marginBottom: '4px', color: '#b45309' }}>VOICE DEBUG PANEL</div>
+            <div style={{ marginBottom: '4px', color: '#92400e' }}>Synth: {synthSnapshot || '(no events yet)'}</div>
+            {debugEvents.length === 0 && <div style={{ color: '#aaa' }}>No events yet. Tap a role card to start.</div>}
+            {debugEvents.map((e, i) => (
+              <div key={i} style={{ borderBottom: '1px dotted #ddd', paddingBottom: '2px', marginBottom: '2px' }}>
+                <span style={{ color: '#666' }}>{e.time}</span>{' '}
+                <strong style={{ color: e.label.includes('error') || e.label.includes('threw') ? '#dc2626' : '#065f46' }}>{e.label}</strong>{' '}
+                <span style={{ color: '#444' }}>{e.detail}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
